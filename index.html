@@ -200,7 +200,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;defaultLabels&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pd&quot;,&quot;ld&quot;,&quot;sx&quot;,&quot;none&quot;],&quot;default&quot;:&quot;pd&quot;,&quot;tsType&quot;:&quot;'pd'|'ld'|'sx'|'none'&quot;},&quot;defaultStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;,&quot;vis&quot;,&quot;panel&quot;,&quot;gold&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'|'vis'|'panel'|'gold'&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultLabels&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pd&quot;,&quot;ld&quot;,&quot;sx&quot;,&quot;none&quot;],&quot;default&quot;:&quot;sx&quot;,&quot;tsType&quot;:&quot;'pd'|'ld'|'sx'|'none'&quot;},&quot;defaultStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;,&quot;vis&quot;,&quot;panel&quot;,&quot;gold&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'light'|'dark'|'vis'|'panel'|'gold'&quot;}}">
 const THEMES = {
   light: { page:'#f3f2f2', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
     devBg:'var(--color-neutral-400)', devBorder:'2px solid #201e1d', face:'#201e1d', faceRadius:'0', strip:'var(--color-neutral-300)',
@@ -296,8 +296,8 @@ class Component extends DCLogic {
     const l = q.get('labels'), s = q.get('style');
     return {
       exWhat: 'panel', exLook: 'color',
-      labels: ['pd','ld','sx','none'].includes(l) ? l : (this.props.defaultLabels ?? 'pd'),
-      style: ['light','dark','vis','panel','gold'].includes(s) ? s : (this.props.defaultStyle ?? 'light')
+      labels: ['pd','ld','sx','none'].includes(l) ? l : (this.props.defaultLabels ?? 'sx'),
+      style: ['light','dark','vis','panel','gold'].includes(s) ? s : (this.props.defaultStyle ?? 'dark')
     };
   })();
 

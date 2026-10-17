@@ -318,7 +318,7 @@ function md2html(md, t) {
 
 class Component extends DCLogic {
   panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef();
-  state = Object.assign({ preset: 'pd', style: 'light', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', size: 100, faceCol: null, padCol: null, tableMode: 'off' },
+  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', size: 100, faceCol: null, padCol: null, tableMode: 'off' },
     (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(), (() => { const q = new URLSearchParams(location.search), o = {};
       if (['pd','ld','sx','blank'].includes(q.get('preset'))) o.preset = q.get('preset');
       if (['light','dark','vis','panel','gold'].includes(q.get('style'))) o.style = q.get('style');
