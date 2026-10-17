@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/styles.css">
+<script src="_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/_ds_bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>body{margin:0;font-family:var(--font-body)}a{color:inherit;text-underline-offset:3px}a:hover{color:var(--color-accent)}input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}</style>
+</helmet>
+<div style="min-height:100vh;background:{{ t.page }};color:{{ t.text }};font-family:var(--font-body)">
+<div style="max-width:1280px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">
+  <header style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px 32px;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 480px;min-width:0">
+      <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase"><a href="{{ libHref }}" style="color:{{ t.muted }};text-decoration:none">Label library</a><span style="color:{{ t.kicker }};border-bottom:2px solid {{ t.kicker }}">Label editor</span></nav>
+      <p style="margin:0;max-width:640px;font-size:15px;line-height:1.5;text-wrap:pretty">Start from a label set, rename any control, add a function line, drag labels into place and add your own. Everything is saved in this browser.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export</span>
+      <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button onClick="{{ doPng }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
+        <button onClick="{{ doHtml }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Download HTML</button>
+      </div>
+      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
+    </div>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Start from</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ presetOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Table</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ tableOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Your labels</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ ownOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Style</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ styleOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
+    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font</span>
+      <select value="{{ font }}" onChange="{{ onFont }}" style="font:500 13px var(--font-body);padding:6px 8px;border:2px solid {{ t.text }};background:{{ t.page }};color:{{ t.text }};border-radius:0">
+        <sc-for list="{{ fontOpts }}" as="f" hint-placeholder-count="6"><option value="{{ f }}">{{ f }}</option></sc-for>
+      </select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Size</span>
+      <input type="range" min="60" max="180" step="5" value="{{ size }}" onChange="{{ onSize }}" style="width:120px;accent-color:{{ t.active }}">
+      <span style="font-size:13px;min-width:3em">{{ sizeTxt }}</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Faceplate labels</span>
+      <input type="color" value="{{ faceCol }}" onChange="{{ onFaceCol }}" style="width:36px;height:30px;padding:0;border:2px solid {{ t.text }};background:none;border-radius:0">
+    </label>
+    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Pad labels</span>
+      <input type="color" value="{{ padCol }}" onChange="{{ onPadCol }}" style="width:36px;height:30px;padding:0;border:2px solid {{ t.text }};background:none;border-radius:0">
+    </label>
+    <button onClick="{{ resetLook }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Reset look</button>
+  </div>
+
+  <div ref="{{ exportRef }}" style="display:flex;flex-direction:column;gap:24px;background:{{ t.page }};width:{{ ex.w }}">
+    <input value="{{ title }}" onChange="{{ onTitle }}" placeholder="Title" style="font:800 40px/1.05 var(--font-heading);margin:0;padding:0;border:0;background:transparent;color:{{ t.text }};width:100%;outline:none">
+    <div style="display:flex;flex-wrap:{{ ex.wrap }};gap:40px;align-items:flex-start">
+      <div ref="{{ panelRef }}" style="position:relative;flex:none;width:min(100%, max(380px, calc((100dvh - 48px) * {{ ratio }})));aspect-ratio:{{ aspect }};background:{{ t.devBg }};border:{{ t.devBorder }};box-sizing:border-box;font-family:var(--font-body)">
+      <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ isGold }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_gold.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
+        <sc-if value="{{ isPrintSvg }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_print.svg" alt="Simple Touch panel line art" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
+        <sc-if value="{{ isGray }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
+      </sc-if>
+      <sc-if value="{{ isAbstract }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:0.8%;top:6.1%;width:98.6%;height:53.4%;background:{{ t.face }};border-radius:{{ t.faceRadius }};border:{{ t.faceBorder }};box-sizing:border-box"></div>
+        <div style="position:absolute;left:47%;top:6.1%;width:52.4%;height:19%;background:{{ t.strip }};clip-path:polygon(40% 0,100% 0,100% 100%,30% 100%,0 0)"></div>
+        <svg viewBox="0 0 825 1277" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+          <g fill="{{ t.padFill }}" stroke="{{ t.padStroke }}" stroke-width="{{ t.padSW }}" stroke-linejoin="round">
+            <polygon points="255,12 440,12 432,70 268,72"></polygon>
+            <polygon points="452,12 640,12 628,72 460,70"></polygon>
+            <polygon fill="{{ t.padTop }}" points="150,770 335,770 345,895 175,905"></polygon>
+            <polygon fill="{{ t.padTop }}" points="345,770 500,770 480,900 360,895"></polygon>
+            <polygon fill="{{ t.padTop }}" points="510,770 680,770 690,900 490,905"></polygon>
+            <polygon points="15,930 160,915 165,1265 15,1265"></polygon>
+            <polygon points="175,905 325,905 330,1140 185,1145"></polygon>
+            <polygon points="340,905 440,920 445,1265 335,1265"></polygon>
+            <polygon points="455,915 690,910 690,1145 455,1140"></polygon>
+            <polygon points="700,925 815,915 815,1265 700,1265"></polygon>
+            <polygon points="120,1160 325,1155 330,1265 110,1265"></polygon>
+            <polygon points="460,1155 690,1160 690,1265 460,1265"></polygon>
+          </g>
+        </svg>
+        <div style="position:absolute;left:6.7%;top:11.7%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
+        <div style="position:absolute;left:6.7%;top:23.6%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
+        <div style="position:absolute;left:6.7%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
+        <div style="position:absolute;left:93.5%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
+        <sc-for list="{{ knobs }}" as="k" hint-placeholder-count="6">
+          <div style="position:absolute;left:{{ k.l }};top:{{ k.t }};width:9%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:{{ t.knobBorder }};background:{{ t.knobFill }}"></div>
+        </sc-for>
+        <div style="position:absolute;left:36.1%;top:66.4%;width:11%;height:2.6%;transform:translate(-50%,-50%) rotate(-4deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
+        <div style="position:absolute;left:55.5%;top:71%;width:4.5%;height:6.6%;transform:translate(-50%,-50%) rotate(25deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
+        <div style="position:absolute;left:85.1%;top:13.7%;width:3%;height:1.2%;transform:translate(-50%,-50%);background:{{ t.led }};outline:{{ t.ledOutline }}"></div>
+      </sc-if>
+
+      <div style="position:absolute;inset:0;font-size:{{ lblSize }};font-family:{{ lblFont }};font-weight:700;line-height:1.1">
+        <sc-for list="{{ labels }}" as="l" hint-placeholder-count="0">
+          <span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:{{ l.tf }};background:{{ l.bg }};color:{{ l.fg }};padding:{{ l.pad }};outline:{{ l.outline }};white-space:nowrap;display:flex;align-items:center;gap:5px;opacity:{{ l.op }};background-image:{{ l.strike }};cursor:grab;touch-action:none;user-select:none" onPointerDown="{{ l.onDown }}">
+            <sc-if value="{{ l.name }}" hint-placeholder-val="{{ true }}">
+              <span style="display:flex;flex-direction:column;gap:1px;align-items:{{ l.align }}">
+                <span>{{ l.name }}</span>
+                <sc-if value="{{ l.sub }}" hint-placeholder-val="{{ false }}"><span style="font-size:.82em;font-weight:500;opacity:.85">{{ l.sub }}</span></sc-if>
+              </span>
+            </sc-if>
+            <sc-if value="{{ l.sw }}" hint-placeholder-val="{{ false }}">
+              <span style="display:flex;flex-direction:{{ l.swDir }};align-items:center;gap:2px">
+                <sc-if value="{{ l.a }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.a }}</span></sc-if>
+                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span>
+                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor;opacity:.65">0</span>
+                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span>
+                <sc-if value="{{ l.b }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.b }}</span></sc-if>
+              </span>
+            </sc-if>
+          </span>
+        </sc-for>
+      </div>
+    </div>
+
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:20px;min-width:0;flex:1 1 380px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
+          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Controls</span>
+          <span style="font-size:13px;color:{{ t.muted }}">Drag labels on the drawing to move them</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) minmax(0,1.3fr);gap:6px 8px;align-items:center">
+          <span style="font-size:12px;color:{{ t.muted }}">Control</span><span style="font-size:12px;color:{{ t.muted }}">Set name</span><span style="font-size:12px;color:{{ t.muted }}">Your label (optional)</span>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+            <span style="font-size:13px;font-weight:700">{{ r.key }}</span>
+            <input value="{{ r.name }}" placeholder="{{ r.ph }}" onChange="{{ r.onName }}" onFocus="{{ r.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
+            <input value="{{ r.sub }}" placeholder="{{ r.ex }}" onChange="{{ r.onSub }}" onFocus="{{ r.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
+          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Extra labels</span>
+          <button onClick="{{ addCustom }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">+ Add label</button>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:6px 8px;align-items:center">
+          <sc-for list="{{ customs }}" as="c" hint-placeholder-count="0">
+            <input value="{{ c.text }}" placeholder="Label" onChange="{{ c.onText }}" onFocus="{{ c.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
+            <input value="{{ c.sub }}" placeholder="Function" onChange="{{ c.onSub }}" onFocus="{{ c.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
+            <button onClick="{{ c.onRemove }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0;padding:4px 10px">Remove</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:2px solid {{ t.rule }};padding-top:12px">
+          <button onClick="{{ loadTouchBass }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Load TouchBass example</button>
+          <button onClick="{{ resetPos }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Reset positions</button>
+          <button onClick="{{ clearEdits }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Clear label edits</button>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead><tr><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }};padding-left:0;width:22%">Control</th><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }};width:28%">Label</th><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">Function · notes</th></tr></thead>
+        <tbody>
+          <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
+            <tr><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }};padding-left:0"><b>{{ r.key }}</b></td><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.name }}</td><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.mine }}</td></tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </sc-if>
+
+    <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px">
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Notes · Markdown</span></sc-if>
+      <div style="display:grid;grid-template-columns:{{ ex.notesCols }};gap:24px;align-items:start">
+        <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+          <textarea value="{{ md }}" onChange="{{ onMd }}" placeholder="# Patch notes&#10;&#10;Describe what the knobs do, how to play it…" style="font:13px/1.5 ui-monospace,Menlo,monospace;min-height:260px;padding:10px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;resize:vertical;width:100%;box-sizing:border-box"></textarea>
+        </sc-if>
+        <div ref="{{ mdRef }}" style="font-size:15px;line-height:1.55;min-width:0;text-wrap:pretty"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer style="border-top:1px solid {{ t.hair }};padding-top:16px;font-size:13px;line-height:1.5;color:{{ t.muted }}">
+    Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const THEMES = {
+  light: { page:'#f3f2f2', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
+    devBg:'var(--color-neutral-400)', devBorder:'2px solid #201e1d', face:'#201e1d', faceRadius:'0', strip:'var(--color-neutral-300)',
+    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
+    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
+    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
+  dark: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
+    devBg:'var(--color-neutral-700)', devBorder:'2px solid var(--color-neutral-500)', face:'#0b0a0a', faceRadius:'0', strip:'var(--color-neutral-300)',
+    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
+    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
+    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
+  vis: { page:'#141414', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.35)', hair:'rgba(243,242,242,.14)', kicker:'#e3bb67',
+    devBg:'#4e4c4c', devBorder:'none', face:'#000', faceRadius:'6px', strip:'#d9a441',
+    padFill:'#e3bb67', padTop:'#c9b48e', padStroke:'#4e4c4c', padSW:12, knobBorder:'3px solid #fff', knobFill:'#1c1c1c',
+    fader:'#555', faderRadius:'20px', jack:'#555', sw:'#b3201c', swBorder:'2px solid #fff',
+    led:'#e08a3c', ledOutline:'1px solid #fff', chip:'#0a7d50', ink:'#0a7d50', padText:'#2b2219', inkOutline:'none', active:'#0a7d50' },
+  panel: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
+    devBg:'transparent', devBorder:'none', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'1px solid rgba(255,255,255,.35)', active:'var(--color-accent)' }
+};
+
+for (const k in THEMES) Object.assign(THEMES[k], { faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', ...THEMES[k] });
+const PRINT = { page:'#fff', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
+  devBg:'transparent', devBorder:'2px solid #201e1d', face:'transparent', faceBorder:'2px solid #201e1d', strip:'transparent',
+  padFill:'transparent', padTop:'transparent', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #201e1d', knobFill:'transparent',
+  fader:'transparent', faderBorder:'2px solid #201e1d', jack:'transparent', jackBorder:'2px solid #201e1d', sw:'transparent', swBorder:'2px solid #201e1d',
+  led:'transparent', ledOutline:'2px solid #201e1d', inkOutline:'none', plainFg:'#201e1d' };
+THEMES.gold = { ...THEMES.panel, faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', page:'#141414', kicker:'#e3bb67', chip:'#0a7d50', active:'#0a7d50' };
+const C = 'translate(-50%,-50%)', R = 'translate(-50%,-50%) rotate(-90deg)';
+// id: [pd name, pd sub, ld name, ld sub, abstract [l,t,tf,kind], panel [l,t,tf,kind]]
+const CTRL = [
+  ['adc', 'adc~ · audio in', null, 'in[0] · in[1]', 'pins 16 · 17', [12,11.7,'translateY(-50%)','chip'], [15,14.2,'translateY(-50%)','chip']],
+  ['dac', 'dac~ · audio out', null, 'out[0] · out[1]', 'pins 18 · 19', [12,23.6,'translateY(-50%)','chip'], [15,25.7,'translateY(-50%)','chip']],
+  ['led', 'daisyled', null, 'SetLed()', 'onboard', [85.1,12.4,'translate(-50%,-100%)','ink'], [86.4,14,C,'ink']],
+  ['fl', 'faderleft', null, 'A6 · D21', 'S36', [10,56,'translate(-50%,0)','chip'], [8.8,56.5,'translate(-30%,0)','chip']],
+  ['fr', 'faderright', null, 'A7 · D22', 'S37', [90,56,'translate(-50%,0)','chip'], [91.3,56.5,'translate(-70%,0)','chip']],
+  ['k2', 'knob2', null, 'A1 · D16', 'S31', [21.5,40.6,C,'plain'], [23.1,40.8,C,'chip']],
+  ['k3', 'knob3', null, 'A2 · D17', 'S32', [40.4,40.6,C,'plain'], [41.2,40.8,C,'chip']],
+  ['k4', 'knob4', null, 'A3 · D18', 'S33', [59.5,40.6,C,'plain'], [59.5,40.8,C,'chip']],
+  ['k5', 'knob5', null, 'A4 · D19', 'S34', [78.5,40.6,C,'plain'], [77.7,40.8,C,'chip']],
+  ['k1', 'knob1', null, 'A0 · D15', 'S30', [21.5,54.2,C,'plain'], [23.1,53.6,C,'chip']],
+  ['k6', 'knob6', null, 'A5 · D20', 'S35', [78.5,54.2,C,'plain'], [77.7,53.6,C,'chip']],
+  ['p10', 'touch_ch10', null, 'P10', null, [42.2,3.2,C,'pad'], [41.5,7.6,C,'chip']],
+  ['p11', 'touch_ch11', null, 'P11', null, [66.2,3.2,C,'pad'], [61,7.6,C,'chip']],
+  ['p0', 'touch_ch0', null, 'P0', null, [29.7,64.3,C,'pad'], [24.5,62.4,C,'ink']],
+  ['p1', 'touch_ch1', null, 'P1', null, [51,64.3,C,'pad'], [50,61.8,C,'ink']],
+  ['p2', 'touch_ch2', null, 'P2', null, [71,64.3,C,'pad'], [72,63.8,C,'ink']],
+  ['p3', 'touch_ch3', null, 'P3', null, [10.6,83,R,'pad'], [6.4,85,C,'ink']],
+  ['p4', 'touch_ch4', null, 'P4', null, [30.5,80,C,'pad'], [28,82,C,'ink']],
+  ['p5', 'touch_ch5', null, 'P5', null, [47.3,83,R,'pad'], [46,82,C,'ink']],
+  ['p6', 'touch_ch6', null, 'P6', null, [69.5,80,C,'pad'], [68,82,C,'ink']],
+  ['p7', 'touch_ch7', null, 'P7', null, [91.8,83,R,'pad'], [91.5,85,C,'ink']],
+  ['p8', 'touch_ch8', null, 'P8', null, [26.5,94.6,C,'pad'], [31,93.5,C,'ink']],
+  ['p9', 'touch_ch9', null, 'P9', null, [69.5,94.6,C,'pad'], [69,94,C,'ink']]
+];
+const SX = { adc:'audio in 1 · 2', dac:'audio out 1 · 2', led:'LED', fl:'S36', fr:'S37', k1:'S30', k2:'S31', k3:'S32', k4:'S33', k5:'S34', k6:'S35',
+  p0:'P0', p1:'P1', p2:'P2', p3:'P3', p4:'P4', p5:'P5', p6:'P6', p7:'P7', p8:'P8', p9:'P9', p10:'P10', p11:'P11' };
+const SX_SUB = { fl:'fader left', fr:'fader right', k1:'pot 0', k2:'pot 1', k3:'pot 2', k4:'pot 3', k5:'pot 4', k6:'pot 5' };
+const SW = [
+  { pd:'sw1', a:'D8', b:'D9', sa:'S09', sb:'S10', dir:'row', abs:[35.5,70,C,'ink'], pan:[38.5,69.4,C,'ink'] },
+  { pd:'sw2', a:'D7', b:'D6', sa:'S08', sb:'S07', dir:'column', abs:[63.5,71,C,'ink'], pan:[66,70.8,C,'ink'] }
+];
+
+
+const TOUCHBASS = {
+  preset: 'sx', own: 'below', title: 'TouchBass', offsets: {}, customs: [],
+  edits: {
+    k1: { sub: 'Osc 2 amount' }, k2: { sub: 'Osc 1 pitch' }, k3: { sub: 'Osc 2 pitch' }, k4: { sub: 'Pattern' },
+    k5: { sub: 'Pitch random' }, k6: { sub: 'Env random' }, fl: { sub: 'Filter cutoff' }, fr: { sub: 'Envelope' },
+    sw1: { sub: 'Osc 2: sound / AM' }, sw2: { sub: 'Arp off / on / latch' },
+    p10: { sub: 'Shift A' }, p11: { sub: 'Shift B' }, p0: { sub: '−' }, p2: { sub: '+' },
+    p3: { sub: 'note' }, p4: { sub: 'note' }, p5: { sub: 'note' }, p6: { sub: 'note' }, p7: { sub: 'note' }, p8: { sub: 'note' }, p9: { sub: 'note' }
+  },
+  md: [
+    '## TouchBass',
+    'Official Synthux firmware for the Simple Touch. Source and binary: [Synthux-Academy/TouchBass](https://github.com/Synthux-Academy/TouchBass).',
+    '',
+    '### Hold a shift pad',
+    '- **P10 + S31** · Osc 1 waveform, saw / square',
+    '- **P10 + S35** · reverb mix',
+    '- **P10 + S36** · filter resonance',
+    '- **P11 + S36** · filter envelope amount',
+    '- **P10 + P0 / P2** · arpeggiator speed − / +',
+    '- **P11 + P0 / P2** · pick one of three scales',
+    '- **P10 + P11** · mono / paraphonic',
+    '',
+    '### Switches',
+    '- **S07-S08** · arpeggiator off / on / latch',
+    '- **S09-S10** · Osc 2 mode: one position plays it as a sound, the other two use it for AM',
+    '',
+    '### MIDI CC',
+    '71 resonance · 72 envelope · 74 cutoff · 75 Osc 1 freq · 76 Osc 1 shape · 77 Osc 2 freq · 78 Osc 2 amount · 85 pattern · 86 note random · 87 env random · 91 reverb · 126 mono · 127 paraphonic'
+  ].join('\n')
+};
+const FONTS = ['Archivo','Space Grotesk','IBM Plex Sans','IBM Plex Mono','JetBrains Mono','Barlow Condensed','Oswald','Work Sans','DM Sans','DM Mono','Inter Tight','Rubik','Chakra Petch','Share Tech Mono'];
+const fontHref = f => 'https://fonts.googleapis.com/css2?family=' + f.replace(/ /g, '+') + ':wght@400;500;700&display=swap';
+const FACE_DEF = { light:'#ec3013', dark:'#ec3013', vis:'#0a7d50', panel:'#ec3013', gold:'#0a7d50' };
+const PAD_DEF = { light:'#201e1d', dark:'#201e1d', vis:'#2b2219', panel:'#201e1d', gold:'#201e1d' };
+const KNOB_C = { abs: { k2:[21.5,35.1], k3:[40.4,35.1], k4:[59.5,35.1], k5:[78.5,35.1], k1:[21.5,48.7], k6:[78.5,48.7] },
+  pan: { k2:[23.1,36.4], k3:[41.2,36.4], k4:[59.5,36.4], k5:[77.7,36.4], k1:[23.1,49.2], k6:[77.7,49.2] } };
+const FADER = { abs: { fl:[6.7,43.9,'translate(-25%,-50%)'], fr:[93.5,43.9,'translate(-75%,-50%)'] }, pan: { fl:[8.8,45.1,'translate(-25%,-50%)'], fr:[91.3,45.1,'translate(-75%,-50%)'] } };
+const textOn = hex => { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 150 ? '#201e1d' : '#fff'; };
+const PRESETS = [['pd','Pd / Plugdata'],['ld','libDaisy'],['sx','Synthux'],['blank','Blank']];
+const KEY = 'simpleTouchLabelEditor.v1';
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function inline(s, t) {
+  return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" style="color:inherit">$1</a>');
+}
+function md2html(md, t) {
+  const out = []; let list = null, para = [];
+  const flushP = () => { if (para.length) { out.push('<p style="margin:0 0 .8em">' + inline(para.join(' '), t) + '</p>'); para = []; } };
+  const flushL = () => { if (list) { out.push('</' + list + '>'); list = null; } };
+  for (const raw of (md || '').split('\n')) {
+    const line = raw.trimEnd(); let m;
+    if (!line.trim()) { flushP(); flushL(); continue; }
+    if ((m = line.match(/^(#{1,3})\s+(.*)/))) { flushP(); flushL(); const n = m[1].length; const sz = [0,28,21,17][n];
+      out.push('<h' + n + ' style="margin:.6em 0 .4em;font-family:var(--font-heading);font-weight:800;font-size:' + sz + 'px;line-height:1.15">' + inline(m[2], t) + '</h' + n + '>'); continue; }
+    if ((m = line.match(/^\s*[-*]\s+(.*)/)) || (m = line.match(/^\s*\d+\.\s+(.*)/))) { flushP(); const tag = /^\s*\d/.test(line) ? 'ol' : 'ul';
+      if (list !== tag) { flushL(); out.push('<' + tag + ' style="margin:0 0 .8em;padding-left:1.3em">'); list = tag; }
+      out.push('<li style="margin:.15em 0">' + inline(m[1], t) + '</li>'); continue; }
+    if (/^---+$/.test(line)) { flushP(); flushL(); out.push('<hr style="border:0;border-top:2px solid currentColor;margin:1em 0">'); continue; }
+    flushL(); para.push(line.trim());
+  }
+  flushP(); flushL();
+  return out.join('');
+}
+
+class Component extends DCLogic {
+  panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef();
+  state = Object.assign({ preset: 'pd', style: 'light', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', size: 100, faceCol: null, padCol: null, tableMode: 'off' },
+    (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(), (() => { const q = new URLSearchParams(location.search), o = {};
+      if (['pd','ld','sx','blank'].includes(q.get('preset'))) o.preset = q.get('preset');
+      if (['light','dark','vis','panel','gold'].includes(q.get('style'))) o.style = q.get('style');
+      if (o.preset === 'blank') o.tableMode = 'blank';
+      return o; })(), { busy: false, exporting: false, print: false });
+
+  componentDidMount() { this.renderMd(); this.loadFont(); }
+  loadFont() {
+    const f = this.state.font; if (!f || f === 'Archivo') return;
+    const id = 'gf-' + f.replace(/ /g, '-');
+    if (!document.getElementById(id)) { const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = fontHref(f); document.head.appendChild(l); }
+  }
+  componentDidUpdate() {
+    this.renderMd();
+    this.loadFont();
+    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, size, faceCol, padCol, tableMode } = this.state;
+    try { localStorage.setItem(KEY, JSON.stringify({ preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, size, faceCol, padCol, tableMode })); } catch (e) {}
+  }
+  renderMd() { const el = this.mdRef.current; if (el) { const h = md2html(this.state.md); if (el.__h !== h) { el.innerHTML = h; el.__h = h; } } }
+
+  preset(id) {
+    const p = this.state.preset, c = CTRL.find(x => x[0] === id);
+    if (c) return p === 'pd' ? [c[1], c[2]] : p === 'ld' ? [c[3], c[4]] : p === 'sx' ? [SX[id], SX_SUB[id] || null] : ['', null];
+    const s = SW[id === 'sw1' ? 0 : 1];
+    return [p === 'pd' ? s.pd : '', null];
+  }
+  setEdit(id, field, v) { this.setState(st => ({ edits: { ...st.edits, [id]: { ...(st.edits[id] || {}), [field]: v } } })); }
+  setCustom(i, patch) { this.setState(st => ({ customs: st.customs.map((c, j) => j === i ? { ...c, ...patch } : c) })); }
+
+  startDrag(e, key, isCustom, idx) {
+    e.preventDefault();
+    const el = this.panelRef.current; if (!el) return;
+    const r = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    const base = isCustom ? { x: this.state.customs[idx].x, y: this.state.customs[idx].y } : (this.state.offsets[key] || { x: 0, y: 0 });
+    this.setState({ sel: key });
+    const move = ev => {
+      const dx = (ev.clientX - x0) / r.width * 100, dy = (ev.clientY - y0) / r.height * 100;
+      const p = { x: +(base.x + dx).toFixed(2), y: +(base.y + dy).toFixed(2) };
+      if (isCustom) this.setCustom(idx, p); else this.setState(st => ({ offsets: { ...st.offsets, [key]: p } }));
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  }
+
+  chip(kind, t) {
+    if (kind === 'chip') return { bg: t.chip, fg: '#fff', pad: '3px 5px', outline: 'none' };
+    if (kind === 'ink') return { bg: t.ink, fg: '#fff', pad: '3px 5px', outline: t.inkOutline };
+    if (kind === 'plain') return { bg: 'transparent', fg: t.plainFg, pad: '0', outline: 'none' };
+    return { bg: 'transparent', fg: t.padText, pad: '0', outline: 'none' };
+  }
+
+  async withExport(fn) {
+    this.setState({ busy: true, exporting: true, print: this.state.exLook === 'print', sel: null });
+    await new Promise(r => setTimeout(r, this.state.exLook === 'print' ? 500 : 80));
+    try { await fn(); } catch (e) { console.error(e); }
+    this.setState({ busy: false, exporting: false, print: false });
+  }
+  fileBase() { return (this.state.title || 'simple-touch').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + (this.state.exLook === 'print' ? 'print' : this.state.style); }
+  download(href, name) { const a = document.createElement('a'); a.href = href; a.download = name; a.click(); }
+
+  exportPng() {
+    return this.withExport(async () => {
+      if (!window.htmlToImage) return;
+      const node = this.state.exWhat === 'all' ? this.exportRef.current : this.panelRef.current;
+      const w = Math.max(node.offsetWidth, node.scrollWidth), h = Math.max(node.offsetHeight, node.scrollHeight), s = 2, pad = 32;
+      const bg = this.state.exLook === 'print' ? '#fff' : THEMES[this.state.style].page;
+      const c = await window.htmlToImage.toCanvas(node, { pixelRatio: s, width: w, height: h, style: { width: w + 'px', height: h + 'px', margin: '0', flex: 'none' } });
+      const out = document.createElement('canvas'); out.width = (w + pad * 2) * s; out.height = (h + pad * 2) * s;
+      const ctx = out.getContext('2d'); ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(c, pad * s, pad * s, w * s, h * s);
+      this.download(out.toDataURL('image/png'), this.fileBase() + (this.state.exWhat === 'all' ? '-notes' : '-panel') + '.png');
+    });
+  }
+
+  exportHtml() {
+    return this.withExport(async () => {
+      const css = await (await fetch('_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/styles.css')).text().catch(() => '');
+      const panel = this.panelRef.current.cloneNode(true);
+      for (const img of panel.querySelectorAll('img')) {
+        const txt = await (await fetch(img.getAttribute('src'))).text();
+        img.setAttribute('src', 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(txt))));
+      }
+      panel.querySelectorAll('[style]').forEach(n => { n.style.cursor = ''; });
+      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d' } : THEMES[this.state.style];
+      const title = esc(this.state.title || 'Simple Touch');
+      const notes = this.state.exWhat === 'all' ? '<section style="font-size:15px;line-height:1.55;max-width:760px">' + md2html(this.state.md) + '</section>' : '';
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + title + '</title>'
+        + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">'
+        + (this.state.font && this.state.font !== 'Archivo' ? '<link rel="stylesheet" href="' + fontHref(this.state.font) + '">' : '')
+        + '<style>' + css + '\nbody{margin:0;background:' + t.page + ';color:' + t.text + ';font-family:var(--font-body)}a{color:inherit}</style></head><body>'
+        + '<main style="max-width:1100px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
+        + '<h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">' + title + '</h1>'
+        + panel.outerHTML + notes + '</main></body></html>';
+      this.download(URL.createObjectURL(new Blob([html], { type: 'text/html' })), this.fileBase() + '.html');
+    });
+  }
+
+  renderVals() {
+    const { preset, style: st, edits, offsets, customs, sel, exporting } = this.state;
+    const pr = !!this.state.print;
+    const t = pr ? { ...THEMES[st], ...PRINT, devBorder: (st === 'panel' || st === 'gold') ? 'none' : PRINT.devBorder, chip: THEMES[st].chip, ink: THEMES[st].ink, padText: '#201e1d' } : THEMES[st];
+    const isPanel = st === 'panel' || st === 'gold';
+    const selOutline = '2px dashed ' + (st === 'light' ? '#2b6cdf' : '#7fb0ff');
+    const val = (id, f, i) => { const e = edits[id]; return e && e[f] !== undefined ? e[f] : this.preset(id)[i]; };
+    const pos = (key, g) => { const o = offsets[key] || { x: 0, y: 0 }; return { left: (g[0] + o.x) + '%', top: (g[1] + o.y) + '%' }; };
+    const geo = isPanel ? 'pan' : 'abs';
+    const faceBg = this.state.faceCol || FACE_DEF[st], padBg = this.state.padCol || PAD_DEF[st];
+    const face = { bg: faceBg, fg: textOn(faceBg), pad: '3px 5px', outline: pr ? 'none' : t.inkOutline };
+    const padc = { bg: padBg, fg: textOn(padBg), pad: '3px 5px', outline: pr ? 'none' : t.inkOutline };
+    const own = this.state.own;
+    const mk = (key, l, tp, tf, ch, extra) => ({ left: l + '%', top: tp + '%', tf, ...ch, outline: sel === key && !exporting ? selOutline : ch.outline,
+      align: 'center', sw: false, sub: null, op: '1', strike: 'none', onDown: e => this.startDrag(e, key), ...extra });
+    const OFF = /^(not|unused|-|x)$/i;
+    const strike = 'linear-gradient(to top right, transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px))';
+    const off = { op: '.45', strike };
+    const labels = [];
+    CTRL.forEach(c => {
+      const id = c[0], g = isPanel ? c[6] : c[5], isPad = id[0] === 'p';
+      const setName = val(id, 'name', 0), setSub = val(id, 'sub', 1);
+      const mine = edits[id] && edits[id].sub;
+      const ch = isPad ? padc : face;
+      const knob = KNOB_C[geo][id], fader = FADER[geo][id];
+      if (mine && OFF.test(mine.trim())) {
+        const [fl, ft, ftf] = fader ? fader : g; const oo = offsets[id] || { x: 0, y: 0 };
+        labels.push(mk(id, fl + oo.x, ft + oo.y, ftf, ch, { name: setName || 'unused', ...off }));
+        return;
+      }
+      let [l, tp, tf] = fader ? fader : g;
+      const o = offsets[id] || { x: 0, y: 0 }; l += o.x; tp += o.y;
+      if (knob && mine && own === 'below' && setName) {
+        labels.push(mk(id + ':set', knob[0], knob[1], 'translate(-50%,-50%)', { bg: 'transparent', fg: t.plainFg, pad: '0', outline: 'none' }, { name: setName, onDown: () => {} }));
+        labels.push(mk(id, l, tp, tf, ch, { name: mine }));
+        return;
+      }
+      let name = setName, sub = setSub;
+      if (mine) { if (own === 'replace') { name = mine; sub = null; } else sub = mine; }
+      if (!name && !sub) return;
+      labels.push(mk(id, l, tp, tf, ch, { name: name || ' ', sub: sub || null }));
+    });
+    SW.forEach((s, i) => {
+      const id = 'sw' + (i + 1), g = isPanel ? s.pan : s.abs;
+      const o = offsets[id] || { x: 0, y: 0 };
+      const a = preset === 'ld' ? s.a : preset === 'sx' ? s.sa : null, b = preset === 'ld' ? s.b : preset === 'sx' ? s.sb : null;
+      const mine = edits[id] && edits[id].sub;
+      const setName = val(id, 'name', 0) || (a ? a + '-' + b : null);
+      const cleared = preset === 'blank' || (edits[id] && edits[id].name === '' && !a);
+      if (mine && OFF.test(mine.trim())) { labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: setName || 'unused', ...off })); return; }
+      if (!mine && (cleared || (edits[id] && edits[id].name === ''))) return;
+      if (mine) {
+        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, own === 'replace' || !setName ? { name: mine } : { name: setName, sub: mine }));
+      } else {
+        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: val(id, 'name', 0) || null, align: 'flex-start', sw: true, swDir: s.dir, a, b }));
+      }
+    });
+    customs.forEach((c, i) => {
+      if (!c.text && !c.sub) return;
+      const key = 'c' + c.id;
+      labels.push(mk(key, c.x, c.y, 'translate(-50%,-50%)', face, { name: c.text || ' ', sub: c.sub || null, onDown: e => this.startDrag(e, key, true, i) }));
+    });
+    const opt = (list, key) => list.map(([v, label]) => {
+      const on = this.state[key] === v;
+      return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => this.setState({ [key]: v }) };
+    });
+    const rowIds = ['k1','k2','k3','k4','k5','k6','fl','fr','sw1','sw2','adc','dac','led','p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
+    const EX = { k1:'e.g. Filter cutoff', k2:'e.g. Volume', k3:'e.g. Crusher', k4:'e.g. Resonance', k5:'e.g. Delay time', k6:'e.g. Mix', fl:'e.g. Feedback', fr:'e.g. Reverb' };
+    const keyName = id => { const c = CTRL.find(x => x[0] === id); return c ? c[1].replace(' · audio in','').replace(' · audio out','').replace('touch_ch','pad ') : id; };
+    return {
+      t, labels, isPanel, isAbstract: !isPanel, editing: !exporting,
+      isGold: !pr && st === 'gold', isGray: !pr && st === 'panel', isPrintSvg: pr && isPanel,
+      ratio: isPanel ? '0.6373' : '0.646', aspect: isPanel ? '940/1475' : '825/1277',
+      knobs: [[21.5,35.1],[40.4,35.1],[59.5,35.1],[78.5,35.1],[21.5,48.7],[78.5,48.7]].map(([l, tp]) => ({ l: l + '%', t: tp + '%' })),
+      panelRef: this.panelRef, exportRef: this.exportRef, mdRef: this.mdRef, busy: this.state.busy,
+      ex: exporting ? { w: 'max-content', wrap: 'nowrap', notesCols: 'minmax(0,1fr)' } : { w: 'auto', wrap: 'wrap', notesCols: 'repeat(auto-fit,minmax(min(100%,360px),1fr))' },
+      title: this.state.title, onTitle: e => this.setState({ title: e.target.value }),
+      md: this.state.md, onMd: e => this.setState({ md: e.target.value }),
+      rows: rowIds.map(id => ({ key: keyName(id), name: val(id, 'name', 0) || '', sub: val(id, 'sub', 1) || '', ph: this.preset(id)[0] || '—', ex: EX[id] || 'Your label · “not” = unused',
+        onName: e => this.setEdit(id, 'name', e.target.value), onSub: e => this.setEdit(id, 'sub', e.target.value), onSel: () => this.setState({ sel: id }) })),
+      customs: customs.map((c, i) => ({ text: c.text, sub: c.sub, onText: e => this.setCustom(i, { text: e.target.value }), onSub: e => this.setCustom(i, { sub: e.target.value }),
+        onSel: () => this.setState({ sel: 'c' + c.id }), onRemove: () => this.setState(s => ({ customs: s.customs.filter((_, j) => j !== i) })) })),
+      addCustom: () => this.setState(s => { const id = Date.now(); return { customs: [...s.customs, { id, text: 'New label', sub: '', x: 50, y: 30 }], sel: 'c' + id }; }),
+      resetPos: () => this.setState({ offsets: {} }),
+      loadTouchBass: () => this.setState({ ...TOUCHBASS, sel: null }),
+      clearEdits: () => this.setState({ edits: {} }),
+      doPng: () => this.exportPng(), doHtml: () => this.exportHtml(),
+      presetOpts: opt(PRESETS, 'preset'),
+      tableOpts: opt([['off','Off'],['filled','Filled'],['blank','Blank rows']], 'tableMode'),
+      showTable: this.state.tableMode !== 'off',
+      tableRows: rowIds.map(id => { const blank = this.state.tableMode === 'blank'; const m = (edits[id] && edits[id].sub) || '';
+        return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || ''), mine: blank ? '' : m, h: blank ? '34px' : 'auto' }; }),
+      libHref: 'index.html',
+      fontOpts: FONTS, font: this.state.font, onFont: e => this.setState({ font: e.target.value }),
+      size: this.state.size, sizeTxt: this.state.size + '%', onSize: e => this.setState({ size: +e.target.value }),
+      lblSize: 'clamp(8px, calc(1.5dvh * ' + (this.state.size / 100) + '), 32px)',
+      lblFont: "'" + this.state.font + "', var(--font-body)",
+      faceCol: faceBg, padCol: padBg, onFaceCol: e => this.setState({ faceCol: e.target.value }), onPadCol: e => this.setState({ padCol: e.target.value }),
+      resetLook: () => this.setState({ font: 'Archivo', size: 100, faceCol: null, padCol: null }),
+      ownOpts: opt([['below','Under set name'],['replace','Replace set name']], 'own'),
+      styleOpts: opt([['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold']], 'style'),
+      exWhatOpts: opt([['panel','Panel'],['all','Panel + notes']], 'exWhat'),
+      exLookOpts: opt([['color','Colour'],['print','Print · line art']], 'exLook')
+    };
+  }
+}
+</script>
+</body>
+</html>
