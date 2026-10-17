@@ -18,7 +18,7 @@ Control maps and an interactive label editor for the Synthux Simple Touch (Daisy
 ## Pages
 
 - `index.html` — label library. Label sets: Pd / Plugdata, libDaisy, Synthux, None. Styles: Light, Dark, Visualiser, Synthux panel, Synthux gold. PNG export (panel / table / both, colour or print line art). Accepts `?labels=pd|ld|sx|none&style=light|dark|vis|panel|gold`.
-- `editor.html` — editor. Start from a label set, add your own labels, drag positions, fonts, colours, sketch table (filled or blank rows), Markdown notes. Exports PNG and a standalone HTML file. State is saved in localStorage (`simpleTouchLabelEditor.v1`). Accepts `?preset=pd|ld|sx|blank&style=light|dark|vis|panel|gold`.
+- `editor.html` — editor. Start from a label set, add your own labels, drag positions, pick or load any custom Google Font / CSS font URL on the fly, customize colours, sketch table (filled or blank rows), Markdown notes. Exports PNG, standalone HTML, or a compressed shareable URL (`?s=…`). State is saved in localStorage (`simpleTouchLabelEditor.v1`). Accepts `?preset=pd|ld|sx|blank&style=light|dark|vis|panel|gold` or `?s=<compressed-state>`.
 
 ## Files
 

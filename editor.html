@@ -32,6 +32,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         <button onClick="{{ doPng }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
         <button onClick="{{ doHtml }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Download HTML</button>
+        <button onClick="{{ doShare }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:{{ shareBg }};color:{{ shareFg }};cursor:pointer;text-align:left;border-radius:0">{{ shareLabel }}</button>
       </div>
       <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
     </div>
@@ -45,11 +46,12 @@
   </div>
 
   <div style="display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font</span>
+    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font</span>
       <select value="{{ font }}" onChange="{{ onFont }}" style="font:500 13px var(--font-body);padding:6px 8px;border:2px solid {{ t.text }};background:{{ t.page }};color:{{ t.text }};border-radius:0">
-        <sc-for list="{{ fontOpts }}" as="f" hint-placeholder-count="6"><option value="{{ f }}">{{ f }}</option></sc-for>
+        <sc-for list="{{ fontOpts }}" as="f" hint-placeholder-count="6"><option value="{{ f.val }}">{{ f.label }}</option></sc-for>
       </select>
-    </label>
+      <button onClick="{{ openFontModal }}" style="font:600 12px var(--font-body);padding:6px 10px;border:2px solid {{ t.text }};margin-left:-10px;background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0" title="Load a Google Font or custom font URL">Custom…</button>
+    </div>
     <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Size</span>
       <input type="range" min="60" max="180" step="5" value="{{ size }}" onChange="{{ onSize }}" style="width:120px;accent-color:{{ t.active }}">
       <span style="font-size:13px;min-width:3em">{{ sizeTxt }}</span>
@@ -62,6 +64,48 @@
     </label>
     <button onClick="{{ resetLook }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Reset look</button>
   </div>
+
+  <sc-if value="{{ showFontModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFontModal }}" style="position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100">
+      <div onClick="{{ stopProp }}" style="width:min(100%,520px);background:{{ t.page }};color:{{ t.text }};border:2px solid {{ t.text }};box-shadow:10px 10px 0 {{ t.active }};padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid {{ t.rule }};padding-bottom:10px">
+          <span style="font:800 20px var(--font-heading)">Custom font</span>
+          <button onClick="{{ closeFontModal }}" style="font:700 13px var(--font-body);padding:4px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">Close</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Google Font name or CSS URL</label>
+          <input value="{{ fontQuery }}" onChange="{{ onFontQuery }}" onKeyDown="{{ onFontKey }}" placeholder="e.g. Orbitron, Syne, Press Start 2P, or https://fonts.googleapis.com/css2?family=…" style="font:500 14px var(--font-body);padding:8px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};border-radius:0;width:100%;box-sizing:border-box">
+          <span style="font-size:12px;color:{{ t.muted }}">Enter any Google Font family name (fetched on the fly), a Google Fonts specimen/embed link, or a custom CSS stylesheet URL.</span>
+        </div>
+        <sc-if value="{{ needCustomFamily }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font-family name in stylesheet</label>
+            <input value="{{ fontFamilyInput }}" onChange="{{ onFontFamilyInput }}" placeholder="e.g. MyCustomFont" style="font:500 14px var(--font-body);padding:8px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};border-radius:0;width:100%;box-sizing:border-box">
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Quick picks from Google Fonts</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ fontSuggestions }}" as="s" hint-placeholder-count="6">
+              <button onClick="{{ s.onClick }}" style="font:600 12px var(--font-body);padding:4px 8px;border:1px solid {{ t.rule }};background:{{ s.bg }};color:{{ s.fg }};cursor:pointer;border-radius:0">{{ s.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid {{ t.hair }}">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Live preview · {{ previewFontName }}</span>
+          <div style="font-family:{{ previewFontStack }};font-weight:700;font-size:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:4px">
+            <span style="background:{{ faceCol }};color:#fff;padding:4px 8px">S31 · Osc 1 pitch</span>
+            <span style="background:{{ padCol }};color:#fff;padding:4px 8px">P10 · Shift A</span>
+            <span>0123456789</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
+          <button onClick="{{ closeFontModal }}" style="font:600 13px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">Cancel</button>
+          <button onClick="{{ applyCustomFont }}" style="font:700 13px var(--font-body);padding:8px 16px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;border-radius:0">Use font</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
 
   <div ref="{{ exportRef }}" style="display:flex;flex-direction:column;gap:24px;background:{{ t.page }};width:{{ ex.w }}">
     <input value="{{ title }}" onChange="{{ onTitle }}" placeholder="Title" style="font:800 40px/1.05 var(--font-heading);margin:0;padding:0;border:0;background:transparent;color:{{ t.text }};width:100%;outline:none">
@@ -283,7 +327,74 @@ const TOUCHBASS = {
   ].join('\n')
 };
 const FONTS = ['Archivo','Space Grotesk','IBM Plex Sans','IBM Plex Mono','JetBrains Mono','Barlow Condensed','Oswald','Work Sans','DM Sans','DM Mono','Inter Tight','Rubik','Chakra Petch','Share Tech Mono'];
-const fontHref = f => 'https://fonts.googleapis.com/css2?family=' + f.replace(/ /g, '+') + ':wght@400;500;700&display=swap';
+const EXTRA_FONTS = ['Orbitron','Syne','Rajdhani','Azeret Mono','Silkscreen','Press Start 2P','VT323','Audiowide','Saira Condensed','Major Mono Display','Fira Code','Michroma'];
+const fontHref = f => 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(f).replace(/%20/g, '+') + ':wght@400;500;700&display=swap';
+function normalizeFontName(s) {
+  const t = s.trim().replace(/\+/g, ' ').replace(/\s+/g, ' ');
+  return /[A-Z]/.test(t) ? t : t.replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+function parseFontInput(raw, famInput) {
+  let s = (raw || '').trim();
+  if (!s) return { family: 'Archivo', url: null, needFamily: false };
+  const hrefM = s.match(/href=["']([^"']+)["']/i) || s.match(/url\(["']?([^"')]+)["']?\)/i);
+  if (hrefM) s = hrefM[1].trim();
+  if (/^https?:\/\//i.test(s)) {
+    const specM = s.match(/fonts\.google\.com\/specimen\/([^/?#]+)/i);
+    if (specM) {
+      const fam = normalizeFontName(decodeURIComponent(specM[1]));
+      return { family: fam, url: fontHref(fam), needFamily: false };
+    }
+    const gfM = s.match(/family=([^&:;#]+)/i);
+    if (gfM) {
+      const fam = normalizeFontName(decodeURIComponent(gfM[1]));
+      return { family: fam, url: s, needFamily: false };
+    }
+    const fam = (famInput || '').trim() || s.split('/').pop().replace(/\.(css|woff2?|ttf|otf).*$/i, '').replace(/[-_]+/g, ' ') || 'Custom Font';
+    return { family: fam, url: s, needFamily: true };
+  }
+  const fam = normalizeFontName(s);
+  return { family: fam, url: fontHref(fam), needFamily: false };
+}
+function ensureFontLoaded(family, url) {
+  if (!family || family === 'Archivo') return;
+  const href = url || fontHref(family);
+  const id = 'gf-' + btoa(unescape(encodeURIComponent(href))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+  if (!document.getElementById(id)) {
+    const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = href;
+    document.head.appendChild(l);
+  }
+}
+const toB64Url = u8 => {
+  let bin = ''; for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const fromB64Url = str => {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4);
+  const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+};
+async function encodeShareState(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (typeof CompressionStream !== 'undefined') {
+    const cs = new CompressionStream('deflate-raw');
+    const w = cs.writable.getWriter(); w.write(bytes); w.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    return '1.' + toB64Url(new Uint8Array(buf));
+  }
+  return '0.' + toB64Url(bytes);
+}
+async function decodeShareState(str) {
+  const [ver, data] = str.includes('.') ? str.split('.', 2) : ['1', str];
+  const bytes = fromB64Url(data);
+  if (ver === '1' && typeof DecompressionStream !== 'undefined') {
+    const ds = new DecompressionStream('deflate-raw');
+    const w = ds.writable.getWriter(); w.write(bytes); w.close();
+    const buf = await new Response(ds.readable).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
 const FACE_DEF = { light:'#ec3013', dark:'#ec3013', vis:'#0a7d50', panel:'#ec3013', gold:'#0a7d50' };
 const PAD_DEF = { light:'#201e1d', dark:'#201e1d', vis:'#2b2219', panel:'#201e1d', gold:'#201e1d' };
 const KNOB_C = { abs: { k2:[21.5,35.1], k3:[40.4,35.1], k4:[59.5,35.1], k5:[78.5,35.1], k1:[21.5,48.7], k6:[78.5,48.7] },
@@ -318,26 +429,52 @@ function md2html(md, t) {
 
 class Component extends DCLogic {
   panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef();
-  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', size: 100, faceCol: null, padCol: null, tableMode: 'off' },
+  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null, tableMode: 'off' },
     (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(), (() => { const q = new URLSearchParams(location.search), o = {};
       if (['pd','ld','sx','blank'].includes(q.get('preset'))) o.preset = q.get('preset');
       if (['light','dark','vis','panel','gold'].includes(q.get('style'))) o.style = q.get('style');
       if (o.preset === 'blank') o.tableMode = 'blank';
-      return o; })(), { busy: false, exporting: false, print: false });
+      return o; })(), { busy: false, exporting: false, print: false, copied: false, showFontModal: false, fontQuery: '', fontFamilyInput: '' });
 
-  componentDidMount() { this.renderMd(); this.loadFont(); }
+  componentDidMount() {
+    this.renderMd();
+    this.loadFont();
+    const sParam = new URLSearchParams(location.search).get('s');
+    if (sParam) {
+      decodeShareState(sParam).then(data => {
+        if (data && typeof data === 'object') this.setState({ ...data, sel: null });
+      }).catch(e => console.warn('Invalid share link:', e));
+    }
+  }
   loadFont() {
-    const f = this.state.font; if (!f || f === 'Archivo') return;
-    const id = 'gf-' + f.replace(/ /g, '-');
-    if (!document.getElementById(id)) { const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = fontHref(f); document.head.appendChild(l); }
+    ensureFontLoaded(this.state.font, this.state.fontUrl);
+    if (this.state.showFontModal && this.state.fontQuery.trim()) {
+      const p = parseFontInput(this.state.fontQuery, this.state.fontFamilyInput);
+      ensureFontLoaded(p.family, p.url);
+    }
   }
   componentDidUpdate() {
     this.renderMd();
     this.loadFont();
-    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, size, faceCol, padCol, tableMode } = this.state;
-    try { localStorage.setItem(KEY, JSON.stringify({ preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, size, faceCol, padCol, tableMode })); } catch (e) {}
+    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode } = this.state;
+    try { localStorage.setItem(KEY, JSON.stringify({ preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode })); } catch (e) {}
   }
   renderMd() { const el = this.mdRef.current; if (el) { const h = md2html(this.state.md); if (el.__h !== h) { el.innerHTML = h; el.__h = h; } } }
+
+  async shareUrl() {
+    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode } = this.state;
+    const payload = { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode };
+    try {
+      const code = await encodeShareState(payload);
+      const url = new URL(location.href);
+      url.search = '?s=' + code;
+      history.replaceState(null, '', url.toString());
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(url.toString());
+      this.setState({ copied: true });
+      clearTimeout(this._copyTimer);
+      this._copyTimer = setTimeout(() => this.setState({ copied: false }), 2200);
+    } catch (e) { console.error(e); }
+  }
 
   preset(id) {
     const p = this.state.preset, c = CTRL.find(x => x[0] === id);
@@ -406,9 +543,10 @@ class Component extends DCLogic {
       const notes = this.state.exWhat === 'all' ? '<section style="font-size:15px;line-height:1.55;max-width:760px">' + md2html(this.state.md) + '</section>' : '';
       const isPanel = this.state.style === 'panel' || this.state.style === 'gold';
       const credit = isPanel ? '<footer style="border-top:1px solid ' + t.hair + ';padding-top:16px;font-size:13px;line-height:1.5;color:' + t.muted + '">Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali\'s <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.</footer>' : '';
+      const fHref = this.state.fontUrl || (this.state.font && this.state.font !== 'Archivo' ? fontHref(this.state.font) : null);
       const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + title + '</title>'
         + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">'
-        + (this.state.font && this.state.font !== 'Archivo' ? '<link rel="stylesheet" href="' + fontHref(this.state.font) + '">' : '')
+        + (fHref ? '<link rel="stylesheet" href="' + esc(fHref) + '">' : '')
         + '<style>' + css + '\nbody{margin:0;background:' + t.page + ';color:' + t.text + ';font-family:var(--font-body)}a{color:inherit}</style></head><body>'
         + '<main style="max-width:1100px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
         + '<h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">' + title + '</h1>'
@@ -486,6 +624,14 @@ class Component extends DCLogic {
     const rowIds = ['k1','k2','k3','k4','k5','k6','fl','fr','sw1','sw2','adc','dac','led','p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
     const EX = { k1:'e.g. Filter cutoff', k2:'e.g. Volume', k3:'e.g. Crusher', k4:'e.g. Resonance', k5:'e.g. Delay time', k6:'e.g. Mix', fl:'e.g. Feedback', fr:'e.g. Reverb' };
     const keyName = id => { const c = CTRL.find(x => x[0] === id); return c ? c[1].replace(' · audio in','').replace(' · audio out','').replace('touch_ch','pad ') : id; };
+    const allFonts = FONTS.includes(this.state.font) ? FONTS : [...FONTS, this.state.font];
+    const fontOpts = [...allFonts.map(f => ({ val: f, label: f })), { val: '__custom__', label: 'Custom…' }];
+    const parsedModalFont = parseFontInput(this.state.fontQuery || this.state.font, this.state.fontFamilyInput);
+    const applyCustomFont = () => {
+      const p = parseFontInput(this.state.fontQuery, this.state.fontFamilyInput);
+      if (p.family) ensureFontLoaded(p.family, p.url);
+      this.setState({ font: p.family || 'Archivo', fontUrl: p.url, showFontModal: false });
+    };
     return {
       t, labels, isPanel, isAbstract: !isPanel, editing: !exporting,
       isGold: !pr && st === 'gold', isGray: !pr && st === 'panel', isPrintSvg: pr && isPanel,
@@ -504,18 +650,44 @@ class Component extends DCLogic {
       loadTouchBass: () => this.setState({ ...TOUCHBASS, sel: null }),
       clearEdits: () => this.setState({ edits: {} }),
       doPng: () => this.exportPng(), doHtml: () => this.exportHtml(),
+      doShare: () => this.shareUrl(),
+      shareLabel: this.state.copied ? 'Copied link ✓' : 'Copy share link',
+      shareBg: this.state.copied ? t.active : 'transparent',
+      shareFg: this.state.copied ? '#fff' : t.text,
       presetOpts: opt(PRESETS, 'preset'),
       tableOpts: opt([['off','Off'],['filled','Filled'],['blank','Blank rows']], 'tableMode'),
       showTable: this.state.tableMode !== 'off',
       tableRows: rowIds.map(id => { const blank = this.state.tableMode === 'blank'; const m = (edits[id] && edits[id].sub) || '';
         return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || ''), mine: blank ? '' : m, h: blank ? '34px' : 'auto' }; }),
       libHref: 'index.html?labels=' + (preset === 'blank' ? 'none' : preset) + '&style=' + st,
-      fontOpts: FONTS, font: this.state.font, onFont: e => this.setState({ font: e.target.value }),
+      fontOpts, font: this.state.font,
+      onFont: e => {
+        const v = e.target.value;
+        if (v === '__custom__') this.setState({ showFontModal: true, fontQuery: FONTS.includes(this.state.font) ? '' : (this.state.fontUrl || this.state.font) });
+        else this.setState({ font: v, fontUrl: null });
+      },
+      openFontModal: () => this.setState({ showFontModal: true, fontQuery: FONTS.includes(this.state.font) ? '' : (this.state.fontUrl || this.state.font) }),
+      closeFontModal: () => this.setState({ showFontModal: false }),
+      stopProp: e => e.stopPropagation(),
+      showFontModal: this.state.showFontModal,
+      fontQuery: this.state.fontQuery,
+      onFontQuery: e => this.setState({ fontQuery: e.target.value }),
+      onFontKey: e => { if (e.key === 'Enter') applyCustomFont(); else if (e.key === 'Escape') this.setState({ showFontModal: false }); },
+      needCustomFamily: parsedModalFont.needFamily,
+      fontFamilyInput: this.state.fontFamilyInput,
+      onFontFamilyInput: e => this.setState({ fontFamilyInput: e.target.value }),
+      fontSuggestions: EXTRA_FONTS.map(name => {
+        const on = parsedModalFont.family.toLowerCase() === name.toLowerCase();
+        return { name, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => { ensureFontLoaded(name, null); this.setState({ fontQuery: name, fontFamilyInput: '' }); } };
+      }),
+      previewFontName: parsedModalFont.family,
+      previewFontStack: "'" + parsedModalFont.family + "', var(--font-body)",
+      applyCustomFont,
       size: this.state.size, sizeTxt: this.state.size + '%', onSize: e => this.setState({ size: +e.target.value }),
       lblSize: 'clamp(8px, calc(1.5dvh * ' + (this.state.size / 100) + '), 32px)',
       lblFont: "'" + this.state.font + "', var(--font-body)",
       faceCol: faceBg, padCol: padBg, onFaceCol: e => this.setState({ faceCol: e.target.value }), onPadCol: e => this.setState({ padCol: e.target.value }),
-      resetLook: () => this.setState({ font: 'Archivo', size: 100, faceCol: null, padCol: null }),
+      resetLook: () => this.setState({ font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null }),
       ownOpts: opt([['below','Under set name'],['replace','Replace set name']], 'own'),
       styleOpts: opt([['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold']], 'style'),
       exWhatOpts: opt([['panel','Panel'],['all','Panel + notes']], 'exWhat'),
