@@ -1,6 +1,19 @@
 # Simple Touch label library
 
-Control maps and a label editor for the Synthux Simple Touch (Daisy Seed).
+Control maps and an interactive label editor for the Synthux Simple Touch (Daisy Seed).
+
+- **Live Label Library**: https://jonwaterschoot.github.io/simple-touch-labels/
+- **Live Label Editor**: https://jonwaterschoot.github.io/simple-touch-labels/editor.html
+
+## Examples
+
+| Pd / Plugdata · Light | libDaisy · Synthux panel |
+| --- | --- |
+| ![Label Library — Pd / Plugdata (Light)](assets/example_library_pd_light.png) | ![Label Library — libDaisy (Synthux panel)](assets/example_library_ld_panel.png) |
+
+| Label Editor — TouchBass · Synthux gold | Exported Print · Line art |
+| --- | --- |
+| ![Label Editor — TouchBass (Synthux gold)](assets/example_editor_touchbass_gold.png) | ![Exported Print · Line art panel](assets/example_panel_print.png) |
 
 ## Pages
 
