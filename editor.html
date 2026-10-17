@@ -115,9 +115,9 @@
             <sc-if value="{{ l.sw }}" hint-placeholder-val="{{ false }}">
               <span style="display:flex;flex-direction:{{ l.swDir }};align-items:center;gap:2px">
                 <sc-if value="{{ l.a }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.a }}</span></sc-if>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span>
+                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span></sc-if>
                 <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor;opacity:.65">0</span>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span>
+                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span></sc-if>
                 <sc-if value="{{ l.b }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.b }}</span></sc-if>
               </span>
             </sc-if>
@@ -471,7 +471,7 @@ class Component extends DCLogic {
       if (mine) {
         labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, own === 'replace' || !setName ? { name: mine } : { name: setName, sub: mine }));
       } else {
-        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: val(id, 'name', 0) || null, align: 'flex-start', sw: true, swDir: s.dir, a, b }));
+        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: val(id, 'name', 0) || null, align: 'flex-start', sw: true, sw12: !a && preset === 'pd', swDir: s.dir, a, b }));
       }
     });
     customs.forEach((c, i) => {

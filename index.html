@@ -114,9 +114,9 @@
             <sc-if value="{{ l.sw }}" hint-placeholder-val="{{ false }}">
               <span style="display:flex;flex-direction:{{ l.swDir }};align-items:center;gap:2px">
                 <sc-if value="{{ l.a }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.a }}</span></sc-if>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span>
+                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span></sc-if>
                 <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor;opacity:.65">0</span>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span>
+                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span></sc-if>
                 <sc-if value="{{ l.b }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.b }}</span></sc-if>
               </span>
             </sc-if>
@@ -347,7 +347,7 @@ class Component extends DCLogic {
     }).concat(SW.map(s => {
       const [l, tp, tf, kind] = isPanel ? s.pan : s.abs;
       return { left: l + '%', top: tp + '%', tf, ...this.chip(isPanel ? kind : swKind, t),
-        name: pd ? s.pd : null, sub: null, align: 'flex-start', sw: true, swDir: s.dir, a: pd ? null : sx ? s.sa : s.a, b: pd ? null : sx ? s.sb : s.b };
+        name: pd ? s.pd : null, sub: null, align: 'flex-start', sw: true, sw12: pd, swDir: s.dir, a: pd ? null : sx ? s.sa : s.a, b: pd ? null : sx ? s.sb : s.b };
     }));
     const opt = (list, key) => list.map(([v, label]) => {
       const on = this.state[key] === v;

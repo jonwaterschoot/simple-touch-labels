@@ -49,3 +49,4 @@ h1, h2, h3, h4, h5, h6 {
 a { color: inherit; text-underline-offset: 3px; }
 a:hover { color: var(--color-accent); }
 ::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
