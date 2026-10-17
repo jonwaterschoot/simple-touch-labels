@@ -25,16 +25,51 @@
       <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase"><a href="{{ libHref }}" style="color:{{ t.muted }};text-decoration:none">Label library</a><span style="color:{{ t.kicker }};border-bottom:2px solid {{ t.kicker }}">Label editor</span><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank" style="color:{{ t.muted }};text-decoration:none">GitHub ↗</a></nav>
       <p style="margin:0;max-width:640px;font-size:15px;line-height:1.5;text-wrap:pretty">Start from a label set, rename any control, add a function line, drag labels into place and add your own. Everything is saved in this browser.</p>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
-      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export</span>
-      <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
-      <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <button onClick="{{ doPng }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
-        <button onClick="{{ doHtml }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Download HTML</button>
-        <button onClick="{{ doShare }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:{{ shareBg }};color:{{ shareFg }};cursor:pointer;text-align:left;border-radius:0">{{ shareLabel }}</button>
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export layout</span>
+        <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
+        <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button onClick="{{ doPng }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
+          <button onClick="{{ doHtml }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Download HTML</button>
+          <button onClick="{{ doShare }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:{{ shareBg }};color:{{ shareFg }};cursor:pointer;text-align:left;border-radius:0">{{ shareLabel }}</button>
+        </div>
+        <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
       </div>
-      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none" title="Export layout minimap — click Panel, Table, or Notes to toggle what is included">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Preview</span>
+        <div style="width:108px;height:92px;padding:6px;background:{{ mm.sheetBg }};border:2px solid {{ t.text }};box-shadow:4px 4px 0 {{ t.hair }};display:flex;flex-direction:column;gap:4px;box-sizing:border-box">
+          <div style="display:flex;gap:4px;flex:1;min-height:0">
+            <div onClick="{{ mm.onPanel }}" style="width:38px;flex:none;border:1.5px solid {{ mm.panelBorder }};background:{{ mm.panelBg }};display:flex;flex-direction:column;justify-content:space-between;padding:3px;box-sizing:border-box;cursor:pointer" title="Panel (left)">
+              <div style="height:42%;background:{{ mm.faceFill }};border:1px solid {{ mm.ink }}"></div>
+              <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }};text-align:center">PANEL</span>
+              <div style="height:30%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px">
+                <div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div>
+              </div>
+            </div>
+            <div onClick="{{ mm.onTable }}" style="flex:1;border:{{ mm.tableBorder }};background:{{ mm.tableBg }};opacity:{{ mm.tableOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;box-sizing:border-box;cursor:pointer" title="Click to toggle Table on the right">
+              <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">{{ mm.tableLbl }}</span>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
+                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
+                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
+                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
+                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
+              </div>
+              <span style="font:600 6px/1 var(--font-body);color:{{ mm.muted }}">right</span>
+            </div>
+          </div>
+          <div onClick="{{ mm.onNotes }}" style="height:22px;flex:none;border:{{ mm.notesBorder }};background:{{ mm.notesBg }};opacity:{{ mm.notesOp }};display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 5px;box-sizing:border-box;cursor:pointer" title="Click to toggle Notes below">
+            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">NOTES</span>
+            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px 4px">
+              <div style="height:1.5px;background:{{ mm.ink }};opacity:.6"></div><div style="height:1.5px;background:{{ mm.ink }};opacity:.6"></div>
+              <div style="height:1.5px;background:{{ mm.ink }};opacity:.4"></div><div style="height:1.5px;background:{{ mm.ink }};opacity:.4"></div>
+            </div>
+          </div>
+        </div>
+        <span style="font-size:10px;color:{{ t.muted }};white-space:nowrap">{{ mm.caption }}</span>
+      </div>
     </div>
   </header>
 
@@ -109,8 +144,8 @@
 
   <div ref="{{ exportRef }}" style="display:flex;flex-direction:column;gap:24px;background:{{ t.page }};width:{{ ex.w }}">
     <input value="{{ title }}" onChange="{{ onTitle }}" placeholder="Title" style="font:800 40px/1.05 var(--font-heading);margin:0;padding:0;border:0;background:transparent;color:{{ t.text }};width:100%;outline:none">
-    <div style="display:flex;flex-wrap:{{ ex.wrap }};gap:40px;align-items:flex-start">
-      <div ref="{{ panelRef }}" style="position:relative;flex:none;width:min(100%, max(380px, calc((100dvh - 48px) * {{ ratio }})));aspect-ratio:{{ aspect }};background:{{ t.devBg }};border:{{ t.devBorder }};box-sizing:border-box;font-family:var(--font-body)">
+    <div style="display:flex;flex-wrap:{{ ex.wrap }};gap:40px;align-items:flex-start;width:100%">
+      <div ref="{{ panelRef }}" style="position:relative;flex:none;width:{{ ex.panelW }};aspect-ratio:{{ aspect }};background:{{ t.devBg }};border:{{ t.devBorder }};box-sizing:border-box;font-family:var(--font-body)">
       <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ false }}">
         <sc-if value="{{ isGold }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_gold.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
         <sc-if value="{{ isPrintSvg }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_print.svg" alt="Simple Touch panel line art" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
@@ -170,7 +205,7 @@
       </div>
     </div>
 
-      <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{ showControlsForm }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:20px;min-width:0;flex:1 1 380px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
           <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Controls</span>
@@ -202,28 +237,38 @@
         </div>
       </div>
       </sc-if>
-    </div>
 
-    <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <thead><tr><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }};padding-left:0;width:22%">Control</th><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }};width:28%">Label</th><th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">Function · notes</th></tr></thead>
-        <tbody>
-          <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
-            <tr><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }};padding-left:0"><b>{{ r.key }}</b></td><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.name }}</td><td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.mine }}</td></tr>
-          </sc-for>
-        </tbody>
-      </table>
-    </sc-if>
-
-    <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px">
-      <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Notes · Markdown</span></sc-if>
-      <div style="display:grid;grid-template-columns:{{ ex.notesCols }};gap:24px;align-items:start">
+      <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
+      <div ref="{{ tableWrapRef }}" style="display:flex;flex-direction:column;gap:12px;min-width:0;flex:1 1 420px">
         <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
-          <textarea value="{{ md }}" onChange="{{ onMd }}" placeholder="# Patch notes&#10;&#10;Describe what the knobs do, how to play it…" style="font:13px/1.5 ui-monospace,Menlo,monospace;min-height:260px;padding:10px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;resize:vertical;width:100%;box-sizing:border-box"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
+            <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Control table ({{ tableModeLabel }})</span>
+            <button onClick="{{ editTableMode }}" style="font:600 12px var(--font-body);padding:4px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">← Edit controls</button>
+          </div>
         </sc-if>
-        <div ref="{{ mdRef }}" style="font-size:15px;line-height:1.55;min-width:0;text-wrap:pretty"></div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.25">
+          <thead><tr><th style="text-align:left;padding:6px 8px 6px 0;border-bottom:2px solid {{ t.rule }};width:24%">Control</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid {{ t.rule }};width:26%">Label</th><th style="text-align:left;padding:6px 0 6px 8px;border-bottom:2px solid {{ t.rule }}">Function · notes</th></tr></thead>
+          <tbody>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
+              <tr><td style="padding:5px 8px 5px 0;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}"><b>{{ r.key }}</b></td><td style="padding:5px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.name }}</td><td style="padding:5px 0 5px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.mine }}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
       </div>
+      </sc-if>
     </div>
+
+    <sc-if value="{{ showNotesSection }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px;width:100%">
+        <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Notes · Markdown</span></sc-if>
+        <div style="display:grid;grid-template-columns:{{ ex.notesCols }};gap:24px;align-items:start">
+          <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+            <textarea value="{{ md }}" onChange="{{ onMd }}" placeholder="# Patch notes&#10;&#10;Describe what the knobs do, how to play it…" style="font:13px/1.5 ui-monospace,Menlo,monospace;min-height:260px;padding:10px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;resize:vertical;width:100%;box-sizing:border-box"></textarea>
+          </sc-if>
+          <div ref="{{ mdRef }}" style="font-size:15px;line-height:1.55;min-width:0;text-wrap:pretty;columns:{{ ex.mdCols }};column-gap:40px"></div>
+        </div>
+      </div>
+    </sc-if>
   </div>
 
   <footer style="border-top:1px solid {{ t.hair }};padding-top:16px;font-size:13px;line-height:1.5;color:{{ t.muted }}">
@@ -428,12 +473,12 @@ function md2html(md, t) {
 }
 
 class Component extends DCLogic {
-  panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef();
-  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'panel', exLook: 'color', own: 'below', font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null, tableMode: 'off' },
+  panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef(); tableWrapRef = React.createRef();
+  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'all', exLook: 'color', own: 'below', font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null, tableMode: 'off' },
     (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(), (() => { const q = new URLSearchParams(location.search), o = {};
       if (['pd','ld','sx','blank'].includes(q.get('preset'))) o.preset = q.get('preset');
       if (['light','dark','vis','panel','gold'].includes(q.get('style'))) o.style = q.get('style');
-      if (o.preset === 'blank') o.tableMode = 'blank';
+      if (o.preset === 'blank') { o.tableMode = 'blank'; o.exWhat = 'table'; }
       return o; })(), { busy: false, exporting: false, print: false, copied: false, showFontModal: false, fontQuery: '', fontFamilyInput: '' });
 
   componentDidMount() {
@@ -509,7 +554,7 @@ class Component extends DCLogic {
 
   async withExport(fn) {
     this.setState({ busy: true, exporting: true, print: this.state.exLook === 'print', sel: null });
-    await new Promise(r => setTimeout(r, this.state.exLook === 'print' ? 500 : 80));
+    await new Promise(r => setTimeout(r, this.state.exLook === 'print' ? 500 : 100));
     try { await fn(); } catch (e) { console.error(e); }
     this.setState({ busy: false, exporting: false, print: false });
   }
@@ -519,13 +564,15 @@ class Component extends DCLogic {
   exportPng() {
     return this.withExport(async () => {
       if (!window.htmlToImage) return;
-      const node = this.state.exWhat === 'all' ? this.exportRef.current : this.panelRef.current;
+      const what = this.state.exWhat || 'all';
+      const node = what === 'panel' ? this.panelRef.current : this.exportRef.current;
       const w = Math.max(node.offsetWidth, node.scrollWidth), h = Math.max(node.offsetHeight, node.scrollHeight), s = 2, pad = 32;
       const bg = this.state.exLook === 'print' ? '#fff' : THEMES[this.state.style].page;
       const c = await window.htmlToImage.toCanvas(node, { pixelRatio: s, width: w, height: h, style: { width: w + 'px', height: h + 'px', margin: '0', flex: 'none' } });
       const out = document.createElement('canvas'); out.width = (w + pad * 2) * s; out.height = (h + pad * 2) * s;
       const ctx = out.getContext('2d'); ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(c, pad * s, pad * s, w * s, h * s);
-      this.download(out.toDataURL('image/png'), this.fileBase() + (this.state.exWhat === 'all' ? '-notes' : '-panel') + '.png');
+      const suffix = what === 'all' ? '-all' : what === 'table' ? '-panel-table' : what === 'notes' ? '-panel-notes' : '-panel';
+      this.download(out.toDataURL('image/png'), this.fileBase() + suffix + '.png');
     });
   }
 
@@ -538,9 +585,14 @@ class Component extends DCLogic {
         img.setAttribute('src', 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(txt))));
       }
       panel.querySelectorAll('[style]').forEach(n => { n.style.cursor = ''; });
-      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d', muted: '#5b5856', hair: 'rgba(32,30,29,.2)' } : THEMES[this.state.style];
+      const what = this.state.exWhat || 'all';
+      const incTable = what === 'table' || what === 'all';
+      const incNotes = (what === 'notes' || what === 'all') && !!(this.state.md && this.state.md.trim());
+      const tableNode = incTable && this.tableWrapRef.current ? this.tableWrapRef.current.cloneNode(true) : null;
+      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d', muted: '#5b5856', hair: 'rgba(32,30,29,.2)', rule: '#201e1d' } : THEMES[this.state.style];
       const title = esc(this.state.title || 'Simple Touch');
-      const notes = this.state.exWhat === 'all' ? '<section style="font-size:15px;line-height:1.55;max-width:760px">' + md2html(this.state.md) + '</section>' : '';
+      const topRow = '<div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;width:100%">' + panel.outerHTML + (tableNode ? tableNode.outerHTML : '') + '</div>';
+      const notes = incNotes ? '<section style="border-top:2px solid ' + t.rule + ';padding-top:16px;font-size:15px;line-height:1.55;columns:' + (incTable ? '2 420px' : '1') + ';column-gap:40px">' + md2html(this.state.md) + '</section>' : '';
       const isPanel = this.state.style === 'panel' || this.state.style === 'gold';
       const credit = isPanel ? '<footer style="border-top:1px solid ' + t.hair + ';padding-top:16px;font-size:13px;line-height:1.5;color:' + t.muted + '">Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali\'s <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.</footer>' : '';
       const fHref = this.state.fontUrl || (this.state.font && this.state.font !== 'Archivo' ? fontHref(this.state.font) : null);
@@ -548,9 +600,9 @@ class Component extends DCLogic {
         + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">'
         + (fHref ? '<link rel="stylesheet" href="' + esc(fHref) + '">' : '')
         + '<style>' + css + '\nbody{margin:0;background:' + t.page + ';color:' + t.text + ';font-family:var(--font-body)}a{color:inherit}</style></head><body>'
-        + '<main style="max-width:1100px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
+        + '<main style="max-width:1160px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
         + '<h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">' + title + '</h1>'
-        + panel.outerHTML + notes + credit + '</main></body></html>';
+        + topRow + notes + credit + '</main></body></html>';
       this.download(URL.createObjectURL(new Blob([html], { type: 'text/html' })), this.fileBase() + '.html');
     });
   }
@@ -632,13 +684,48 @@ class Component extends DCLogic {
       if (p.family) ensureFontLoaded(p.family, p.url);
       this.setState({ font: p.family || 'Archivo', fontUrl: p.url, showFontModal: false });
     };
+    const what = this.state.exWhat || 'all';
+    const incTable = what === 'table' || what === 'all';
+    const incNotes = what === 'notes' || what === 'all';
+    const ratio = isPanel ? '0.6373' : '0.646';
+    const lookPrint = this.state.exLook === 'print';
+    const mmInk = lookPrint ? '#201e1d' : THEMES[st].text;
+    const mmMuted = lookPrint ? '#5b5856' : THEMES[st].muted;
+    const mm = {
+      sheetBg: lookPrint ? '#ffffff' : THEMES[st].page,
+      ink: mmInk,
+      muted: mmMuted,
+      panelBorder: t.active,
+      panelBg: lookPrint ? 'transparent' : (isPanel ? 'rgba(128,128,128,.12)' : THEMES[st].devBg),
+      faceFill: lookPrint ? 'transparent' : faceBg,
+      padFill: lookPrint ? mmInk : padBg,
+      tableBorder: incTable ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
+      tableBg: incTable ? 'rgba(236,48,19,.1)' : 'transparent',
+      tableOp: incTable ? '1' : '.38',
+      tableLbl: this.state.tableMode === 'blank' ? 'BLANK' : 'TABLE',
+      rowLine: (this.state.tableMode === 'blank' ? '1px dashed ' : '1.5px solid ') + mmInk,
+      notesBorder: incNotes ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
+      notesBg: incNotes ? 'rgba(236,48,19,.1)' : 'transparent',
+      notesOp: incNotes ? '1' : '.38',
+      caption: incTable && incNotes ? 'Panel + Table + Notes' : incTable ? 'Panel + Table' : incNotes ? 'Panel + Notes' : 'Panel only',
+      onPanel: () => this.setState({ exWhat: 'panel' }),
+      onTable: () => this.setState({ exWhat: incTable ? (incNotes ? 'notes' : 'panel') : (incNotes ? 'all' : 'table') }),
+      onNotes: () => this.setState({ exWhat: incNotes ? (incTable ? 'table' : 'panel') : (incTable ? 'all' : 'notes') })
+    };
     return {
-      t, labels, isPanel, isAbstract: !isPanel, editing: !exporting,
+      t, mm, labels, isPanel, isAbstract: !isPanel, editing: !exporting,
+      showControlsForm: !exporting && this.state.tableMode === 'off',
+      showTable: exporting ? incTable : (this.state.tableMode !== 'off'),
+      showNotesSection: exporting ? (incNotes && !!(this.state.md && this.state.md.trim())) : true,
+      tableModeLabel: this.state.tableMode === 'blank' ? 'Blank rows' : 'Filled',
+      editTableMode: () => this.setState({ tableMode: 'off' }),
       isGold: !pr && st === 'gold', isGray: !pr && st === 'panel', isPrintSvg: pr && isPanel,
-      ratio: isPanel ? '0.6373' : '0.646', aspect: isPanel ? '940/1475' : '825/1277',
+      ratio, aspect: isPanel ? '940/1475' : '825/1277',
       knobs: [[21.5,35.1],[40.4,35.1],[59.5,35.1],[78.5,35.1],[21.5,48.7],[78.5,48.7]].map(([l, tp]) => ({ l: l + '%', t: tp + '%' })),
-      panelRef: this.panelRef, exportRef: this.exportRef, mdRef: this.mdRef, busy: this.state.busy,
-      ex: exporting ? { w: 'max-content', wrap: 'nowrap', notesCols: 'minmax(0,1fr)' } : { w: 'auto', wrap: 'wrap', notesCols: 'repeat(auto-fit,minmax(min(100%,360px),1fr))' },
+      panelRef: this.panelRef, exportRef: this.exportRef, mdRef: this.mdRef, tableWrapRef: this.tableWrapRef, busy: this.state.busy,
+      ex: exporting
+        ? { w: incTable ? '1120px' : '720px', wrap: 'nowrap', panelW: '460px', notesCols: 'minmax(0,1fr)', mdCols: incTable ? '2 420px' : '1' }
+        : { w: '100%', wrap: 'wrap', panelW: 'min(100%, max(380px, calc((100dvh - 48px) * ' + ratio + ')))', notesCols: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', mdCols: '1' },
       title: this.state.title, onTitle: e => this.setState({ title: e.target.value }),
       md: this.state.md, onMd: e => this.setState({ md: e.target.value }),
       rows: rowIds.map(id => ({ key: keyName(id), name: val(id, 'name', 0) || '', sub: val(id, 'sub', 1) || '', ph: this.preset(id)[0] || '—', ex: EX[id] || 'Your label · “not” = unused',
@@ -647,7 +734,7 @@ class Component extends DCLogic {
         onSel: () => this.setState({ sel: 'c' + c.id }), onRemove: () => this.setState(s => ({ customs: s.customs.filter((_, j) => j !== i) })) })),
       addCustom: () => this.setState(s => { const id = Date.now(); return { customs: [...s.customs, { id, text: 'New label', sub: '', x: 50, y: 30 }], sel: 'c' + id }; }),
       resetPos: () => this.setState({ offsets: {} }),
-      loadTouchBass: () => this.setState({ ...TOUCHBASS, sel: null }),
+      loadTouchBass: () => this.setState({ ...TOUCHBASS, exWhat: 'all', sel: null }),
       clearEdits: () => this.setState({ edits: {} }),
       doPng: () => this.exportPng(), doHtml: () => this.exportHtml(),
       doShare: () => this.shareUrl(),
@@ -655,10 +742,18 @@ class Component extends DCLogic {
       shareBg: this.state.copied ? t.active : 'transparent',
       shareFg: this.state.copied ? '#fff' : t.text,
       presetOpts: opt(PRESETS, 'preset'),
-      tableOpts: opt([['off','Off'],['filled','Filled'],['blank','Blank rows']], 'tableMode'),
-      showTable: this.state.tableMode !== 'off',
+      tableOpts: [['off','Edit'],['filled','Filled'],['blank','Blank rows']].map(([v, label]) => {
+        const on = this.state.tableMode === v;
+        return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => {
+          const next = { tableMode: v };
+          if (v !== 'off' && !incTable) next.exWhat = incNotes ? 'all' : 'table';
+          this.setState(next);
+        } };
+      }),
       tableRows: rowIds.map(id => { const blank = this.state.tableMode === 'blank'; const m = (edits[id] && edits[id].sub) || '';
-        return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || ''), mine: blank ? '' : m, h: blank ? '34px' : 'auto' }; }),
+        const sw = SW[id === 'sw1' ? 0 : id === 'sw2' ? 1 : -1];
+        const swPair = sw ? (preset === 'ld' ? sw.a + '-' + sw.b : preset === 'sx' ? sw.sa + '-' + sw.sb : null) : null;
+        return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || swPair || ''), mine: blank ? '' : m, h: blank ? '24px' : 'auto' }; }),
       libHref: 'index.html?labels=' + (preset === 'blank' ? 'none' : preset) + '&style=' + st,
       fontOpts, font: this.state.font,
       onFont: e => {
@@ -690,7 +785,7 @@ class Component extends DCLogic {
       resetLook: () => this.setState({ font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null }),
       ownOpts: opt([['below','Under set name'],['replace','Replace set name']], 'own'),
       styleOpts: opt([['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold']], 'style'),
-      exWhatOpts: opt([['panel','Panel'],['all','Panel + notes']], 'exWhat'),
+      exWhatOpts: opt([['panel','Panel'],['table','Panel + table'],['notes','Panel + notes'],['all','All']], 'exWhat'),
       exLookOpts: opt([['color','Colour'],['print','Print · line art']], 'exLook')
     };
   }

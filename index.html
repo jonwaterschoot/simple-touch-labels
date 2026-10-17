@@ -26,22 +26,48 @@
     <h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">Simple Touch control map</h1>
     <p style="margin:0;max-width:680px;font-size:15px;line-height:1.5;text-wrap:pretty">{{ intro }}</p>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
-      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export PNG</span>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
-        <div style="display:flex;flex-wrap:wrap">
-          <sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="2">
-            <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-          </sc-for>
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export PNG</span>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+          <div style="display:flex;flex-wrap:wrap">
+            <sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap">
+            <sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
+            </sc-for>
+          </div>
+          <button onClick="{{ doExport }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
         </div>
-        <div style="display:flex;flex-wrap:wrap">
-          <sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2">
-            <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-          </sc-for>
-        </div>
-        <button onClick="{{ doExport }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
+        <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
       </div>
-      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none" title="Export layout minimap — click Panel or Table to toggle">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Preview</span>
+        <div style="width:104px;height:74px;padding:6px;background:{{ mm.sheetBg }};border:2px solid {{ t.text }};box-shadow:4px 4px 0 {{ t.hair }};display:flex;gap:4px;box-sizing:border-box">
+          <div onClick="{{ mm.onPanel }}" style="width:38px;flex:none;border:{{ mm.panelBorder }};background:{{ mm.panelBg }};opacity:{{ mm.panelOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px;box-sizing:border-box;cursor:pointer" title="Click to toggle Panel (left)">
+            <div style="height:42%;background:{{ mm.faceFill }};border:1px solid {{ mm.ink }}"></div>
+            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }};text-align:center">PANEL</span>
+            <div style="height:30%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px">
+              <div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div>
+            </div>
+          </div>
+          <div onClick="{{ mm.onTable }}" style="flex:1;border:{{ mm.tableBorder }};background:{{ mm.tableBg }};opacity:{{ mm.tableOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;box-sizing:border-box;cursor:pointer" title="Click to toggle Table (right)">
+            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">TABLE</span>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
+              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
+              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
+              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
+              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
+            </div>
+            <span style="font:600 6px/1 var(--font-body);color:{{ mm.muted }}">right</span>
+          </div>
+        </div>
+        <span style="font-size:10px;color:{{ t.muted }};white-space:nowrap">{{ mm.caption }}</span>
+      </div>
     </div>
   </header>
 
@@ -353,8 +379,29 @@ class Component extends DCLogic {
       const on = this.state[key] === v;
       return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => this.setState({ [key]: v }) };
     });
+    const what = this.state.exWhat || 'panel';
+    const incPanel = what === 'panel' || what === 'all';
+    const incTable = what === 'table' || what === 'all';
+    const lookPrint = this.state.exLook === 'print';
+    const mmInk = lookPrint ? '#201e1d' : THEMES[st].text;
+    const mmMuted = lookPrint ? '#5b5856' : THEMES[st].muted;
+    const mm = {
+      sheetBg: lookPrint ? '#ffffff' : THEMES[st].page,
+      ink: mmInk,
+      muted: mmMuted,
+      panelBorder: incPanel ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
+      panelBg: lookPrint ? 'transparent' : (isPanel ? 'rgba(128,128,128,.12)' : THEMES[st].devBg),
+      panelOp: incPanel ? '1' : '.38',
+      faceFill: lookPrint ? 'transparent' : THEMES[st].chip,
+      tableBorder: incTable ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
+      tableBg: incTable ? 'rgba(236,48,19,.1)' : 'transparent',
+      tableOp: incTable ? '1' : '.38',
+      caption: incPanel && incTable ? 'Panel + Table' : incTable ? 'Table only' : 'Panel only',
+      onPanel: () => this.setState({ exWhat: incPanel ? (incTable ? 'table' : 'panel') : (incTable ? 'all' : 'panel') }),
+      onTable: () => this.setState({ exWhat: incTable ? (incPanel ? 'panel' : 'table') : (incPanel ? 'all' : 'table') })
+    };
     return {
-      t, labels, isPanel, isAbstract: !isPanel, isPd: pd, isLd: !pd,
+      t, mm, labels, isPanel, isAbstract: !isPanel, isPd: pd, isLd: !pd,
       swNote: pd ? null : 'Switch3::Read() returns the same 1 / 0 / 2 values that Pd receives: pin_a closed gives 1 (POS_UP / POS_LEFT), pin_b closed gives 2 (POS_DOWN / POS_RIGHT), neither gives 0 (POS_CENTER).',
       busy: !!this.state.busy,
       wide: this.state.wide ? { wrap:'nowrap', w:'max-content', flex:'none', ox:'visible', mw:'none', ws:'nowrap' } : { wrap:'wrap', w:'auto', flex:'1 1 360px', ox:'auto', mw:'100%', ws:'normal' }, panelRef: this.panelRef, allRef: this.allRef,
