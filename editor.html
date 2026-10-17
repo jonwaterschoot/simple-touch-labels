@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Touch · Label Editor</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:title" content="Simple Touch · Label Editor">
+<meta property="og:description" content="Interactive label editor and control map generator for the Synthux Simple Touch (Daisy Seed).">
+<meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
+<meta name="twitter:card" content="summary_large_image">
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/styles.css">
-<script src="_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/_ds_bundle.js"></script>
+<link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
 <style>body{margin:0;font-family:var(--font-body)}a{color:inherit;text-underline-offset:3px}a:hover{color:var(--color-accent)}input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}</style>
 </helmet>
@@ -389,23 +394,25 @@ class Component extends DCLogic {
 
   exportHtml() {
     return this.withExport(async () => {
-      const css = await (await fetch('_ds/modernist-54dc0a79-711b-401b-8524-312d7c16f8f4/styles.css')).text().catch(() => '');
+      const css = await (await fetch('styles.css')).text().catch(() => '');
       const panel = this.panelRef.current.cloneNode(true);
       for (const img of panel.querySelectorAll('img')) {
         const txt = await (await fetch(img.getAttribute('src'))).text();
         img.setAttribute('src', 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(txt))));
       }
       panel.querySelectorAll('[style]').forEach(n => { n.style.cursor = ''; });
-      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d' } : THEMES[this.state.style];
+      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d', muted: '#5b5856', hair: 'rgba(32,30,29,.2)' } : THEMES[this.state.style];
       const title = esc(this.state.title || 'Simple Touch');
       const notes = this.state.exWhat === 'all' ? '<section style="font-size:15px;line-height:1.55;max-width:760px">' + md2html(this.state.md) + '</section>' : '';
+      const isPanel = this.state.style === 'panel' || this.state.style === 'gold';
+      const credit = isPanel ? '<footer style="border-top:1px solid ' + t.hair + ';padding-top:16px;font-size:13px;line-height:1.5;color:' + t.muted + '">Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali\'s <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.</footer>' : '';
       const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + title + '</title>'
         + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">'
         + (this.state.font && this.state.font !== 'Archivo' ? '<link rel="stylesheet" href="' + fontHref(this.state.font) + '">' : '')
         + '<style>' + css + '\nbody{margin:0;background:' + t.page + ';color:' + t.text + ';font-family:var(--font-body)}a{color:inherit}</style></head><body>'
         + '<main style="max-width:1100px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
         + '<h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">' + title + '</h1>'
-        + panel.outerHTML + notes + '</main></body></html>';
+        + panel.outerHTML + notes + credit + '</main></body></html>';
       this.download(URL.createObjectURL(new Blob([html], { type: 'text/html' })), this.fileBase() + '.html');
     });
   }
@@ -502,7 +509,7 @@ class Component extends DCLogic {
       showTable: this.state.tableMode !== 'off',
       tableRows: rowIds.map(id => { const blank = this.state.tableMode === 'blank'; const m = (edits[id] && edits[id].sub) || '';
         return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || ''), mine: blank ? '' : m, h: blank ? '34px' : 'auto' }; }),
-      libHref: 'index.html',
+      libHref: 'index.html?labels=' + (preset === 'blank' ? 'none' : preset) + '&style=' + st,
       fontOpts: FONTS, font: this.state.font, onFont: e => this.setState({ font: e.target.value }),
       size: this.state.size, sizeTxt: this.state.size + '%', onSize: e => this.setState({ size: +e.target.value }),
       lblSize: 'clamp(8px, calc(1.5dvh * ' + (this.state.size / 100) + '), 32px)',
