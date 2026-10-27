@@ -63,8 +63,9 @@ function manualLinks(md){
   return out.slice(0,2);
 }
 
-/* A label file from a repository: only the label data, as strings of the usual lengths */
-function labelFileDoc(d){
+/* A label file from a repository: only the label data, as strings of the usual lengths,
+   and a browser build only if it comes from that same repository (emulatorOf) */
+function labelFileDoc(d, repo){
   if(!d || typeof d!=='object' || !d.labels || !d.firmware) return null;
   const s=normalise(d), str=(v,n)=>typeof v==='string'? v.slice(0,n) : '';
   const labels={};
@@ -79,7 +80,7 @@ function labelFileDoc(d){
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
     modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y)})),
-    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}};
+    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo)};
 }
 
 /* What the library and designer show for a directory entry, in this order:
@@ -92,7 +93,7 @@ async function readRepoNow(p){
   const base=communityDoc(p);
   const lf=await repoFile(p.repo, LABEL_FILE);
   if(lf){
-    let d=null, faceplate=false; try{ const j=JSON.parse(lf.text); faceplate=!!(j&&j.faceplate); d=labelFileDoc(j); }catch(e){}
+    let d=null, faceplate=false; try{ const j=JSON.parse(lf.text); faceplate=!!(j&&j.faceplate); d=labelFileDoc(j, p.repo); }catch(e){}
     if(d){
       for(const k of ['name','author','description','repo','authorUrl']) if(!d.firmware[k].trim()) d.firmware[k]=base.firmware[k];
       return {doc:d, source:'file', files:[lf], faceplate};

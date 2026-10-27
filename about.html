@@ -52,6 +52,14 @@
     </ol>
     <h3>Or everything at once</h3>
     <p><b>Repository kit…</b> in the designer downloads one .zip with a README (intro, control map image, control table, your notes, install and build), <code>simple-touch-labels.json</code>, the directory entry and a short HOW-TO. Pick how the firmware is built (libDaisy or Plugdata) and flashed (internal flash or the Daisy bootloader) and the README suggests the matching steps. Only you know the details, so check those parts and fill in what is marked TODO.</p>
+    <h3 id="play">Let people play it</h3>
+    <p>A libDaisy firmware can also run in the browser, built with <a href="https://github.com/jonwaterschoot/simple-touch-web" target="_blank">simple-touch-web</a>: the same code, compiled for a virtual Simple Touch with its knobs, faders, levers, pads, LED and optional OLED. The library then shows a <b>Play</b> button, and the drawing becomes the instrument. You decide whether that happens, and with which build:</p>
+    <ol>
+      <li>Split <code>main()</code> into a setup and a loop half and add the small workflow file from the <a href="https://github.com/jonwaterschoot/simple-touch-web#readme" target="_blank">simple-touch-web README</a>. Every push then builds the firmware for the browser, checks that it boots, and publishes it on a <code>simple-touch-web</code> branch of your repository.</li>
+      <li>Listen to the build on the test bench the run links to. Only you can say whether it sounds like your firmware.</li>
+      <li>If it does, paste the <code>emulator</code> block from the run's summary into <b>Browser build</b> in the designer (under Firmware), save the file and add it to your repository as above. <code>"embed": "allowed"</code> lets the library play that build; <code>"link-only"</code> with a <code>"url"</code> only links to your own page. Add <code>"oled": true</code> if the firmware drives the optional OLED.</li>
+    </ol>
+    <p>The block pins the build by its hash: the library refuses any other file, so a later build only plays here once you approve it. The build has to come from your own repository (its raw files or your Pages site). The library feeds it loops from simple-touch-web or the visitor's mic or own sound file.</p>
     <h3>Not in the directory yet?</h3>
     <p>In the designer, fill in <b>Repository</b> and <b>Author link</b> under Firmware, then click <b>Directory entry…</b>. It builds your <code>projects/&lt;id&gt;.json</code>, checks it the way the directory does, and opens a pull request on GitHub with the file filled in. Listing is not endorsement: Synthux does not review or test listed projects.</p>
     <h3>A README the script can read</h3>
@@ -78,6 +86,7 @@
     <ul>
       <li>Everything runs in your browser. Pages are read from <code>synthux-academy.github.io</code>, <code>raw.githubusercontent.com</code> and <code>codeberg.org</code>; nothing is sent anywhere else.</li>
       <li>Text from repositories is only ever shown as text, never run as code.</li>
+      <li>The one exception is <b>Play</b>, and only when you press it: it runs the firmware build its author approved, checked against the hash in their label file, from their own repository or Pages site. It runs as WebAssembly in the page's audio thread, where it can only exchange sound, control positions and MIDI with the page. The loops come from <code>jonwaterschoot.github.io</code>; the mic is only opened if you choose it.</li>
       <li>The designer keeps your work in this browser's storage. Nothing leaves it unless you save a file, copy a share link or open a pull request.</li>
     </ul>
   </main>

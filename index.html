@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
 <script src="core.js"></script>
 <script src="community.js"></script>
+<script src="play.js"></script>
 </head>
 <body class="ui-dark">
 <div class="wrap">
@@ -40,6 +41,7 @@
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
   </div>
 
+  <section class="play" id="play" hidden></section>
   <section class="notice" id="notice" hidden></section>
   <div class="lib">
     <figure id="fig"><p class="hint">Loading the panel drawing…</p></figure>
@@ -113,7 +115,7 @@ function buildBars(){
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
   // greyed out rather than hidden, so the toolbar never shifts
-  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second;
+  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on;
   for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
 }
 /* entries from the Synthux community directory; listed ones have no label file yet */
@@ -125,6 +127,7 @@ function buildCommunity(list){
   $('commGrp').hidden=!list.length;
 }
 async function pick(src, proj=null){
+  Play.reset();
   UI.src=src; UI.proj=proj; UI.read=null;
   if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
   else if(proj){
@@ -167,14 +170,16 @@ function update(){
   buildBars(); if(!ready) return;
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
-  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second;
-  part= !sec? 'main' : both? 'main' : (UI.partsOn.second? 'second' : 'main');
+  // while playing, one drawing: the one the controls are on
+  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on;
+  part= !sec? 'main' : both? 'main' : (UI.partsOn.main? 'main' : 'second');
   bw= sec && UI.bwPreview;
 
   const build=buildFor(V.layout), draw=pt=>svgOf(build(true,V.theme,pt));
   const fig=$('fig'), stack=both&&UI.arrange==='stack'; fig.className= V.layout==='desktop'||(both&&!stack)? 'wide' : ''; sizeFig();
   fig.innerHTML= both? `<div class="duo${stack?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
   curPart=part;
+  Play.strip(); Play.attach(fig);
   const P=UI.proj, view=`theme=${V.theme}&layout=${V.layout}`;
   const editHref='editor.html?'+(P? 'community='+encodeURIComponent(P.id) : isFw()? 'start='+UI.src : 'start=blank&ref='+UI.src)+'&'+view;
   $('title').textContent= P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';

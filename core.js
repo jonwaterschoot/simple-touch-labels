@@ -184,7 +184,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -194,6 +194,7 @@ function normalise(d){
   s.offsets = {phone:{...((d.offsets||{}).phone||{})}, desktop:{...((d.offsets||{}).desktop||{})}};
   s.modTypes = {...(d.modTypes||{})};
   s.fpStyle = {...(d.fpStyle||{})};
+  s.emulator = emulatorOf(d.emulator, (d.firmware||{}).repo);
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
     s.modifiers=['P10','P11'];
@@ -217,6 +218,7 @@ function cleanData(){
   if(doc.customs.length) out.customs=doc.customs;
   const mt=Object.fromEntries(mods().filter(isToggle).map(m=>[m,'toggle'])); if(Object.keys(mt).length) out.modTypes=mt;
   if(Object.keys(doc.offsets.phone).length||Object.keys(doc.offsets.desktop).length) out.offsets=doc.offsets;
+  if(doc.emulator) out.emulator=doc.emulator;
   return out;
 }
 
@@ -241,9 +243,9 @@ async function loadExample(key){
     fetch(ex.file).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }),
     ex.faceplateFile ? fetch(ex.faceplateFile).then(r=> r.ok ? r.text() : '').catch(()=>'') : '',
   ]).then(([d, fp])=> fp && !d.faceplate ? {...d, faceplate:fp} : d);
-  const d = normalise(await exampleCache[key]);
+  const raw = await exampleCache[key];
+  const d = normalise(ex.repo && !(raw.firmware||{}).repo ? {...raw, firmware:{...raw.firmware, repo:ex.repo}} : raw);
   if(d.faceplate){ d.faceplate = sanitizeFaceplate(d.faceplate); d.faceplateRef = key; }
-  if(ex.repo && !d.firmware.repo) d.firmware.repo = ex.repo;
   return d;
 }
 /* An example's faceplate is stored as a reference (faceplateRef) in links and in this browser */
@@ -258,6 +260,31 @@ async function resolveFaceplate(d){
 const REPO_RE = /^https:\/\/(github\.com|codeberg\.org)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 const normRepo = url => String(url||'').trim().replace(/\/+$/,'').replace(/\.git$/,'');
 const repoShort = url =>String(url||'').replace(/^https:\/\/(github\.com|codeberg\.org)\//,'');
+
+/* A browser build of the firmware (simple-touch-web), as its author approved it in the label file:
+   {wasm, abi, sha256, embed:'allowed'|'link-only', url?, oled?}. 'allowed' lets the library play it;
+   otherwise it only links to the author's page (url). The build must come from the firmware's own
+   repository or its owner's Pages, and sha256 pins it. Anything else is dropped. */
+const EMULATOR_ABI = 'simple-touch-web/1';
+function emulatorOf(e, repo){
+  if(!e || typeof e!=='object') return null;
+  const url=safeHttps(typeof e.url==='string'? e.url.trim() : '');
+  let embed= e.embed==='allowed' && e.abi===EMULATOR_ABI && /^[0-9a-f]{64}$/i.test(e.sha256||'') && buildHosted(e.wasm, repo);
+  if(!embed && !url) return null;
+  const out= embed? {wasm:e.wasm, abi:e.abi, sha256:e.sha256.toLowerCase(), embed:'allowed'} : {embed:'link-only'};
+  if(url) out.url=url;
+  if(embed && e.oled===true) out.oled=true;
+  return out;
+}
+/* raw files and Pages of the same repository: GitHub (raw.githubusercontent.com, owner.github.io) or Codeberg */
+function buildHosted(wasm, repo){
+  const m=String(normRepo(repo)).match(/^https:\/\/(github\.com|codeberg\.org)\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+  if(!m || typeof wasm!=='string' || !/^https:\/\/[^\s"'<>?#]+\.wasm$/.test(wasm) || wasm.includes('/../')) return false;
+  const [,host,owner,name]=m, lo=owner.toLowerCase();
+  const roots= host==='github.com'? [`https://raw.githubusercontent.com/${owner}/${name}/`, `https://${lo}.github.io/`]
+    : [`https://codeberg.org/${owner}/${name}/raw/`, `https://${lo}.codeberg.page/`];
+  return roots.some(r=>wasm.toLowerCase().startsWith(r.toLowerCase()));
+}
 const safeHttps = url => /^https:\/\/[^\s"'<>]+$/.test(url||'') ? url : '';
 
 const val = (id,k) => ((doc.labels[id]||{})[k]||'');

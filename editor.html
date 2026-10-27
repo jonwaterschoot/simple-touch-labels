@@ -245,6 +245,27 @@ function buildForm(){
   const lh=el('p',{className:'hint'});
   lh.innerHTML=`Optional. The repository is linked from the downloaded manual; both go into the community directory entry (Directory entry… at the top). To show these labels in the library, use Save file and add the file to the root of the repository as <code>${LABEL_FILE}</code>. <a href="about.html#creators" target="_blank">How this works</a>`;
   form.append(links, lh);
+  // a browser build (simple-touch-web): the emulator block from the build's run summary, as the author approves it
+  const emu=el('div',{className:'meta links'});
+  const ea=el('textarea',{className:'code',spellcheck:false,placeholder:'"emulator": { "wasm": "…", "abi": "simple-touch-web/1", "sha256": "…", "embed": "allowed" }',
+    value: doc.emulator? JSON.stringify(doc.emulator,null,2) : ''}); ea.setAttribute('aria-label','Browser build');
+  const es=el('p',{className:'hint'});
+  const emuState=()=>{
+    const e=doc.emulator, t=ea.value.trim();
+    es.innerHTML= !t? `Optional. Let the library play this firmware: build it for the browser with <a href="https://github.com/jonwaterschoot/simple-touch-web#publishing-a-build" target="_blank">simple-touch-web</a> and paste the <code>emulator</code> block from the build's run summary. <code>"embed": "allowed"</code> plays it in the library; <code>"link-only"</code> with a <code>"url"</code> links to your own page.`
+      : !e? `<b>Not used:</b> this needs <code>"abi": "${EMULATOR_ABI}"</code>, a 64-character <code>sha256</code> and a <code>.wasm</code> in this firmware's repository (set Repository above), or <code>"embed": "link-only"</code> with a <code>"url"</code>.`
+      : e.embed==='allowed'? `The library plays build <code>${esc(e.sha256.slice(0,12))}</code>${e.oled?', with the OLED':''}, once this file is in the repository.` : `The library links to <a href="${escAttr(e.url)}" target="_blank">${esc(e.url)}</a>.`;
+  };
+  const readEmu=()=>{
+    let t=ea.value.trim().replace(/,\s*$/,''), j=null;
+    if(t){ if(!t.startsWith('{')) t='{'+t+'}'; try{ j=JSON.parse(t); if(j && j.emulator) j=j.emulator; }catch(e){ j=null; } }
+    doc.emulator=emulatorOf(j, doc.firmware.repo); emuState(); autosave();
+  };
+  ea.addEventListener('input',readEmu);
+  links.querySelector('input').addEventListener('input',readEmu);   // the repository decides where a build may come from
+  emu.append(el('label',{className:'full'},el('span',{textContent:'Browser build'}),ea));
+  emuState();
+  form.append(emu, es);
 
   for(const g of GROUPS){
     section(g.title,g.hint);
