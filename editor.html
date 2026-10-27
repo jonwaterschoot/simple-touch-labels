@@ -1,795 +1,834 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simple Touch · Label Editor</title>
+<title>Simple Touch · Designer</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-<meta property="og:title" content="Simple Touch · Label Editor">
-<meta property="og:description" content="Interactive label editor and control map generator for the Synthux Simple Touch (Daisy Seed).">
+<meta property="og:title" content="Simple Touch · Designer">
+<meta property="og:description" content="Label editor and manual generator for the Synthux Simple Touch: reference label sets, modifiers, phone and desktop layouts.">
 <meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ui.css">
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
-<style>body{margin:0;font-family:var(--font-body)}a{color:inherit;text-underline-offset:3px}a:hover{color:var(--color-accent)}input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}</style>
-</helmet>
-<div style="min-height:100vh;background:{{ t.page }};color:{{ t.text }};font-family:var(--font-body)">
-<div style="max-width:1280px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">
-  <header style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px 32px;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 480px;min-width:0">
-      <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase"><a href="{{ libHref }}" style="color:{{ t.muted }};text-decoration:none">Label library</a><span style="color:{{ t.kicker }};border-bottom:2px solid {{ t.kicker }}">Label editor</span><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank" style="color:{{ t.muted }};text-decoration:none">GitHub ↗</a></nav>
-      <p style="margin:0;max-width:640px;font-size:15px;line-height:1.5;text-wrap:pretty">Start from a label set, rename any control, add a function line, drag labels into place and add your own. Everything is saved in this browser.</p>
+<script src="core.js"></script>
+<script src="community.js"></script>
+</head>
+<body class="ui-dark">
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <nav class="nav"><a href="index.html">Library</a><span class="on">Designer</span><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
+      <h1>Simple Touch manual designer</h1>
+      <p>Name every control, mark pads or knobs as modifiers and get a manual that lays its labels out by itself: boxes on the controls for phones, side columns with leader lines for desktop. Start from a reference label set or an official firmware. Everything is kept in this browser.</p>
     </div>
-    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
-        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export layout</span>
-        <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
-        <div style="display:flex;flex-wrap:wrap"><sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          <button onClick="{{ doPng }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
-          <button onClick="{{ doHtml }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Download HTML</button>
-          <button onClick="{{ doShare }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:{{ shareBg }};color:{{ shareFg }};cursor:pointer;text-align:left;border-radius:0">{{ shareLabel }}</button>
-        </div>
-        <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
+    <div class="export">
+      <span class="cap">Export</span>
+      <div class="btns">
+        <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
+        <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
+        <button type="button" id="shareBtn">Copy share link</button>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none" title="Export layout minimap — click Panel, Table, or Notes to toggle what is included">
-        <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Preview</span>
-        <div style="width:108px;height:92px;padding:6px;background:{{ mm.sheetBg }};border:2px solid {{ t.text }};box-shadow:4px 4px 0 {{ t.hair }};display:flex;flex-direction:column;gap:4px;box-sizing:border-box">
-          <div style="display:flex;gap:4px;flex:1;min-height:0">
-            <div onClick="{{ mm.onPanel }}" style="width:38px;flex:none;border:1.5px solid {{ mm.panelBorder }};background:{{ mm.panelBg }};display:flex;flex-direction:column;justify-content:space-between;padding:3px;box-sizing:border-box;cursor:pointer" title="Panel (left)">
-              <div style="height:42%;background:{{ mm.faceFill }};border:1px solid {{ mm.ink }}"></div>
-              <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }};text-align:center">PANEL</span>
-              <div style="height:30%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px">
-                <div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div><div style="background:{{ mm.padFill }}"></div>
-              </div>
-            </div>
-            <div onClick="{{ mm.onTable }}" style="flex:1;border:{{ mm.tableBorder }};background:{{ mm.tableBg }};opacity:{{ mm.tableOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;box-sizing:border-box;cursor:pointer" title="Click to toggle Table on the right">
-              <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">{{ mm.tableLbl }}</span>
-              <div style="display:flex;flex-direction:column;gap:3px">
-                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
-                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
-                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
-                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
-                <div style="border-bottom:{{ mm.rowLine }};height:2px"></div>
-              </div>
-              <span style="font:600 6px/1 var(--font-body);color:{{ mm.muted }}">right</span>
-            </div>
-          </div>
-          <div onClick="{{ mm.onNotes }}" style="height:22px;flex:none;border:{{ mm.notesBorder }};background:{{ mm.notesBg }};opacity:{{ mm.notesOp }};display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 5px;box-sizing:border-box;cursor:pointer" title="Click to toggle Notes below">
-            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">NOTES</span>
-            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px 4px">
-              <div style="height:1.5px;background:{{ mm.ink }};opacity:.6"></div><div style="height:1.5px;background:{{ mm.ink }};opacity:.6"></div>
-              <div style="height:1.5px;background:{{ mm.ink }};opacity:.4"></div><div style="height:1.5px;background:{{ mm.ink }};opacity:.4"></div>
-            </div>
-          </div>
-        </div>
-        <span style="font-size:10px;color:{{ t.muted }};white-space:nowrap">{{ mm.caption }}</span>
+      <div class="btns">
+        <button type="button" id="openBtn">Open file…</button>
+        <input type="file" id="openFile" accept=".json,application/json" hidden>
+        <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
+        <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
+        <button type="button" id="kitBtn" title="A README with the control map, the label file and the directory entry, in one .zip for your repository">Repository kit…</button>
+        <span class="status" id="busy"></span>
       </div>
     </div>
   </header>
 
-  <div style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Start from</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ presetOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Table</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ tableOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Your labels</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ ownOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Style</span><div style="display:flex;flex-wrap:wrap"><sc-for list="{{ styleOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button></sc-for></div></div>
+  <div class="bar">
+    <div class="grp"><span class="cap">Start from</span><div class="seg" id="startSeg"></div></div>
+    <div class="grp"><span class="cap">Reference names</span><div class="seg" id="refSeg"></div><div class="seg" id="refModeSeg" data-why="Pick a reference set first"></div></div>
+    <div class="grp"><span class="cap">Table</span><div class="seg" id="tableSeg"></div></div>
+  </div>
+  <div class="bar">
+    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
+    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
+    <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg" data-why="Mark a control as a modifier to get a secondary view"></div><div class="seg" id="arrangeSeg" data-why="Shown when Main and Secondary are both on"></div><div class="seg" id="bwSeg" data-why="Black and white applies to the secondary view"></div></div>
+    <div class="grp"><span class="cap">Font</span><select id="fontSel"></select><button type="button" id="fontCustom" class="tight">Custom…</button></div>
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font</span>
-      <select value="{{ font }}" onChange="{{ onFont }}" style="font:500 13px var(--font-body);padding:6px 8px;border:2px solid {{ t.text }};background:{{ t.page }};color:{{ t.text }};border-radius:0">
-        <sc-for list="{{ fontOpts }}" as="f" hint-placeholder-count="6"><option value="{{ f.val }}">{{ f.label }}</option></sc-for>
-      </select>
-      <button onClick="{{ openFontModal }}" style="font:600 12px var(--font-body);padding:6px 10px;border:2px solid {{ t.text }};margin-left:-10px;background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0" title="Load a Google Font or custom font URL">Custom…</button>
-    </div>
-    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Size</span>
-      <input type="range" min="60" max="180" step="5" value="{{ size }}" onChange="{{ onSize }}" style="width:120px;accent-color:{{ t.active }}">
-      <span style="font-size:13px;min-width:3em">{{ sizeTxt }}</span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Faceplate labels</span>
-      <input type="color" value="{{ faceCol }}" onChange="{{ onFaceCol }}" style="width:36px;height:30px;padding:0;border:2px solid {{ t.text }};background:none;border-radius:0">
-    </label>
-    <label style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Pad labels</span>
-      <input type="color" value="{{ padCol }}" onChange="{{ onPadCol }}" style="width:36px;height:30px;padding:0;border:2px solid {{ t.text }};background:none;border-radius:0">
-    </label>
-    <button onClick="{{ resetLook }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Reset look</button>
-  </div>
+  <main class="grid">
+    <section id="previewCol" aria-label="Preview">
+      <div class="colgrip" id="colGrip" title="Drag to resize the preview · double-click to reset"><span></span></div>
+      <div id="previewBar"><span id="warnSum"></span><span class="hint">Click a label to edit it, drag to move it</span><button type="button" id="resetPos" class="tight">Reset positions</button></div>
+      <div id="stage"><p class="hint">Loading the panel drawing…</p></div>
+    </section>
+    <section id="formCol" aria-label="Labels"></section>
+  </main>
 
-  <sc-if value="{{ showFontModal }}" hint-placeholder-val="{{ false }}">
-    <div onClick="{{ closeFontModal }}" style="position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100">
-      <div onClick="{{ stopProp }}" style="width:min(100%,520px);background:{{ t.page }};color:{{ t.text }};border:2px solid {{ t.text }};box-shadow:10px 10px 0 {{ t.active }};padding:24px;display:flex;flex-direction:column;gap:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid {{ t.rule }};padding-bottom:10px">
-          <span style="font:800 20px var(--font-heading)">Custom font</span>
-          <button onClick="{{ closeFontModal }}" style="font:700 13px var(--font-body);padding:4px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">Close</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <label style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Google Font name or CSS URL</label>
-          <input value="{{ fontQuery }}" onChange="{{ onFontQuery }}" onKeyDown="{{ onFontKey }}" placeholder="e.g. Orbitron, Syne, Press Start 2P, or https://fonts.googleapis.com/css2?family=…" style="font:500 14px var(--font-body);padding:8px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};border-radius:0;width:100%;box-sizing:border-box">
-          <span style="font-size:12px;color:{{ t.muted }}">Enter any Google Font family name (fetched on the fly), a Google Fonts specimen/embed link, or a custom CSS stylesheet URL.</span>
-        </div>
-        <sc-if value="{{ needCustomFamily }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <label style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Font-family name in stylesheet</label>
-            <input value="{{ fontFamilyInput }}" onChange="{{ onFontFamilyInput }}" placeholder="e.g. MyCustomFont" style="font:500 14px var(--font-body);padding:8px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};border-radius:0;width:100%;box-sizing:border-box">
-          </div>
-        </sc-if>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Quick picks from Google Fonts</span>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            <sc-for list="{{ fontSuggestions }}" as="s" hint-placeholder-count="6">
-              <button onClick="{{ s.onClick }}" style="font:600 12px var(--font-body);padding:4px 8px;border:1px solid {{ t.rule }};background:{{ s.bg }};color:{{ s.fg }};cursor:pointer;border-radius:0">{{ s.name }}</button>
-            </sc-for>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid {{ t.hair }}">
-          <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Live preview · {{ previewFontName }}</span>
-          <div style="font-family:{{ previewFontStack }};font-weight:700;font-size:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:4px">
-            <span style="background:{{ faceCol }};color:#fff;padding:4px 8px">S31 · Osc 1 pitch</span>
-            <span style="background:{{ padCol }};color:#fff;padding:4px 8px">P10 · Shift A</span>
-            <span>0123456789</span>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
-          <button onClick="{{ closeFontModal }}" style="font:600 13px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">Cancel</button>
-          <button onClick="{{ applyCustomFont }}" style="font:700 13px var(--font-body);padding:8px 16px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;border-radius:0">Use font</button>
-        </div>
-      </div>
-    </div>
-  </sc-if>
-
-  <div ref="{{ exportRef }}" style="display:flex;flex-direction:column;gap:24px;background:{{ t.page }};width:{{ ex.w }}">
-    <input value="{{ title }}" onChange="{{ onTitle }}" placeholder="Title" style="font:800 40px/1.05 var(--font-heading);margin:0;padding:0;border:0;background:transparent;color:{{ t.text }};width:100%;outline:none">
-    <div style="display:flex;flex-wrap:{{ ex.wrap }};gap:40px;align-items:flex-start;width:100%">
-      <div ref="{{ panelRef }}" style="position:relative;flex:none;width:{{ ex.panelW }};aspect-ratio:{{ aspect }};background:{{ t.devBg }};border:{{ t.devBorder }};box-sizing:border-box;font-family:var(--font-body)">
-      <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ false }}">
-        <sc-if value="{{ isGold }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_gold.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-        <sc-if value="{{ isPrintSvg }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_print.svg" alt="Simple Touch panel line art" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-        <sc-if value="{{ isGray }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-      </sc-if>
-      <sc-if value="{{ isAbstract }}" hint-placeholder-val="{{ true }}">
-        <div style="position:absolute;left:0.8%;top:6.1%;width:98.6%;height:53.4%;background:{{ t.face }};border-radius:{{ t.faceRadius }};border:{{ t.faceBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:47%;top:6.1%;width:52.4%;height:19%;background:{{ t.strip }};clip-path:polygon(40% 0,100% 0,100% 100%,30% 100%,0 0)"></div>
-        <svg viewBox="0 0 825 1277" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
-          <g fill="{{ t.padFill }}" stroke="{{ t.padStroke }}" stroke-width="{{ t.padSW }}" stroke-linejoin="round">
-            <polygon points="255,12 440,12 432,70 268,72"></polygon>
-            <polygon points="452,12 640,12 628,72 460,70"></polygon>
-            <polygon fill="{{ t.padTop }}" points="150,770 335,770 345,895 175,905"></polygon>
-            <polygon fill="{{ t.padTop }}" points="345,770 500,770 480,900 360,895"></polygon>
-            <polygon fill="{{ t.padTop }}" points="510,770 680,770 690,900 490,905"></polygon>
-            <polygon points="15,930 160,915 165,1265 15,1265"></polygon>
-            <polygon points="175,905 325,905 330,1140 185,1145"></polygon>
-            <polygon points="340,905 440,920 445,1265 335,1265"></polygon>
-            <polygon points="455,915 690,910 690,1145 455,1140"></polygon>
-            <polygon points="700,925 815,915 815,1265 700,1265"></polygon>
-            <polygon points="120,1160 325,1155 330,1265 110,1265"></polygon>
-            <polygon points="460,1155 690,1160 690,1265 460,1265"></polygon>
-          </g>
-        </svg>
-        <div style="position:absolute;left:6.7%;top:11.7%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:6.7%;top:23.6%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:6.7%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:93.5%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
-        <sc-for list="{{ knobs }}" as="k" hint-placeholder-count="6">
-          <div style="position:absolute;left:{{ k.l }};top:{{ k.t }};width:9%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:{{ t.knobBorder }};background:{{ t.knobFill }}"></div>
-        </sc-for>
-        <div style="position:absolute;left:36.1%;top:66.4%;width:11%;height:2.6%;transform:translate(-50%,-50%) rotate(-4deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
-        <div style="position:absolute;left:55.5%;top:71%;width:4.5%;height:6.6%;transform:translate(-50%,-50%) rotate(25deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
-        <div style="position:absolute;left:85.1%;top:13.7%;width:3%;height:1.2%;transform:translate(-50%,-50%);background:{{ t.led }};outline:{{ t.ledOutline }}"></div>
-      </sc-if>
-
-      <div style="position:absolute;inset:0;font-size:{{ lblSize }};font-family:{{ lblFont }};font-weight:700;line-height:1.1">
-        <sc-for list="{{ labels }}" as="l" hint-placeholder-count="0">
-          <span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:{{ l.tf }};background:{{ l.bg }};color:{{ l.fg }};padding:{{ l.pad }};outline:{{ l.outline }};white-space:nowrap;display:flex;align-items:center;gap:5px;opacity:{{ l.op }};background-image:{{ l.strike }};cursor:grab;touch-action:none;user-select:none" onPointerDown="{{ l.onDown }}">
-            <sc-if value="{{ l.name }}" hint-placeholder-val="{{ true }}">
-              <span style="display:flex;flex-direction:column;gap:1px;align-items:{{ l.align }}">
-                <span>{{ l.name }}</span>
-                <sc-if value="{{ l.sub }}" hint-placeholder-val="{{ false }}"><span style="font-size:.82em;font-weight:500;opacity:.85">{{ l.sub }}</span></sc-if>
-              </span>
-            </sc-if>
-            <sc-if value="{{ l.sw }}" hint-placeholder-val="{{ false }}">
-              <span style="display:flex;flex-direction:{{ l.swDir }};align-items:center;gap:2px">
-                <sc-if value="{{ l.a }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.a }}</span></sc-if>
-                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span></sc-if>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor;opacity:.65">0</span>
-                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span></sc-if>
-                <sc-if value="{{ l.b }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.b }}</span></sc-if>
-              </span>
-            </sc-if>
-          </span>
-        </sc-for>
-      </div>
-    </div>
-
-      <sc-if value="{{ showControlsForm }}" hint-placeholder-val="{{ true }}">
-      <div style="display:flex;flex-direction:column;gap:20px;min-width:0;flex:1 1 380px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Controls</span>
-          <span style="font-size:13px;color:{{ t.muted }}">Drag labels on the drawing to move them</span>
-        </div>
-        <div style="display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) minmax(0,1.3fr);gap:6px 8px;align-items:center">
-          <span style="font-size:12px;color:{{ t.muted }}">Control</span><span style="font-size:12px;color:{{ t.muted }}">Set name</span><span style="font-size:12px;color:{{ t.muted }}">Your label (optional)</span>
-          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
-            <span style="font-size:13px;font-weight:700">{{ r.key }}</span>
-            <input value="{{ r.name }}" placeholder="{{ r.ph }}" onChange="{{ r.onName }}" onFocus="{{ r.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
-            <input value="{{ r.sub }}" placeholder="{{ r.ex }}" onChange="{{ r.onSub }}" onFocus="{{ r.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
-          </sc-for>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Extra labels</span>
-          <button onClick="{{ addCustom }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">+ Add label</button>
-        </div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:6px 8px;align-items:center">
-          <sc-for list="{{ customs }}" as="c" hint-placeholder-count="0">
-            <input value="{{ c.text }}" placeholder="Label" onChange="{{ c.onText }}" onFocus="{{ c.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
-            <input value="{{ c.sub }}" placeholder="Function" onChange="{{ c.onSub }}" onFocus="{{ c.onSel }}" style="font:500 13px var(--font-body);padding:6px 8px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;min-width:0;width:100%;box-sizing:border-box">
-            <button onClick="{{ c.onRemove }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0;padding:4px 10px">Remove</button>
-          </sc-for>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:2px solid {{ t.rule }};padding-top:12px">
-          <button onClick="{{ loadTouchBass }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Load TouchBass example</button>
-          <button onClick="{{ resetPos }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Reset positions</button>
-          <button onClick="{{ clearEdits }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;text-align:left;border-radius:0">Clear label edits</button>
-        </div>
-      </div>
-      </sc-if>
-
-      <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
-      <div ref="{{ tableWrapRef }}" style="display:flex;flex-direction:column;gap:12px;min-width:0;flex:1 1 420px">
-        <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid {{ t.rule }};padding-bottom:8px">
-            <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Control table ({{ tableModeLabel }})</span>
-            <button onClick="{{ editTableMode }}" style="font:600 12px var(--font-body);padding:4px 10px;border:2px solid {{ t.text }};background:transparent;color:{{ t.text }};cursor:pointer;border-radius:0">← Edit controls</button>
-          </div>
-        </sc-if>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.25">
-          <thead><tr><th style="text-align:left;padding:6px 8px 6px 0;border-bottom:2px solid {{ t.rule }};width:24%">Control</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid {{ t.rule }};width:26%">Label</th><th style="text-align:left;padding:6px 0 6px 8px;border-bottom:2px solid {{ t.rule }}">Function · notes</th></tr></thead>
-          <tbody>
-            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
-              <tr><td style="padding:5px 8px 5px 0;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}"><b>{{ r.key }}</b></td><td style="padding:5px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.name }}</td><td style="padding:5px 0 5px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;height:{{ r.h }}">{{ r.mine }}</td></tr>
-            </sc-for>
-          </tbody>
-        </table>
-      </div>
-      </sc-if>
-    </div>
-
-    <sc-if value="{{ showNotesSection }}" hint-placeholder-val="{{ true }}">
-      <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px;width:100%">
-        <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Notes · Markdown</span></sc-if>
-        <div style="display:grid;grid-template-columns:{{ ex.notesCols }};gap:24px;align-items:start">
-          <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
-            <textarea value="{{ md }}" onChange="{{ onMd }}" placeholder="# Patch notes&#10;&#10;Describe what the knobs do, how to play it…" style="font:13px/1.5 ui-monospace,Menlo,monospace;min-height:260px;padding:10px;border:1px solid {{ t.hair }};background:transparent;color:{{ t.text }};border-radius:0;resize:vertical;width:100%;box-sizing:border-box"></textarea>
-          </sc-if>
-          <div ref="{{ mdRef }}" style="font-size:15px;line-height:1.55;min-width:0;text-wrap:pretty;columns:{{ ex.mdCols }};column-gap:40px"></div>
-        </div>
-      </div>
-    </sc-if>
-  </div>
-
-  <footer style="border-top:1px solid {{ t.hair }};padding-top:16px;font-size:13px;line-height:1.5;color:{{ t.muted }}">
-    <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
+  <footer class="foot">
+    <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Layout engine and manual format after Fabio Bartali's Simple Touch Manual Designer · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
   </footer>
 </div>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script>
-const THEMES = {
-  light: { page:'#f3f2f2', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
-    devBg:'var(--color-neutral-400)', devBorder:'2px solid #201e1d', face:'#201e1d', faceRadius:'0', strip:'var(--color-neutral-300)',
-    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
-    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
-    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
-  dark: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
-    devBg:'var(--color-neutral-700)', devBorder:'2px solid var(--color-neutral-500)', face:'#0b0a0a', faceRadius:'0', strip:'var(--color-neutral-300)',
-    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
-    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
-    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
-  vis: { page:'#141414', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.35)', hair:'rgba(243,242,242,.14)', kicker:'#e3bb67',
-    devBg:'#4e4c4c', devBorder:'none', face:'#000', faceRadius:'6px', strip:'#d9a441',
-    padFill:'#e3bb67', padTop:'#c9b48e', padStroke:'#4e4c4c', padSW:12, knobBorder:'3px solid #fff', knobFill:'#1c1c1c',
-    fader:'#555', faderRadius:'20px', jack:'#555', sw:'#b3201c', swBorder:'2px solid #fff',
-    led:'#e08a3c', ledOutline:'1px solid #fff', chip:'#0a7d50', ink:'#0a7d50', padText:'#2b2219', inkOutline:'none', active:'#0a7d50' },
-  panel: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
-    devBg:'transparent', devBorder:'none', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'1px solid rgba(255,255,255,.35)', active:'var(--color-accent)' }
-};
 
-for (const k in THEMES) Object.assign(THEMES[k], { faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', ...THEMES[k] });
-const PRINT = { page:'#fff', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
-  devBg:'transparent', devBorder:'2px solid #201e1d', face:'transparent', faceBorder:'2px solid #201e1d', strip:'transparent',
-  padFill:'transparent', padTop:'transparent', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #201e1d', knobFill:'transparent',
-  fader:'transparent', faderBorder:'2px solid #201e1d', jack:'transparent', jackBorder:'2px solid #201e1d', sw:'transparent', swBorder:'2px solid #201e1d',
-  led:'transparent', ledOutline:'2px solid #201e1d', inkOutline:'none', plainFg:'#201e1d' };
-THEMES.gold = { ...THEMES.panel, faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', page:'#141414', kicker:'#e3bb67', chip:'#0a7d50', active:'#0a7d50' };
-const C = 'translate(-50%,-50%)', R = 'translate(-50%,-50%) rotate(-90deg)';
-// id: [pd name, pd sub, ld name, ld sub, abstract [l,t,tf,kind], panel [l,t,tf,kind]]
-const CTRL = [
-  ['adc', 'adc~ · audio in', null, 'in[0] · in[1]', 'pins 16 · 17', [12,11.7,'translateY(-50%)','chip'], [15,14.2,'translateY(-50%)','chip']],
-  ['dac', 'dac~ · audio out', null, 'out[0] · out[1]', 'pins 18 · 19', [12,23.6,'translateY(-50%)','chip'], [15,25.7,'translateY(-50%)','chip']],
-  ['led', 'daisyled', null, 'SetLed()', 'onboard', [85.1,12.4,'translate(-50%,-100%)','ink'], [86.4,14,C,'ink']],
-  ['fl', 'faderleft', null, 'A6 · D21', 'S36', [6.7,43.9,'translate(-25%,-50%)','chip'], [8.8,45.1,'translate(-25%,-50%)','chip']],
-  ['fr', 'faderright', null, 'A7 · D22', 'S37', [93.5,43.9,'translate(-75%,-50%)','chip'], [91.3,45.1,'translate(-75%,-50%)','chip']],
-  ['k2', 'knob2', null, 'A1 · D16', 'S31', [21.5,40.6,C,'plain'], [23.1,40.8,C,'chip']],
-  ['k3', 'knob3', null, 'A2 · D17', 'S32', [40.4,40.6,C,'plain'], [41.2,40.8,C,'chip']],
-  ['k4', 'knob4', null, 'A3 · D18', 'S33', [59.5,40.6,C,'plain'], [59.5,40.8,C,'chip']],
-  ['k5', 'knob5', null, 'A4 · D19', 'S34', [78.5,40.6,C,'plain'], [77.7,40.8,C,'chip']],
-  ['k1', 'knob1', null, 'A0 · D15', 'S30', [21.5,54.2,C,'plain'], [23.1,53.6,C,'chip']],
-  ['k6', 'knob6', null, 'A5 · D20', 'S35', [78.5,54.2,C,'plain'], [77.7,53.6,C,'chip']],
-  ['p10', 'touch_ch10', null, 'P10', null, [42.2,3.2,C,'pad'], [41.5,7.6,C,'chip']],
-  ['p11', 'touch_ch11', null, 'P11', null, [66.2,3.2,C,'pad'], [61,7.6,C,'chip']],
-  ['p0', 'touch_ch0', null, 'P0', null, [29.7,64.3,C,'pad'], [24.5,62.4,C,'ink']],
-  ['p1', 'touch_ch1', null, 'P1', null, [51,64.3,C,'pad'], [50,61.8,C,'ink']],
-  ['p2', 'touch_ch2', null, 'P2', null, [71,64.3,C,'pad'], [72,63.8,C,'ink']],
-  ['p3', 'touch_ch3', null, 'P3', null, [10.6,83,R,'pad'], [6.4,85,C,'ink']],
-  ['p4', 'touch_ch4', null, 'P4', null, [30.5,80,C,'pad'], [28,82,C,'ink']],
-  ['p5', 'touch_ch5', null, 'P5', null, [47.3,83,R,'pad'], [46,82,C,'ink']],
-  ['p6', 'touch_ch6', null, 'P6', null, [69.5,80,C,'pad'], [68,82,C,'ink']],
-  ['p7', 'touch_ch7', null, 'P7', null, [91.8,83,R,'pad'], [91.5,85,C,'ink']],
-  ['p8', 'touch_ch8', null, 'P8', null, [26.5,94.6,C,'pad'], [31,93.5,C,'ink']],
-  ['p9', 'touch_ch9', null, 'P9', null, [69.5,94.6,C,'pad'], [69,94,C,'ink']]
+<dialog id="fontModal">
+  <form method="dialog" class="modal">
+    <div class="mhead"><span>Custom font</span><button value="cancel" class="tight">Close</button></div>
+    <label class="cap" for="fontQuery">Google Font name or CSS URL</label>
+    <input id="fontQuery" placeholder="e.g. Orbitron, Syne, or https://fonts.googleapis.com/css2?family=…" autocomplete="off">
+    <p class="hint">A Google Font family name, a Google Fonts specimen or embed link, or any stylesheet URL. An Adobe Fonts web project works as a URL (https://use.typekit.net/&lt;id&gt;.css) with its font-family name, e.g. altivo for Synthux's Altivo.</p>
+    <div id="famRow" hidden><label class="cap" for="fontFamily">Font-family name in that stylesheet</label><input id="fontFamily" placeholder="e.g. altivo" autocomplete="off"></div>
+    <span class="cap">Quick picks</span>
+    <div class="chips" id="fontPicks"></div>
+    <div class="fpreview"><span class="cap" id="fontPrevName"></span><div id="fontPrev">Delay time · Reverb mix · 0123456789</div></div>
+    <div class="mfoot"><button value="cancel">Cancel</button><button value="ok" class="primary" id="fontApply">Use font</button></div>
+  </form>
+</dialog>
+
+<dialog id="dirModal" class="dir">
+  <form method="dialog" class="modal">
+    <div class="mhead"><span>Community directory entry</span><button value="cancel" class="tight">Close</button></div>
+    <p class="hint">The <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">Synthux community directory</a> lists firmware for Synthux instruments, one small JSON file per project. This one is built from the Labels tab: name, author, repository and author link.</p>
+    <label class="cap" for="dirId">Entry id (also the file name)</label>
+    <input id="dirId" autocomplete="off" spellcheck="false">
+    <label class="cap" for="dirDesc">One-line description <span id="dirCount"></span></label>
+    <textarea id="dirDesc" maxlength="300"></textarea>
+    <div id="dirStatus"></div>
+    <pre class="dirjson" id="dirJson"></pre>
+    <div class="mfoot"><button type="button" id="dirCopy">Copy JSON</button><button type="button" id="dirSave">Download</button><button type="button" class="primary" id="dirPR">Open pull request…</button></div>
+  </form>
+</dialog>
+
+<dialog id="kitModal" class="kit">
+  <form method="dialog" class="modal">
+    <div class="mhead"><span>Repository kit</span><button value="cancel" class="tight">Close</button></div>
+    <p class="hint">Everything for your firmware's repository in one .zip: a README with the control map, your label file and the community directory entry. The install and build steps are suggestions; check them and fill in what is marked TODO. <a href="about.html#creators" target="_blank">How this works</a></p>
+    <div class="kitopts">
+      <div class="grp"><span class="cap">Built with</span><div class="seg" id="kitBuild"></div></div>
+      <div class="grp"><span class="cap">Flashing</span><div class="seg" id="kitFlash"></div></div>
+      <div class="grp"><span class="cap">Image</span><select id="kitTheme" aria-label="Image theme"></select><div class="seg" id="kitLayout"></div></div>
+    </div>
+    <div id="kitWarn"></div>
+    <div class="kitbody">
+      <figure class="kitimg"><figcaption class="cap" id="kitImgCap"></figcaption><div id="kitImg"></div></figure>
+      <div class="kitreadme"><div class="kithead"><span class="cap">README.md</span><div class="seg" id="kitView"></div></div><div id="kitReadme"></div></div>
+    </div>
+    <div class="kitfiles"><span class="cap">In the .zip</span><ul id="kitFiles"></ul></div>
+    <div class="mfoot"><span class="status" id="kitBusy"></span><button type="button" class="primary" id="kitZip">Download kit (.zip)</button></div>
+  </form>
+</dialog>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const KEY='simpleTouchManual.v1';
+let doc=emptyDoc();
+const V={theme:'panel', layout:'phone', ref:'sx', refMode:'both', focusId:null};
+const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main:true,second:true}, bwPreview:false, font:'Archivo', fontUrl:null, tableMode:'off', exWhat:'panel', exLook:'color', kit:null};
+const $=id=>document.getElementById(id);
+const stage=$('stage'), form=$('formCol');
+let ready=false;
+
+function snapshot(forShare){
+  const d=cleanData();
+  if(d.faceplateRef) delete d.faceplate;                 // example faceplates are fetched again
+  else if(forShare) delete d.faceplate;                  // a custom faceplate is too big for a link
+  return {doc:d, V:{theme:V.theme,layout:V.layout,ref:V.ref,refMode:V.refMode},
+    UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit},
+    design};
+}
+async function restore(s){
+  if(!s||typeof s!=='object') return;
+  if(s.doc) doc=await resolveFaceplate(normalise(s.doc));
+  if(s.V) Object.assign(V,s.V);
+  if(!s.design || s.design.v!==DESIGN_V) V.theme=migrateTheme(V.theme);   // saved before the theme names changed
+  if(!design.themes[V.theme]) V.theme='panel';
+  if(s.UI) Object.assign(UI,s.UI);
+  if(s.design) design=mergeDesign(s.design);
+}
+let saveTimer=null;
+function autosave(){ if(!ready) return; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{
+  const s=snapshot(false);
+  try{ localStorage.setItem(KEY,JSON.stringify(s)); }
+  catch(e){ try{ delete s.doc.faceplate; localStorage.setItem(KEY,JSON.stringify(s)); flash('Faceplate too big to keep in this browser. Use Save file.'); }catch(e2){} }
+},300); }
+function flash(t){ const b=$('busy'); b.textContent=t; clearTimeout(flash.t); flash.t=setTimeout(()=>{ if(b.textContent===t) b.textContent=''; },4000); }
+
+/* ============================================================
+   BARS: segmented button groups
+   ============================================================ */
+function seg(el, opts, isOn, pick){
+  el.innerHTML='';
+  for(const [v,l] of opts){ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.setAttribute('aria-pressed',String(!!isOn(v))); b.onclick=()=>pick(v); el.append(b); }
+}
+/* toolbar groups keep their place; options that don't apply right now are greyed out */
+function syncBars(){
+  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second, off=(id,d)=>{ $(id).querySelectorAll('button').forEach(b=>b.disabled=d); $(id).title= d? $(id).dataset.why||'' : ''; };
+  off('refModeSeg',!V.ref); off('partSeg',!sec); off('bwSeg',!sec); off('arrangeSeg',!both);
+}
+function buildBars(){
+  seg($('startSeg'), Object.entries(EXAMPLES).map(([k,e])=>[k,e.label]), v=>UI.start===v, startFrom);
+  seg($('refSeg'), [['','Off'],...Object.entries(REF_SETS).map(([k,r])=>[k,r.label])], v=>(V.ref||'')===v, v=>{ V.ref=v; buildBars(); buildForm(); render(); });
+  seg($('refModeSeg'), [['both','Captions + empty controls'],['caption','Captions'],['empty','Empty controls']], v=>V.refMode===v, v=>{ V.refMode=v; buildBars(); render(); });
+  seg($('tableSeg'), [['off','Off'],['filled','Filled'],['blank','Blank rows']], v=>UI.tableMode===v, v=>{ UI.tableMode=v;
+    if(v!=='off' && !['table','all'].includes(UI.exWhat)) UI.exWhat= UI.exWhat==='notes'? 'all' : 'table';
+    buildBars(); buildForm(); render(); });
+  seg($('themeSeg'), THEME_NAMES, v=>V.theme===v, v=>{ V.theme=v; applyChrome(); buildBars(); buildForm(); render(); });
+  seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; buildBars(); render(); });
+  seg($('partSeg'), [['main','Main'],['second','Secondary']], v=>UI.partsOn[v], v=>{
+    const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; buildBars(); render(); });
+  seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; buildBars(); render(); });
+  seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; buildBars(); render(); });
+  const fs=$('fontSel'), list=FONTS.includes(UI.font)? FONTS : [...FONTS,UI.font];
+  fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
+  if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
+  fs.value=UI.font;
+  syncBars();
+}
+function applyChrome(){
+  document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
+  const r=document.documentElement.style;
+  for(let i=1;i<=MOD_MAX;i++) r.setProperty('--m'+i, palOf('phone')['m'+i]);
+  $('previewCol').style.background=pageInk(V.theme).bg;
+}
+const hasContent=()=>Object.values(cleanData().labels).length>0 || !!doc.firmware.name.trim() || doc.customs.length>0;
+async function startFrom(key){
+  if(hasContent() && !confirm(`Replace the current labels with ${EXAMPLES[key].label}?`)) return;
+  try{
+    $('busy').textContent='Loading…';
+    doc=await loadExample(key); UI.start=key; V.focusId=null;
+    if(key!=='blank') V.ref='';   // firmware labels speak for themselves; reference names stay one click away
+    setFaceplate(doc.faceplate, doc.faceplateRef);
+    $('busy').textContent='';
+  }catch(e){ $('busy').textContent='Could not load '+EXAMPLES[key].label+': '+e.message; return; }
+  buildBars(); buildForm(); render();
+}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+const GROUPS = [
+  {title:'P10 and P11', hint:'The round button marks a control as a modifier (max 4). Modifier 1 is red, 2 blue, 3 olive, 4 yellow; each gets its own column for what the other controls do with it. Under the name, "hold" means it is held while you use them; click it for "tap", a mode switch (e.g. P0 / P2 in TouchVink).', kinds:['mod'], mods:true},
+  {title:'Knobs and faders', kinds:['knob','fader'], mods:true},
+  {title:'Pads', kinds:['pad'], mods:true},
+  {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
+  {title:'Jacks and LED', kinds:['jack','led'], mods:false},
 ];
-const SX = { adc:'audio in 1 · 2', dac:'audio out 1 · 2', led:'LED', fl:'S36', fr:'S37', k1:'S30', k2:'S31', k3:'S32', k4:'S33', k5:'S34', k6:'S35',
-  p0:'P0', p1:'P1', p2:'P2', p3:'P3', p4:'P4', p5:'P5', p6:'P6', p7:'P7', p8:'P8', p9:'P9', p10:'P10', p11:'P11' };
-const SX_SUB = { fl:'fader left', fr:'fader right', k1:'pot 0', k2:'pot 1', k3:'pot 2', k4:'pot 3', k5:'pot 4', k6:'pot 5' };
-const SW = [
-  { pd:'sw1', a:'D8', b:'D9', sa:'S09', sb:'S10', dir:'row', abs:[35.5,70,C,'ink'], pan:[38.5,69.4,C,'ink'] },
-  { pd:'sw2', a:'D7', b:'D6', sa:'S08', sb:'S07', dir:'column', abs:[63.5,71,C,'ink'], pan:[66,70.8,C,'ink'] }
-];
+function setPath(path,v){ if(path[0]==='firmware') doc.firmware[path[1]]=v; else (doc.labels[path[1]]||={})[path[2]]=v; }
+function getPath(path){ return path[0]==='firmware'?(doc.firmware[path[1]]||''):val(path[1],path[2]); }
+function el(tag,props={},...kids){ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; }
+function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
+  const e=el('input',{maxLength:max,className:cls,placeholder:ph}); e.dataset.path=path.join('.'); e.setAttribute('aria-label',aria||ph);
+  e.value=getPath(path);
+  e.addEventListener('input',()=>{ setPath(path,e.value); render(); });
+  if(slot) e.addEventListener('focus',()=>{ if(V.focusId!==slot){ V.focusId=slot; render(); } });
+  return e;
+}
+function section(title,hint){ form.append(el('h2',{textContent:title})); if(hint) form.append(el('p',{className:'hint',textContent:hint})); }
+function buildForm(){
+  const keepScroll=form.scrollTop; form.innerHTML='';
+  const tabs=el('div',{className:'tabs',role:'tablist'});
+  for(const [k,l] of [['labels','Labels'],['style','Style']]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
+  form.append(tabs);
+  if(UI.tab==='style'){ buildStyle(); form.scrollTop=keepScroll; return; }
+  section('Firmware');
+  const meta=el('div',{className:'meta'});
+  for(const [k,t,max,cls] of [['name','Name',LIMITS.name,''],['author','Author',LIMITS.author,''],['version','Version',LIMITS.version,''],['description','Short description',LIMITS.desc,'full']]){
+    const inp=el(k==='description'?'textarea':'input',{maxLength:max,value:doc.firmware[k]||''}); inp.setAttribute('aria-label',t);
+    inp.addEventListener('input',()=>{ doc.firmware[k]=inp.value; render(); });
+    meta.append(el('label',{className:cls},el('span',{textContent:t}),inp));
+  }
+  form.append(meta);
+  const links=el('div',{className:'meta links'});
+  for(const [k,t,ph] of [['repo','Repository','https://github.com/you/your-firmware'],['authorUrl','Author link','https://…']]){
+    const inp=el('input',{type:'url',maxLength:200,value:doc.firmware[k]||'',placeholder:ph}); inp.setAttribute('aria-label',t);
+    inp.addEventListener('input',()=>{ doc.firmware[k]=inp.value; autosave(); });
+    links.append(el('label',{},el('span',{textContent:t}),inp));
+  }
+  const lh=el('p',{className:'hint'});
+  lh.innerHTML=`Optional. The repository is linked from the downloaded manual; both go into the community directory entry (Directory entry… at the top). To show these labels in the library, use Save file and add the file to the root of the repository as <code>${LABEL_FILE}</code>. <a href="about.html#creators" target="_blank">How this works</a>`;
+  form.append(links, lh);
 
+  for(const g of GROUPS){
+    section(g.title,g.hint);
+    const cols=[{k:'main',t:'Line 1',max:LIMITS.line},{k:'main_2',t:'Line 2 (smaller)',max:LIMITS.line2,cls:'l2'}];
+    if(g.mods) for(const m of mods()) cols.push({k:'m_'+m,t:(isToggle(m)?'in ':'+ ')+lab(SLOT[m]),mod:m,max:LIMITS.line2});
+    const grid=el('div',{className:'lgrid'});
+    grid.style.gridTemplateColumns=`64px ${g.mods?'30px ':''}repeat(${cols.length},minmax(0,1fr))`;
+    grid.append(el('div',{className:'colhead'}));
+    if(g.mods) grid.append(el('div',{className:'colhead',textContent:'Mod',title:'Modifier'}));
+    cols.forEach(c=>{ const d=el('div',{className:'colhead',textContent:c.t}); if(c.mod) d.style.color=`var(--m${modIndex(c.mod)+1})`; grid.append(d); });
+    for(const s of SLOTS.filter(s=>g.kinds.includes(s.kind))){
+      const row=el('div',{className:'rowline',id:'row-'+s.id}), r=refOf(s.id);
+      const id=el('div',{className:'rowid',title:s.name||KIND_NAME[s.kind]},el('span',{textContent:lab(s)}));
+      if(r) id.append(el('small',{textContent:r[0]}));
+      if(isMod(s.id)){ id.style.color=`var(--m${modIndex(s.id)+1})`;
+        const t=el('button',{type:'button',className:'mtype',textContent:isToggle(s.id)?'tap':'hold',title:isToggle(s.id)?'Tapped: switches the other controls into its mode. Click for held.':'Held while you use the other controls. Click for tapped (a mode switch).'});
+        t.onclick=e=>{ e.stopPropagation(); doc.modTypes[s.id]= isToggle(s.id)? undefined : 'toggle'; if(!doc.modTypes[s.id]) delete doc.modTypes[s.id]; buildForm(); render(); };
+        id.append(t); }
+      id.onclick=()=>row.querySelector('input')?.focus(); row.append(id);
+      if(g.mods){
+        const cb=el('input',{type:'checkbox',checked:isMod(s.id),title:isMod(s.id)?`Modifier ${modIndex(s.id)+1}`:'Make this a modifier'});
+        cb.setAttribute('aria-label',`${lab(s)} is a modifier`);
+        cb.disabled=!isMod(s.id) && mods().length>=MOD_MAX;
+        cb.onchange=()=>{ const list=mods(); doc.modifiers = cb.checked ? [...list,s.id] : list.filter(x=>x!==s.id); if(!cb.checked) delete doc.modTypes[s.id]; buildForm(); render(); };
+        const tg=el('div',{className:'tog'},cb); if(isMod(s.id)) tg.style.setProperty('--mc',`var(--m${modIndex(s.id)+1})`);
+        row.append(tg);
+      }
+      for(const c of cols){
+        const cell=el('div',{className:'cell'});
+        if(c.mod) cell.style.setProperty('--mcol',`var(--m${modIndex(c.mod)+1})`);
+        const skip=(c.k==='main_2'&&NO_LINE2.includes(s.id)) || c.mod===s.id;
+        if(!skip) cell.append(mkInput(['labels',s.id,c.k],c.max,{cls:(c.cls||'')+(c.mod?' modin':''),ph:c.k==='main'&&r?r[0]:c.k==='main_2'&&r&&r[1]?r[1]:'',aria:`${lab(s)} ${c.t}`,slot:s.id}));
+        row.append(cell);
+      }
+      row.append(el('div',{className:'rowmsg'},''));
+      row.lastChild.dataset.msg=s.id;
+      grid.append(row);
+    }
+    form.append(grid);
+  }
 
-const TOUCHBASS = {
-  preset: 'sx', own: 'below', title: 'TouchBass', offsets: {}, customs: [],
-  edits: {
-    k1: { sub: 'Osc 2 amount' }, k2: { sub: 'Osc 1 pitch' }, k3: { sub: 'Osc 2 pitch' }, k4: { sub: 'Pattern' },
-    k5: { sub: 'Pitch random' }, k6: { sub: 'Env random' }, fl: { sub: 'Filter cutoff' }, fr: { sub: 'Envelope' },
-    sw1: { sub: 'Osc 2: sound / AM' }, sw2: { sub: 'Arp off / on / latch' },
-    p10: { sub: 'Shift A' }, p11: { sub: 'Shift B' }, p0: { sub: '−' }, p2: { sub: '+' },
-    p3: { sub: 'note' }, p4: { sub: 'note' }, p5: { sub: 'note' }, p6: { sub: 'note' }, p7: { sub: 'note' }, p8: { sub: 'note' }, p9: { sub: 'note' }
-  },
-  md: [
-    '## TouchBass',
-    'Official Synthux firmware for the Simple Touch. Source and binary: [Synthux-Academy/TouchBass](https://github.com/Synthux-Academy/TouchBass).',
-    '',
-    '### Hold a shift pad',
-    '- **P10 + S31** · Osc 1 waveform, saw / square',
-    '- **P10 + S35** · reverb mix',
-    '- **P10 + S36** · filter resonance',
-    '- **P11 + S36** · filter envelope amount',
-    '- **P10 + P0 / P2** · arpeggiator speed − / +',
-    '- **P11 + P0 / P2** · pick one of three scales',
-    '- **P10 + P11** · mono / paraphonic',
-    '',
-    '### Switches',
-    '- **S07-S08** · arpeggiator off / on / latch',
-    '- **S09-S10** · Osc 2 mode: one position plays it as a sound, the other two use it for AM',
-    '',
-    '### MIDI CC',
-    '71 resonance · 72 envelope · 74 cutoff · 75 Osc 1 freq · 76 Osc 1 shape · 77 Osc 2 freq · 78 Osc 2 amount · 85 pattern · 86 note random · 87 env random · 91 reverb · 126 mono · 127 paraphonic'
-  ].join('\n')
+  section('Extra labels','Free labels you place yourself, e.g. "MIDI in" or a patch name. Drag them on the preview.');
+  const cg=el('div',{className:'cgrid'});
+  doc.customs.forEach((c,i)=>{
+    const t=el('input',{value:c.text||'',placeholder:'Label',maxLength:LIMITS.line}), s=el('input',{value:c.sub||'',placeholder:'Line 2',maxLength:LIMITS.line2});
+    t.oninput=()=>{ c.text=t.value; render(); }; s.oninput=()=>{ c.sub=s.value; render(); };
+    t.id='custom-'+c.id;
+    cg.append(t,s,el('button',{type:'button',className:'tight',textContent:'Remove',onclick:()=>{ doc.customs.splice(i,1); buildForm(); render(); }}));
+  });
+  form.append(cg, el('div',{className:'btns'},el('button',{type:'button',textContent:'+ Add label',onclick:()=>{ const id=Date.now(); doc.customs.push({id,text:'New label',sub:'',x:540,y:300}); buildForm(); render(); $('custom-'+id)?.select(); }})));
+
+  section('Notes','Shown below the panel. Markdown: ## heading, **bold**, *italic*, [link](url), - list, | table |, empty line = new paragraph.');
+  const ta=el('textarea',{className:'notes',maxLength:LIMITS.notes,value:doc.firmware.notes||'',placeholder:'## More functions\n\n- **P10 + P0** · tempo down'});
+  const prev=el('div',{className:'md notesprev'});
+  const drawNotes=()=>{ prev.innerHTML=md2html(ta.value)||'<p class="hint">Preview</p>'; };
+  ta.oninput=()=>{ doc.firmware.notes=ta.value; drawNotes(); autosave(); };
+  drawNotes(); form.append(el('div',{className:'notesgrid'},ta,prev));
+
+  if(UI.tableMode!=='off'){ section(`Control table (${UI.tableMode==='blank'?'blank rows':'filled'})`); form.append(el('div',{id:'tablePrev'})); }
+
+  form.scrollTop=keepScroll;
+}
+
+/* ============================================================
+   STYLE TAB: faceplate, modifier colours, label boxes, panel colours
+   ============================================================ */
+const DCTRL = [['size1','Line 1 size',16,48,1],['size2','Line 2 size',14,44,1],['padX','Padding sides',0,40,1],['padY','Padding top/bottom',0,30,1],['radius','Corner radius',0,30,1],['gap','Space between boxes',0,30,1]];
+const LCTRL = [['mw','Modifier outline',0,10,0.5],['ow','Other boxes outline',0,10,0.5]];
+const CCTRL = [['box','Box colour'],['text','Text colour'],['line','Outline colour'],['ref','Reference caption']];
+/* drawing colours per drawing, with what each one falls back to when a theme doesn't set it */
+const PCTRL = {
+  synthux: [['frame','Around the panel','bg'],['bg','Background, pads'],['top','Top plate','bg'],['strip','Seed window','bg'],['line','Panel lines'],['ctlline','Control outlines','line'],['ctl','Control fill','bg'],
+    ['shape','Pad gaps, dark parts'],['mid','Grey parts'],['sw','Switches','line'],['led','LED','line'],['fp','Faceplate art'],['leader','Leader lines'],['ink','Legend text']],
+  simple: [['frame','Around the panel','bg'],['bg','Device'],['border','Device border','line'],['top','Top plate'],['strip','Seed window'],['pad','Pads'],['padtop','P0 to P2','pad'],['shape','Pad outlines'],
+    ['ctlline','Knob outlines'],['ctl','Knob fill','top'],['mid','Faders'],['jack','Jacks','mid'],['sw','Switches'],['line','Switch and LED outlines'],['led','LED'],['fp','Faceplate art'],['leader','Leader lines'],['ink','Legend text']],
 };
-const FONTS = ['Archivo','Space Grotesk','IBM Plex Sans','IBM Plex Mono','JetBrains Mono','Barlow Condensed','Oswald','Work Sans','DM Sans','DM Mono','Inter Tight','Rubik','Chakra Petch','Share Tech Mono'];
-const EXTRA_FONTS = ['Orbitron','Syne','Rajdhani','Azeret Mono','Silkscreen','Press Start 2P','VT323','Audiowide','Saira Condensed','Major Mono Display','Fira Code','Michroma'];
-const fontHref = f => 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(f).replace(/%20/g, '+') + ':wght@400;500;700&display=swap';
-function normalizeFontName(s) {
-  const t = s.trim().replace(/\+/g, ' ').replace(/\s+/g, ' ');
-  return /[A-Z]/.test(t) ? t : t.replace(/\b[a-z]/g, c => c.toUpperCase());
+const BLENDS = ['normal','multiply','screen','overlay','soft-light','hard-light','darken','lighten','color-dodge','color-burn','difference','exclusion','luminosity'];
+const FP_TYPES='.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.webp,image/webp';
+/* ‹ › buttons around a select, and the scroll wheel while hovering it, to step through the options.
+   Options with data-skip (e.g. "Custom…") are stepped over. */
+function stepper(sel,{wheel=true}={}){
+  const go=d=>{ const opts=[...sel.options]; let i=sel.selectedIndex;
+    do i+=d; while(i>=0 && i<opts.length && opts[i].dataset.skip!==undefined);
+    if(i<0||i>=opts.length) return; sel.selectedIndex=i; sel.dispatchEvent(new Event('change')); };
+  if(wheel) sel.addEventListener('wheel',e=>{ e.preventDefault(); go(e.deltaY>0?1:-1); },{passive:false});
+  return el('span',{className:'stepper'},
+    el('button',{type:'button',className:'tight',textContent:'‹',title:'Previous',onclick:()=>go(-1)}), sel,
+    el('button',{type:'button',className:'tight',textContent:'›',title:'Next',onclick:()=>go(1)}));
 }
-function parseFontInput(raw, famInput) {
-  let s = (raw || '').trim();
-  if (!s) return { family: 'Archivo', url: null, needFamily: false };
-  const hrefM = s.match(/href=["']([^"']+)["']/i) || s.match(/url\(["']?([^"')]+)["']?\)/i);
-  if (hrefM) s = hrefM[1].trim();
-  if (/^https?:\/\//i.test(s)) {
-    const specM = s.match(/fonts\.google\.com\/specimen\/([^/?#]+)/i);
-    if (specM) {
-      const fam = normalizeFontName(decodeURIComponent(specM[1]));
-      return { family: fam, url: fontHref(fam), needFamily: false };
-    }
-    const gfM = s.match(/family=([^&:;#]+)/i);
-    if (gfM) {
-      const fam = normalizeFontName(decodeURIComponent(gfM[1]));
-      return { family: fam, url: s, needFamily: false };
-    }
-    const fam = (famInput || '').trim() || s.split('/').pop().replace(/\.(css|woff2?|ttf|otf).*$/i, '').replace(/[-_]+/g, ' ') || 'Custom Font';
-    return { family: fam, url: s, needFamily: true };
+function slider(label,min,max,step,get,set,fmt=v=>v){
+  const inp=el('input',{type:'range',min,max,step,value:get()}), out=el('output',{textContent:fmt(get())});
+  inp.oninput=()=>{ set(+inp.value); out.textContent=fmt(+inp.value); };
+  return el('label',{className:'dc'},el('span',{textContent:label}),inp,out);
+}
+function buildStyle(){
+  const changed=()=>{ applyDesign(); applyChrome(); render(); };
+  const theme=design.themes[V.theme], themeName=THEME_NAMES.find(t=>t[0]===V.theme)[1];
+
+  section('Faceplate','Your own faceplate artwork, drawn over the blank panel. Jacks, knobs and faders always stay on top of it.');
+  const fpFile=el('input',{type:'file',accept:FP_TYPES,hidden:true});
+  const fpStatus=el('span',{className:'hint',textContent: doc.faceplate? (doc.faceplateRef? `From the ${EXAMPLES[doc.faceplateRef]?.label||doc.faceplateRef} example.` : fpMsg||'Custom faceplate.') : 'Blank Simple Touch faceplate.'});
+  fpFile.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    try{
+      if(/^image\/(png|jpeg|webp)$/.test(f.type)){ const r=await imageFaceplate(f); setFaceplate(sanitizeFaceplate(r.svg),'',{ratio:r.ratio}); fpMsg=r.msg; }
+      else setFaceplate(sanitizeFaceplate(await f.text()),'',{});
+      buildForm(); render();
+    }catch(err){ fpStatus.textContent='This faceplate could not be used: '+err.message; } };
+  form.append(el('div',{className:'fprow'},
+    el('button',{type:'button',className:'tight',textContent:'Upload SVG or image',onclick:()=>fpFile.click()}),
+    el('button',{type:'button',className:'tight',textContent:'Remove',hidden:!doc.faceplate,onclick:()=>{ setFaceplate(''); buildForm(); render(); }}),
+    fpFile, fpStatus));
+  if(doc.faceplate){
+    const f=fpStyle(), setF=patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); };
+    const g=el('div',{className:'dgrid'});
+    const area=el('div',{className:'seg'}); seg(area,[['panel','Whole panel'],['top','Top plate only']],v=>f.area===v,v=>{ setF({area:v}); buildForm(); });
+    g.append(el('div',{className:'dc'},el('span',{textContent:'Area'}),area,el('span')));
+    const bsel=el('select',{innerHTML:BLENDS.map(b=>`<option>${b}</option>`).join('')}); bsel.value=f.blend; bsel.onchange=()=>setF({blend:bsel.value});
+    g.append(el('div',{className:'dc'},el('span',{textContent:'Blend mode'}),stepper(bsel),el('span')));
+    g.append(slider('Opacity',0,100,1,()=>Math.round(f.opacity*100),v=>setF({opacity:v/100}),v=>v+'%'));
+    g.append(slider('Scale',10,300,1,()=>Math.round(f.scale*100),v=>setF({scale:v/100}),v=>v+'%'));
+    g.append(slider('Move left / right',-700,700,1,()=>f.x,v=>setF({x:v})));
+    g.append(slider('Move up / down',-1000,1000,1,()=>f.y,v=>setF({y:v})));
+    const st=el('input',{type:'checkbox',checked:!!f.stretch}); st.onchange=()=>setF({stretch:st.checked});
+    g.append(el('label',{className:'dc'},el('span',{textContent:'Stretch to the panel'}),el('span',{className:'chk'},st,el('small',{textContent:'ignore its own shape'})),el('span')));
+    form.append(g, el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset placement',onclick:()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); }})));
   }
-  const fam = normalizeFontName(s);
-  return { family: fam, url: fontHref(fam), needFamily: false };
-}
-function ensureFontLoaded(family, url) {
-  if (!family || family === 'Archivo') return;
-  const href = url || fontHref(family);
-  const id = 'gf-' + btoa(unescape(encodeURIComponent(href))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
-  if (!document.getElementById(id)) {
-    const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = href;
-    document.head.appendChild(l);
+  const help=el('div',{className:'fphelp'});
+  help.innerHTML=`<p><b>Size.</b> A template-made faceplate covers the whole panel: an SVG with the artboard 0 0 1080 1598.24, or an image of 1080 × 1598 px (2160 × 3196 px for print). Any other image keeps its shape and fills the panel width; move, scale or stretch it above. Transparent parts show the panel underneath.</p>
+    <p><b>Colours.</b> In an SVG, white, black and #222221 follow the theme (faceplate art, dark parts, background), so one file works in every theme. Other colours, and images, stay as drawn; use the blend mode to mix them with the panel.</p>
+    <p><b>Template.</b> The templates come in the drawing and colours of the theme you have selected, now ${themeName}. Start from the layered SVG: draw in the <code>ARTWORK</code> layer and leave the <code>TEMPLATE_…</code> guide layers (outline, pads, controls) where they are. They are left out when you upload the file. For an image editor, use the PNG: the controls are filled in, so you can see what will be covered.</p>`;
+  form.append(help, el('div',{className:'btns'},
+    el('button',{type:'button',className:'tight',textContent:'Download SVG template (layered)',onclick:downloadTemplateSVG}),
+    el('button',{type:'button',className:'tight',textContent:'Download PNG template (2160 × 3196)',onclick:()=>downloadTemplatePNG().catch(err=>alert('The PNG template could not be made: '+err.message))})));
+
+  section('Modifier colours',`Modifier 1 to 4 in the ${themeName} theme, phone and desktop.`);
+  const mrow=el('div',{className:'mcolors'});
+  for(let i=1;i<=MOD_MAX;i++){
+    const inp=el('input',{type:'color',value:palOf('phone')['m'+i]}); inp.setAttribute('aria-label',`Modifier ${i} colour`);
+    inp.oninput=()=>{ for(const mode of ['phone','desktop']) theme[mode]['m'+i]=inp.value; changed(); };
+    inp.onchange=()=>buildForm();
+    mrow.append(el('label',{},el('span',{textContent:`Modifier ${i}`}),inp));
   }
+  form.append(mrow);
+
+  section('Label boxes',`Sizes and effect for every theme; colours for the ${themeName} theme.`);
+  const box=el('div',{className:'dgrid'});
+  for(const [k,label,min,max,step] of DCTRL) box.append(slider(label,min,max,step,()=>design[k],v=>{ design[k]=v; changed(); }));
+  const wsel=el('select',{innerHTML:[400,500,600,700].map(w=>`<option value="${w}">${w}</option>`).join('')}); wsel.value=design.weight;
+  wsel.onchange=()=>{ design.weight=+wsel.value; changed(); };
+  box.append(el('div',{className:'dc'},el('span',{textContent:'Font weight'}),stepper(wsel),el('span')));
+  box.append(slider('Box fill (0 = text only)',0,100,1,()=>Math.round((design.boxOpacity??1)*100),v=>{ design.boxOpacity=v/100; changed(); },v=>v+'%'));
+  const fsel=el('select',{innerHTML:'<option value="none">None</option><option value="shadow">Drop shadow</option><option value="glow">Glow</option>'}); fsel.value=design.fx||'none';
+  const fcol=el('input',{type:'color',value:design.fxColor||'#000000'}); fcol.setAttribute('aria-label','Effect colour');
+  fsel.onchange=()=>{ design.fx=fsel.value; changed(); }; fcol.oninput=()=>{ design.fxColor=fcol.value; changed(); };
+  box.append(el('div',{className:'dc'},el('span',{textContent:'Effect'}),stepper(fsel),fcol));
+  box.append(slider('Effect size',1,24,1,()=>design.fxSize||6,v=>{ design.fxSize=v; changed(); }));
+  box.append(el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'}));
+  for(const [k,label,min,max,step] of LCTRL){
+    const row=el('div',{className:'dcol'},el('span',{textContent:label}));
+    for(const mode of ['phone','desktop']){ const inp=el('input',{type:'range',min,max,step,value:palOf(mode)[k],title:String(palOf(mode)[k])}); inp.setAttribute('aria-label',`${label}, ${mode}`);
+      inp.oninput=()=>{ palOf(mode)[k]=+inp.value; inp.title=inp.value; changed(); }; row.append(inp); }
+    box.append(row);
+  }
+  const padOwn=!!theme.phone.padBox, rows=[...CCTRL, ...(padOwn?[['padBox','Pad box colour'],['padText','Pad text colour']]:[])];
+  for(const [k,label] of rows){
+    const row=el('div',{className:'dcol'},el('span',{textContent:label}));
+    for(const mode of ['phone','desktop']){ const inp=el('input',{type:'color',value:palOf(mode)[k]}); inp.setAttribute('aria-label',`${label}, ${mode}`);
+      inp.oninput=()=>{ palOf(mode)[k]=inp.value; changed(); }; row.append(inp); }
+    box.append(row);
+  }
+  const pc=el('input',{type:'checkbox',checked:padOwn});
+  pc.onchange=()=>{ for(const mode of ['phone','desktop']){ const q=theme[mode]; if(pc.checked){ q.padBox=q.padBox||q.box; q.padText=q.padText||q.text; } else { delete q.padBox; delete q.padText; } } buildForm(); changed(); };
+  box.append(el('label',{className:'dc'},el('span',{textContent:'Pads have their own colours'}),el('span',{className:'chk'},pc),el('span')));
+  form.append(box);
+
+  section('Panel and page',`The drawing and its colours in the ${themeName} theme.`);
+  const pbox=el('div',{className:'dgrid'}), P=theme.panel, simple=P.drawing==='simple';
+  const dseg=el('div',{className:'seg'}); seg(dseg,[['synthux','Synthux drawing'],['simple','Simplified']],v=>(P.drawing||'synthux')===v,v=>{ P.drawing=v; buildForm(); changed(); });
+  pbox.append(el('div',{className:'dc'},el('span',{textContent:'Drawing'}),dseg,el('span')));
+  for(const [k,label,fb] of PCTRL[simple?'simple':'synthux']){
+    const v=P[k]||(fb? P[fb] : '#000000');
+    const inp=el('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(v)? v : '#000000'}); inp.setAttribute('aria-label',label);
+    inp.oninput=()=>{ P[k]=inp.value; changed(); };
+    pbox.append(el('label',{className:'dc'},el('span',{textContent:label}),inp,el('span')));
+  }
+  pbox.append(slider('Leader line thickness',0.5,10,0.5,()=>design.leaderW??2.5,v=>{ design.leaderW=v; changed(); }));
+  if(!simple) pbox.append(slider('Pad texture',0,100,1,()=>Math.round((P.texop ?? .2)*100),v=>{ P.texop=v/100; changed(); },v=>v+'%'));
+  else pbox.append(el('label',{className:'dc'},el('span',{textContent:'Rounded corners'}),el('span',{className:'chk'},Object.assign(el('input',{type:'checkbox',checked:!!P.round}),{onchange:e=>{ P.round=e.target.checked?1:0; changed(); }})),el('span')));
+  form.append(pbox);
+
+  section('Secondary view');
+  const sbox=el('div',{className:'dgrid'});
+  const sel=(k,opts,label)=>{ const s=el('select',{innerHTML:opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}); s.value=design[k]; s.onchange=()=>{ design[k]=s.value; changed(); };
+    sbox.append(el('div',{className:'dc'},el('span',{textContent:label}),stepper(s),el('span'))); };
+  sel('modStyle',[['outline','A  Outline'],['filled','B  Filled'],['hold','C  Hold caption'],['double','D  Double outline']],'Modifier label');
+  sel('multiMod',[['divided','One box, thin divider'],['separate','Separate boxes']],'Control with 2+ modifiers');
+  form.append(sbox, el('div',{className:'btns'},
+    el('button',{type:'button',className:'tight',textContent:`Reset ${themeName} colours`,onclick:()=>{ design.themes[V.theme]=structuredClone(THEME_DEFAULT[V.theme]); buildForm(); changed(); }}),
+    el('button',{type:'button',className:'tight',textContent:'Reset all style',onclick:()=>{ design=cloneDesign(DESIGN_DEFAULT); applyDesign(); applyChrome(); buildForm(); render(); }}),
+    el('button',{type:'button',className:'tight',textContent:'Copy style values',onclick:async e=>{ const t=JSON.stringify(design,null,2); try{ await navigator.clipboard.writeText(t); e.target.textContent='Copied ✓'; }catch(err){ prompt('Copy these values:',t); } }})));
 }
-const toB64Url = u8 => {
-  let bin = ''; for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  if(!ready) return;
+  autosave();
+  const sec=hasSecondary();
+  const both= sec && UI.partsOn.main && UI.partsOn.second;
+  part= !sec? 'main' : both? 'main' : (UI.partsOn.second? 'second' : 'main');
+  syncBars();
+  bw= sec && UI.bwPreview;
+  const build=buildFor(V.layout);
+  // overlap warnings: check every part the phone manual will show
+  const warns={};
+  for(const p of sec?['main','second']:['main']) Object.assign(warns, buildPhone(false,V.theme,p).warns);
+  const draw=pt=>svgOf(build(false,V.theme,pt));
+  stage.innerHTML = both? `<div class="duo${UI.arrange==='stack'?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
+  curPart=part;
+  let n=0;
+  form.querySelectorAll('[data-msg]').forEach(m=>{ const w=warns[m.dataset.msg]; m.textContent= w? 'Still overlaps on the phone layout. Shorten it or use line 2.' : ''; if(w) n++; });
+  $('warnSum').textContent = n? `${n} label${n>1?'s':''} still overlap on phone` : '';
+  form.querySelectorAll('.rowline').forEach(r=>r.classList.toggle('hi',r.id==='row-'+V.focusId));
+  const tp=$('tablePrev'); if(tp) tp.innerHTML=tableHTML(UI.tableMode==='blank');
+}
+
+/* Click a label to jump to its row; drag it to nudge it (kept per layout) */
+function focusRow(key){
+  V.focusId=SLOT[key]? key : null; render();
+  const inp= SLOT[key]? document.querySelector(`#row-${key} input`) : $('custom-'+key.slice(1));
+  if(inp){ inp.scrollIntoView({block:'center',behavior:'smooth'}); inp.focus({preventScroll:true}); }
+}
+stage.addEventListener('pointerdown',e=>{
+  const svg=e.target.closest('svg'); if(!svg||e.button) return;
+  const g=e.target.closest('[data-key]'), scale=svg.getScreenCTM().a, x0=e.clientX, y0=e.clientY;
+  if(!g){
+    const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    let best=null,d=1e9; for(const s of SLOTS){ const dd=Math.hypot(s.x-p.x,s.y-p.y); if(dd<d){d=dd;best=s;} }
+    if(best&&d<110) focusRow(best.id);
+    return;
+  }
+  e.preventDefault();
+  const key=g.dataset.key, custom=!SLOT[key]? doc.customs.find(c=>'c'+c.id===key) : null;
+  const offs=doc.offsets[V.layout], base= custom? {x:custom.x,y:custom.y} : {...(offs[key]||{x:0,y:0})};
+  let moved=false;
+  const move=ev=>{
+    const dx=(ev.clientX-x0)/scale, dy=(ev.clientY-y0)/scale;
+    if(!moved && Math.hypot(ev.clientX-x0,ev.clientY-y0)<4) return;
+    moved=true; stage.classList.add('dragging');
+    const p={x:Math.round(base.x+dx), y:Math.round(base.y+dy)};
+    if(custom){ custom.x=p.x; custom.y=p.y; } else offs[key]=p;
+    render();
+  };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); stage.classList.remove('dragging'); if(!moved) focusRow(key); };
+  addEventListener('pointermove',move); addEventListener('pointerup',up);
+});
+$('resetPos').onclick=()=>{ doc.offsets[V.layout]={}; render(); };
+/* The preview fills the visible part of the window: from its top edge (or the
+   sticky offset once scrolled) down to the bottom of the window */
+function fitPreview(){
+  const c=$('previewCol');
+  if(matchMedia('(max-width:1000px)').matches){ c.style.height=''; return; }
+  const top=Math.max(12, c.parentElement.getBoundingClientRect().top);
+  c.style.height=Math.max(320, innerHeight-top-12)+'px';
+}
+addEventListener('scroll',fitPreview,{passive:true}); addEventListener('resize',fitPreview); fitPreview();
+/* drag the edge of the preview to make it wider or narrower (the form keeps at least 460px) */
+function sizePreview(){ const g=document.querySelector('main.grid'); g.style.gridTemplateColumns= UI.previewW? `${UI.previewW}px minmax(460px,1fr)` : ''; }
+$('colGrip').addEventListener('pointerdown',e=>{
+  e.preventDefault(); const g=document.querySelector('main.grid'), x0=e.clientX, w0=$('previewCol').getBoundingClientRect().width, max=g.clientWidth-484;
+  const move=ev=>{ UI.previewW=Math.round(Math.max(300,Math.min(max,w0+ev.clientX-x0))); sizePreview(); };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); autosave(); };
+  addEventListener('pointermove',move); addEventListener('pointerup',up);
+});
+$('colGrip').addEventListener('dblclick',()=>{ UI.previewW=0; sizePreview(); autosave(); });
+
+/* ============================================================
+   FONT
+   ============================================================ */
+function useFont(family,url){
+  UI.font=family||'Archivo'; UI.fontUrl=url||null; setLabelFont(UI.font);
+  buildBars(); render();
+  ensureFontLoaded(UI.font,UI.fontUrl).then(render);
+}
+$('fontSel').onchange=e=>{ if(e.target.value==='__custom__'){ e.target.value=UI.font; openFontModal(); } else useFont(e.target.value,null); };
+$('fontCustom').onclick=()=>openFontModal();
+function openFontModal(){
+  $('fontQuery').value= FONTS.includes(UI.font)? '' : (UI.fontUrl||UI.font); $('fontFamily').value='';
+  updateFontModal(); $('fontModal').showModal(); $('fontQuery').focus();
+}
+function updateFontModal(){
+  const p=parseFontInput($('fontQuery').value||UI.font, $('fontFamily').value);
+  $('famRow').hidden=!p.needFamily;
+  ensureFontLoaded(p.family,p.url);
+  $('fontPrevName').textContent='Live preview · '+p.family;
+  $('fontPrev').style.fontFamily=`'${p.family}', Archivo, sans-serif`;
+  $('fontPicks').innerHTML='';
+  for(const name of EXTRA_FONTS){ const b=el('button',{type:'button',textContent:name}); b.setAttribute('aria-pressed',String(p.family.toLowerCase()===name.toLowerCase()));
+    b.onclick=()=>{ $('fontQuery').value=name; $('fontFamily').value=''; updateFontModal(); }; $('fontPicks').append(b); }
+}
+$('fontQuery').oninput=updateFontModal; $('fontFamily').oninput=updateFontModal;
+$('fontModal').addEventListener('close',()=>{ if($('fontModal').returnValue!=='ok') return;
+  const p=parseFontInput($('fontQuery').value,$('fontFamily').value); useFont(p.family,p.url); });
+
+/* ============================================================
+   EXPORT / FILES / SHARE
+   ============================================================ */
+const fileBase=()=>slug()+'-'+(UI.exLook==='print'?'print':V.theme)+'-'+V.layout;
+$('pngBtn').onclick=()=>{
+  const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
+  const W=UI.exWhat;
+  openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(),
+    include:{table:['table','all'].includes(W), notes:['notes','all'].includes(W)},
+    content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? tableHTML(UI.tableMode==='blank') : '', withNotes:inc.notes,
+      fileBase:slug()+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+    onChange:(inc,look)=>{ UI.exWhat= inc.table&&inc.notes? 'all' : inc.table? 'table' : inc.notes? 'notes' : 'panel'; UI.exLook=look; autosave(); }});
 };
-const fromB64Url = str => {
-  const b64 = str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4);
-  const bin = atob(b64), u8 = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-  return u8;
+$('htmlBtn').onclick=()=>{
+  if(!(doc.firmware.name||'').trim()){
+    alert('Fill in the firmware name first. The manual file is named after it.');
+    const n=form.querySelector('.meta input'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); }
+    return;
+  }
+  downloadText(slug()+'-manual.html', manualHTML({font:UI.font, fontUrl:UI.fontUrl, withTable:UI.tableMode==='filled'}), 'text/html');
+  render();
 };
-async function encodeShareState(obj) {
-  const bytes = new TextEncoder().encode(JSON.stringify(obj));
-  if (typeof CompressionStream !== 'undefined') {
-    const cs = new CompressionStream('deflate-raw');
-    const w = cs.writable.getWriter(); w.write(bytes); w.close();
-    const buf = await new Response(cs.readable).arrayBuffer();
-    return '1.' + toB64Url(new Uint8Array(buf));
-  }
-  return '0.' + toB64Url(bytes);
-}
-async function decodeShareState(str) {
-  const [ver, data] = str.includes('.') ? str.split('.', 2) : ['1', str];
-  const bytes = fromB64Url(data);
-  if (ver === '1' && typeof DecompressionStream !== 'undefined') {
-    const ds = new DecompressionStream('deflate-raw');
-    const w = ds.writable.getWriter(); w.write(bytes); w.close();
-    const buf = await new Response(ds.readable).arrayBuffer();
-    return JSON.parse(new TextDecoder().decode(buf));
-  }
-  return JSON.parse(new TextDecoder().decode(bytes));
-}
-const FACE_DEF = { light:'#ec3013', dark:'#ec3013', vis:'#0a7d50', panel:'#ec3013', gold:'#0a7d50' };
-const PAD_DEF = { light:'#201e1d', dark:'#201e1d', vis:'#2b2219', panel:'#201e1d', gold:'#201e1d' };
-const KNOB_C = { abs: { k2:[21.5,35.1], k3:[40.4,35.1], k4:[59.5,35.1], k5:[78.5,35.1], k1:[21.5,48.7], k6:[78.5,48.7] },
-  pan: { k2:[23.1,36.4], k3:[41.2,36.4], k4:[59.5,36.4], k5:[77.7,36.4], k1:[23.1,49.2], k6:[77.7,49.2] } };
-const FADER = { abs: { fl:[6.7,43.9,'translate(-25%,-50%)'], fr:[93.5,43.9,'translate(-75%,-50%)'] }, pan: { fl:[8.8,45.1,'translate(-25%,-50%)'], fr:[91.3,45.1,'translate(-75%,-50%)'] } };
-const textOn = hex => { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 150 ? '#201e1d' : '#fff'; };
-const PRESETS = [['pd','Pd / Plugdata'],['ld','libDaisy'],['sx','Synthux'],['blank','Blank']];
-const KEY = 'simpleTouchLabelEditor.v1';
-const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-function inline(s, t) {
-  return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" style="color:inherit">$1</a>');
-}
-function md2html(md, t) {
-  const out = []; let list = null, para = [];
-  const flushP = () => { if (para.length) { out.push('<p style="margin:0 0 .8em">' + inline(para.join(' '), t) + '</p>'); para = []; } };
-  const flushL = () => { if (list) { out.push('</' + list + '>'); list = null; } };
-  for (const raw of (md || '').split('\n')) {
-    const line = raw.trimEnd(); let m;
-    if (!line.trim()) { flushP(); flushL(); continue; }
-    if ((m = line.match(/^(#{1,3})\s+(.*)/))) { flushP(); flushL(); const n = m[1].length; const sz = [0,28,21,17][n];
-      out.push('<h' + n + ' style="margin:.6em 0 .4em;font-family:var(--font-heading);font-weight:800;font-size:' + sz + 'px;line-height:1.15">' + inline(m[2], t) + '</h' + n + '>'); continue; }
-    if ((m = line.match(/^\s*[-*]\s+(.*)/)) || (m = line.match(/^\s*\d+\.\s+(.*)/))) { flushP(); const tag = /^\s*\d/.test(line) ? 'ol' : 'ul';
-      if (list !== tag) { flushL(); out.push('<' + tag + ' style="margin:0 0 .8em;padding-left:1.3em">'); list = tag; }
-      out.push('<li style="margin:.15em 0">' + inline(m[1], t) + '</li>'); continue; }
-    if (/^---+$/.test(line)) { flushP(); flushL(); out.push('<hr style="border:0;border-top:2px solid currentColor;margin:1em 0">'); continue; }
-    flushL(); para.push(line.trim());
-  }
-  flushP(); flushL();
-  return out.join('');
-}
+/* labels, design and font: the saved file, and the repository's simple-touch-labels.json */
+const labelFileText=()=>{ const out=cleanData(); out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
+$('saveBtn').onclick=()=>downloadText(slug()+'.json', labelFileText(), 'application/json');
+$('openBtn').onclick=()=>$('openFile').click();
+$('openFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    const d=JSON.parse(await f.text()), hasData=!!(d.labels&&d.firmware), dz=d.design&&typeof d.design==='object'&&('size1' in d.design)? d.design : null;
+    if(!hasData && !dz) throw new Error('no labels or design found');
+    if(dz){ design=mergeDesign(dz); applyDesign(); }
+    if(d.font&&d.font.family) useFont(d.font.family,d.font.url);
+    if(d.view) Object.assign(V,{theme:d.view.theme||V.theme, ref:d.view.ref??V.ref, refMode:d.view.refMode||V.refMode});
+    if(hasData){ doc=await resolveFaceplate(normalise(d)); if(doc.faceplate) doc.faceplate=sanitizeFaceplate(doc.faceplate); setFaceplate(doc.faceplate, doc.faceplateRef); UI.start=''; }
+    applyChrome(); buildBars(); buildForm(); render();
+  }catch(err){ alert('This file could not be opened: '+err.message); }
+};
+$('shareBtn').onclick=async()=>{
+  const s=snapshot(true), lost=doc.faceplate&&!doc.faceplateRef;
+  const url=new URL(location.href); url.search='?s='+await encodeShareState(s); url.hash='';
+  history.replaceState(null,'',url.toString());
+  try{ await navigator.clipboard.writeText(url.toString()); $('shareBtn').textContent='Copied link ✓'; }catch(e){ prompt('Copy this link:',url.toString()); }
+  if(lost) flash('The custom faceplate is not part of the link. Use Save file to share it.');
+  setTimeout(()=>{ $('shareBtn').textContent='Copy share link'; },2200);
+};
 
-class Component extends DCLogic {
-  panelRef = React.createRef(); exportRef = React.createRef(); mdRef = React.createRef(); tableWrapRef = React.createRef();
-  state = Object.assign({ preset: 'sx', style: 'dark', edits: {}, offsets: {}, customs: [], md: '', title: 'Simple Touch', sel: null, exWhat: 'all', exLook: 'color', own: 'below', font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null, tableMode: 'off' },
-    (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(), (() => { const q = new URLSearchParams(location.search), o = {};
-      if (['pd','ld','sx','blank'].includes(q.get('preset'))) o.preset = q.get('preset');
-      if (['light','dark','vis','panel','gold'].includes(q.get('style'))) o.style = q.get('style');
-      if (o.preset === 'blank') { o.tableMode = 'blank'; o.exWhat = 'table'; }
-      return o; })(), { busy: false, exporting: false, print: false, copied: false, showFontModal: false, fontQuery: '', fontFamilyInput: '' });
+/* ============================================================
+   COMMUNITY DIRECTORY: one projects/<id>.json in Synthux-Academy/community-instruments
+   ============================================================ */
+const oneLine=t=>String(t||'').replace(/\s+/g,' ').trim();
+let dirList=[], dirErr=false;
+function dirEntry(id=$('dirId').value.trim(), desc=$('dirDesc').value){
+  const fw=doc.firmware, url=String(fw.authorUrl||'').trim();
+  const e={schema_version:1, id, name:oneLine(fw.name), description:oneLine(desc), author:{name:oneLine(fw.author)}, repo:normRepo(fw.repo), platform:'touch'};
+  if(url) e.author.url=url;
+  return e;
+}
+/* the directory's schema checks, plus its duplicate checks against the published list */
+function dirProblems(e, listed){
+  const p=[], https=u=>{ try{ return /^https:\/\//.test(u) && !!new URL(u).host; }catch(err){ return false; } };
+  if(e.id.length<3 || e.id.length>64 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(e.id)) p.push('Id: 3 to 64 lowercase letters and digits, with single hyphens between them.');
+  if(!e.name) p.push('Name: fill in the firmware name in the Labels tab.');
+  if(!e.description) p.push('Description: one line about what the firmware does.');
+  else if(e.description.length>200) p.push(`Description: ${e.description.length} characters; the directory allows 200.`);
+  if(!e.author.name) p.push('Author: fill in the author in the Labels tab.');
+  if(e.author.url && !https(e.author.url)) p.push('Author link: a full web address starting with https://.');
+  if(!REPO_RE.test(e.repo)) p.push('Repository: the address of a GitHub or Codeberg repository, e.g. https://github.com/you/your-firmware, with nothing after the repository name.');
+  if(listed && listed.id!==e.id) p.push(`Repository: already listed as projects/${listed.id}.json. Use the id "${listed.id}" to update that entry.`);
+  const taken=dirList.find(x=>x.id===e.id && x.repo!==e.repo);
+  if(taken) p.push(`Id: "${e.id}" is already used by ${taken.name}. Pick another.`);
+  return p;
+}
+/* laid out like the directory's own files: one field per line, author on one line */
+const dirJSON=e=>'{\n'+Object.entries(e).map(([k,v])=>`  ${JSON.stringify(k)}: `+(k==='author'? '{ '+Object.entries(v).map(([a,b])=>`${JSON.stringify(a)}: ${JSON.stringify(b)}`).join(', ')+' }' : JSON.stringify(v))).join(',\n')+'\n}\n';
+function dirUpdate(){
+  const e=dirEntry(), listed=dirList.find(x=>x.repo===e.repo && x.platform==='touch'), probs=dirProblems(e,listed), json=dirJSON(e);
+  $('dirCount').textContent=`· ${e.description.length} / 200`;
+  $('dirJson').textContent=json;
+  const msg= listed? `Already listed as projects/${listed.id}.json. Copy the JSON, then paste it over that file on GitHub.`
+    : `Ready. The pull request button opens GitHub with projects/${e.id}.json filled in; GitHub makes a fork for you first if you need one.`;
+  $('dirStatus').replaceChildren(probs.length? el('ul',{className:'dirmsg'},...probs.map(t=>el('li',{textContent:t}))) : el('p',{className:'dirok',textContent:msg}),
+    ...(dirErr? [el('p',{className:'dirok',textContent:'The directory could not be reached, so duplicates were not checked. The pull request check will do that.'})] : []));
+  $('dirPR').textContent= listed? 'Edit on GitHub…' : 'Open pull request…';
+  $('dirPR').disabled=$('dirSave').disabled=probs.length>0;
+  $('dirPR').onclick=()=>window.open(listed? `${COMMUNITY.repo}/edit/main/projects/${listed.id}.json`
+    : `${COMMUNITY.repo}/new/main/projects?filename=${encodeURIComponent(e.id+'.json')}&value=${encodeURIComponent(json)}`,'_blank','noopener');
+  $('dirSave').onclick=()=>downloadText(e.id+'.json',json,'application/json');
+  $('dirCopy').onclick=async ev=>{ try{ await navigator.clipboard.writeText(json); ev.target.textContent='Copied ✓'; setTimeout(()=>{ ev.target.textContent='Copy JSON'; },2000); }catch(err){ prompt('Copy the JSON:',json); } };
+}
+$('dirBtn').onclick=async()=>{
+  $('dirId').value=slug(); $('dirDesc').value=oneLine(doc.firmware.description);
+  dirUpdate(); $('dirModal').showModal();
+  try{ dirList=await loadDirectory(); dirErr=false; }catch(e){ dirErr=true; }
+  const listed=dirList.find(x=>x.repo===normRepo(doc.firmware.repo) && x.platform==='touch');
+  if(listed && $('dirId').value===slug()) $('dirId').value=listed.id;   // unless it was already edited
+  dirUpdate();
+};
+$('dirId').oninput=dirUpdate;
+/* the description is the firmware's own: edits here show in the Labels tab too */
+$('dirDesc').oninput=()=>{ doc.firmware.description=$('dirDesc').value; const t=form.querySelector('.meta textarea'); if(t) t.value=doc.firmware.description; dirUpdate(); render(); };
 
-  componentDidMount() {
-    this.renderMd();
-    this.loadFont();
-    const sParam = new URLSearchParams(location.search).get('s');
-    if (sParam) {
-      decodeShareState(sParam).then(data => {
-        if (data && typeof data === 'object') this.setState({ ...data, sel: null });
-      }).catch(e => console.warn('Invalid share link:', e));
+/* ============================================================
+   REPOSITORY KIT: README with the control map, label file, directory entry and a short how-to, in one .zip.
+   Install and build are suggestions only: the creator knows how their firmware is built and flashed.
+   ============================================================ */
+const SITE='https://jonwaterschoot.github.io/simple-touch-labels/';
+const KIT_BUILD=[['libdaisy','libDaisy (C++)'],['pd','Plugdata (Pd)'],['other','Other']];
+const KIT_FLASH=[['internal','Internal flash'],['qspi','Bootloader (QSPI)'],['both','Not sure: both']];
+const kitOpts=()=>({build: V.ref==='pd'? 'pd' : 'libdaisy', flash:'both', theme:V.theme, layout:'desktop', view:'preview', ...(UI.kit||{})});
+const kitParts=()=>hasSecondary()? ['main','second'] : ['main'];
+const mdCell=t=>String(t||'').replace(/\|/g,'\\|').replace(/\s+/g,' ').trim();
+function controlsMD(){
+  const ms=mods().filter(usesMod), head=['Control','Function',...ms.map(m=>(isToggle(m)?'after ':'+ ')+slotName(m))];
+  const rows=TABLE_ORDER.map(id=>{
+    const s=SLOT[id], fn=[val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
+    const mc=ms.map(m=>m===id? '*modifier*' : val(id,'m_'+m));
+    return fn||mc.some(x=>x.trim()&&x!=='*modifier*')? [`**${lab(s)}** ${KIND_NAME[s.kind]}`, fn, ...mc] : null;
+  }).filter(Boolean);
+  if(!rows.length) return '<!-- TODO: no labels yet. Fill them in in the designer and make the kit again. -->';
+  const line=r=>'| '+r.map(mdCell).join(' | ')+' |';
+  return [line(head), '|'+head.map(()=>'---').join('|')+'|', ...rows.map(line),
+    ...(ms.length? ['', ...ms.map(m=>isToggle(m)? `- **after ${slotName(m)}**: tap ${lab(SLOT[m])} to switch the controls into this mode.` : `- **+ ${slotName(m)}**: hold ${lab(SLOT[m])} while you use the control.`)] : [])].join('\n');
+}
+function installMD(id, flash, repo){
+  const rel= REPO_RE.test(repo)? `[Releases](${repo}/releases/latest)` : 'the releases page <!-- TODO: link to your releases -->';
+  const dfu=addr=>`\`dfu-util -a 0 -s ${addr}:leave -D ${id}.bin -d ,0483:df11\``;
+  const out=[`Download the latest \`.bin\` from ${rel}, and connect the Simple Touch with a USB **data** cable.`,''];
+  if(flash==='both') out.push('<!-- TODO: keep the section that matches how this firmware is flashed, and delete the other. -->','');
+  if(flash!=='qspi') out.push('### Daisy Web Programmer','',
+    '1. Hold **BOOT** on the Daisy Seed, press and release **RESET**, then release **BOOT**.',
+    '2. Open the [Daisy Web Programmer](https://flash.daisy.audio/), choose the `.bin` and flash it.','',
+    `From a terminal instead: ${dfu('0x08000000')}`,'');
+  if(flash!=='internal') out.push('### With the Daisy bootloader','',
+    'This firmware runs from the QSPI flash, through the Daisy bootloader.','',
+    '1. Once per unit, install the bootloader: see [Getting started with the Daisy bootloader](https://github.com/electro-smith/libDaisy/blob/master/doc/md/_a7_Getting-Started-Daisy-Bootloader.md).',
+    '2. Press **RESET**, then press **BOOT** while the LED pulses.',
+    `3. Flash the \`.bin\` with the [Daisy Web Programmer](https://flash.daisy.audio/), or from a terminal: ${dfu('0x90040000')}`,'');
+  return out.join('\n').trim();
+}
+function buildMD(build, flash, repo){
+  const clone=`\`git clone --recurse-submodules ${REPO_RE.test(repo)? repo : '<repository>'}\``;
+  if(build==='libdaisy') return ['Built with [libDaisy](https://github.com/electro-smith/libDaisy) and [DaisySP](https://github.com/electro-smith/DaisySP), with the Arm toolchain from Electrosmith.','',
+    `1. ${clone}`,
+    '2. Build the libraries once: `make -C libDaisy` and `make -C DaisySP` <!-- TODO: their paths in this repository -->',
+    `3. \`make\`, then \`make program-dfu\` to flash${flash==='internal'? '' : ' (with `APP_TYPE = BOOT_QSPI` in the Makefile to run from the bootloader)'}.`].join('\n');
+  if(build==='pd') return ['Made in [Plugdata](https://plugdata.org): a Pd patch compiled for the Daisy with Heavy, using the Simple Touch board file [`simple_touch.json`](https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.json).','',
+    `1. ${clone}`,
+    '2. Open `<patch>.pd` in Plugdata. <!-- TODO: the patch file -->',
+    '3. In the compiler, choose the Daisy target with the custom board file `simple_touch.json`, then compile and flash. <!-- TODO: check these steps for your setup -->'].join('\n');
+  return '<!-- TODO: how to build this firmware -->';
+}
+function readmeMD(id, img, o){
+  const fw=doc.firmware, name=oneLine(fw.name)||'Simple Touch firmware', repo=normRepo(fw.repo), author=oneLine(fw.author), url=safeHttps(String(fw.authorUrl||'').trim());
+  const by= author? `By ${url? `[${author}](${url})` : author}, f` : 'F';
+  return [`# ${name}`,'',
+    ...(oneLine(fw.description)? [oneLine(fw.description),''] : []),
+    `${by}irmware for the [Synthux Simple Touch](https://synthux.academy)${oneLine(fw.version)? ` · version ${oneLine(fw.version)}` : ''}.`,'',
+    `![${name}: what each control does](${img})`,'',
+    '## Controls','', controlsMD(),'',
+    ...((fw.notes||'').trim()? [fw.notes.trim(),''] : []),
+    '## Install','', installMD(id,o.flash,repo),'',
+    '## Build from source','', buildMD(o.build,o.flash,repo),'',
+    '---','',
+    `Control labels made with [Simple Touch labels](${SITE}). To change them, open \`${LABEL_FILE}\` in the [designer](${SITE}editor.html) (Open file…).`,''].join('\n');
+}
+/* what the kit holds right now, and why the directory entry may be left out */
+function kitState(){
+  const o=kitOpts(), repo=normRepo(doc.firmware.repo), listed=dirList.find(x=>x.repo===repo && x.platform==='touch');
+  const id= listed? listed.id : slug(), img=`docs/${id}-controls.png`;
+  const entry=dirEntry(id, doc.firmware.description), probs=dirProblems(entry, listed);
+  return {o, id, img, listed, entry, probs, readme:readmeMD(id,img,o)};
+}
+function howTo(k){
+  const name=oneLine(doc.firmware.name)||'Simple Touch firmware';
+  return [`${name}: repository kit from Simple Touch labels (${SITE})`,'',
+    'README.md',
+    '  A README for your repository: intro, control map, install and build.',
+    '  Check the install and build steps, and fill in what is marked TODO.',
+    '  Already have a README? Copy the parts you want into it.','',
+    k.img, '  The control map the README shows. Keep it at this path.','',
+    LABEL_FILE, '  Your labels, for the root of the repository. The Simple Touch library',
+    '  shows them, and the designer opens them again (Open file...).','',
+    ...(k.probs.length? ['Community directory entry: not included yet.', `  ${k.probs[0]}`]
+      : [`community-entry/${k.id}.json`, k.listed? `  Already listed as projects/${k.id}.json. Only needed if the entry changed.`
+        : `  Lists the firmware in the Synthux community directory: add it as projects/${k.id}.json`,
+        ...(k.listed? [] : [`  in a pull request to ${COMMUNITY.repo},`, '  or use Directory entry... in the designer.'])]),
+    '', `More: ${SITE}about.html#creators`,''].join('\n');
+}
+let kitImg={key:'', url:''}, kitImgReq=0;
+async function kitImage(o){
+  const key=JSON.stringify([o.theme,o.layout,cleanData(),design,UI.font,UI.fontUrl,V.ref,V.refMode]);
+  if(kitImg.key===key) return kitImg.url;
+  const url=await panelPNG({th:o.theme, layout:o.layout, parts:kitParts()});
+  kitImg={key,url}; return url;
+}
+function kitUpdate(){
+  const k=kitState(), o=k.o, set=patch=>{ UI.kit={...kitOpts(),...patch}; autosave(); kitUpdate(); };
+  seg($('kitBuild'), KIT_BUILD, v=>o.build===v, v=>set({build:v}));
+  seg($('kitFlash'), KIT_FLASH, v=>o.flash===v, v=>set({flash:v}));
+  seg($('kitLayout'), [['phone','Phone'],['desktop','Desktop']], v=>o.layout===v, v=>set({layout:v}));
+  seg($('kitView'), [['preview','Preview'],['markdown','Markdown']], v=>o.view===v, v=>set({view:v}));
+  const ts=$('kitTheme'); if(!ts.options.length){ ts.innerHTML=THEME_NAMES.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join(''); ts.onchange=()=>set({theme:ts.value}); }
+  ts.value=o.theme;
+  const fw=doc.firmware, warn=[!oneLine(fw.name)&&'No firmware name yet: the README title and file names use one.', !Object.keys(cleanData().labels).length&&'No labels yet: the control table is empty.', !REPO_RE.test(normRepo(fw.repo))&&'No repository yet (Labels tab, under Firmware): the README has no download link.'].filter(Boolean);
+  $('kitWarn').replaceChildren(...(warn.length? [el('ul',{className:'dirmsg'},...warn.map(t=>el('li',{textContent:t})))] : []));
+  $('kitImgCap').textContent=k.img;
+  // README: rendered with the image in place, or as Markdown
+  const box=$('kitReadme');
+  if(o.view==='markdown') box.replaceChildren(el('pre',{className:'dirjson kitmd',textContent:k.readme}));
+  else {
+    const at=k.readme.indexOf('!['), end=k.readme.indexOf('\n',at);
+    box.innerHTML=`<div class="md kitmd">${md2html(k.readme.slice(0,at))}<p data-img></p>${md2html(k.readme.slice(end))}</div>`;
+  }
+  const files=[['README.md','the README above'],[k.img,'the image'],[LABEL_FILE,'your labels'],
+    k.probs.length? ['community-entry','left out: '+k.probs[0]] : [`community-entry/${k.id}.json`, k.listed? `already listed as projects/${k.id}.json` : 'the directory entry'],['HOW-TO.txt','what to do with these files']];
+  $('kitFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
+  // the image: rendered again only when what it shows has changed
+  const req=++kitImgReq, show=url=>{ if(req!==kitImgReq) return;
+    $('kitImg').replaceChildren(el('img',{src:url,alt:'The control map for the README'}));
+    const p=box.querySelector('[data-img]'); if(p) p.replaceChildren(el('img',{src:url,alt:''})); };
+  if(kitImg.url && kitImg.key===JSON.stringify([o.theme,o.layout,cleanData(),design,UI.font,UI.fontUrl,V.ref,V.refMode])) show(kitImg.url);
+  else { $('kitImg').replaceChildren(el('p',{className:'hint',textContent:'Rendering the image…'}));
+    kitImage(o).then(show).catch(err=>{ if(req===kitImgReq) $('kitImg').replaceChildren(el('p',{className:'hint',textContent:'The image could not be made: '+err.message})); }); }
+}
+$('kitBtn').onclick=async()=>{
+  $('kitBusy').textContent=''; kitUpdate(); $('kitModal').showModal();
+  try{ dirList=await loadDirectory(); dirErr=false; }catch(e){ dirErr=true; }
+  kitUpdate();
+};
+$('kitZip').onclick=async()=>{
+  const k=kitState();
+  $('kitBusy').textContent='Making the .zip…';
+  try{
+    const png=new Uint8Array(await (await fetch(await kitImage(k.o))).arrayBuffer()), base=`${k.id}-repository-kit/`;
+    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}];
+    if(!k.probs.length) files.push({name:`${base}community-entry/${k.id}.json`,data:dirJSON(k.entry)});
+    download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
+    $('kitBusy').textContent='';
+  }catch(err){ console.error(err); $('kitBusy').textContent='The kit could not be made: '+err.message; }
+};
+
+/* ============================================================
+   INIT: ?s= share link, else this browser, else ?start= / ?community= / ?ref= / ?theme=
+   ============================================================ */
+(async()=>{
+  const q=new URLSearchParams(location.search);
+  try{
+    if(q.get('s')) await restore(await decodeShareState(q.get('s')));
+    else { const saved=JSON.parse(localStorage.getItem(KEY)||'null'); if(saved) await restore(saved); }
+  }catch(e){ console.warn('Could not restore state:',e); }
+  const start=q.get('start');
+  if(start && EXAMPLES[start] && !q.get('s') && (start!==UI.start || !hasContent()) && (!hasContent() || confirm(`Replace your saved labels with ${EXAMPLES[start].label}?`))){
+    try{ doc=await loadExample(start); UI.start=start; if(start!=='blank') V.ref=''; }catch(e){}
+  }
+  /* a directory entry from the library: its name, author and repository, with the labels the library found */
+  const comm=q.get('community'); let commMsg='';
+  if(comm && !q.get('s')){
+    const p=(await loadCommunity().catch(()=>[])).find(p=>p.id===comm);
+    if(p && doc.firmware.repo!==p.repo && (!hasContent() || confirm(`Replace your saved labels with a new manual for ${p.name}?`))){
+      $('busy').textContent='Reading '+repoShort(p.repo)+'…';
+      const r=await readRepo(p);
+      doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx';
+      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}. Check every one.`
+        : r.source==='file'? `Opened ${LABEL_FILE} from the repository.` : '';
     }
   }
-  loadFont() {
-    ensureFontLoaded(this.state.font, this.state.fontUrl);
-    if (this.state.showFontModal && this.state.fontQuery.trim()) {
-      const p = parseFontInput(this.state.fontQuery, this.state.fontFamilyInput);
-      ensureFontLoaded(p.family, p.url);
-    }
-  }
-  componentDidUpdate() {
-    this.renderMd();
-    this.loadFont();
-    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode } = this.state;
-    try { localStorage.setItem(KEY, JSON.stringify({ preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode })); } catch (e) {}
-  }
-  renderMd() { const el = this.mdRef.current; if (el) { const h = md2html(this.state.md); if (el.__h !== h) { el.innerHTML = h; el.__h = h; } } }
-
-  async shareUrl() {
-    const { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode } = this.state;
-    const payload = { preset, style, edits, offsets, customs, md, title, exWhat, exLook, own, font, fontUrl, size, faceCol, padCol, tableMode };
-    try {
-      const code = await encodeShareState(payload);
-      const url = new URL(location.href);
-      url.search = '?s=' + code;
-      history.replaceState(null, '', url.toString());
-      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(url.toString());
-      this.setState({ copied: true });
-      clearTimeout(this._copyTimer);
-      this._copyTimer = setTimeout(() => this.setState({ copied: false }), 2200);
-    } catch (e) { console.error(e); }
-  }
-
-  preset(id) {
-    const p = this.state.preset, c = CTRL.find(x => x[0] === id);
-    if (c) return p === 'pd' ? [c[1], c[2]] : p === 'ld' ? [c[3], c[4]] : p === 'sx' ? [SX[id], SX_SUB[id] || null] : ['', null];
-    const s = SW[id === 'sw1' ? 0 : 1];
-    return [p === 'pd' ? s.pd : '', null];
-  }
-  setEdit(id, field, v) { this.setState(st => ({ edits: { ...st.edits, [id]: { ...(st.edits[id] || {}), [field]: v } } })); }
-  setCustom(i, patch) { this.setState(st => ({ customs: st.customs.map((c, j) => j === i ? { ...c, ...patch } : c) })); }
-
-  startDrag(e, key, isCustom, idx) {
-    e.preventDefault();
-    const el = this.panelRef.current; if (!el) return;
-    const r = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
-    const base = isCustom ? { x: this.state.customs[idx].x, y: this.state.customs[idx].y } : (this.state.offsets[key] || { x: 0, y: 0 });
-    this.setState({ sel: key });
-    const move = ev => {
-      const dx = (ev.clientX - x0) / r.width * 100, dy = (ev.clientY - y0) / r.height * 100;
-      const p = { x: +(base.x + dx).toFixed(2), y: +(base.y + dy).toFixed(2) };
-      if (isCustom) this.setCustom(idx, p); else this.setState(st => ({ offsets: { ...st.offsets, [key]: p } }));
-    };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-  }
-
-  chip(kind, t) {
-    if (kind === 'chip') return { bg: t.chip, fg: '#fff', pad: '3px 5px', outline: 'none' };
-    if (kind === 'ink') return { bg: t.ink, fg: '#fff', pad: '3px 5px', outline: t.inkOutline };
-    if (kind === 'plain') return { bg: 'transparent', fg: t.plainFg, pad: '0', outline: 'none' };
-    return { bg: 'transparent', fg: t.padText, pad: '0', outline: 'none' };
-  }
-
-  async withExport(fn) {
-    this.setState({ busy: true, exporting: true, print: this.state.exLook === 'print', sel: null });
-    await new Promise(r => setTimeout(r, this.state.exLook === 'print' ? 500 : 100));
-    try { await fn(); } catch (e) { console.error(e); }
-    this.setState({ busy: false, exporting: false, print: false });
-  }
-  fileBase() { return (this.state.title || 'simple-touch').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + (this.state.exLook === 'print' ? 'print' : this.state.style); }
-  download(href, name) { const a = document.createElement('a'); a.href = href; a.download = name; a.click(); }
-
-  exportPng() {
-    return this.withExport(async () => {
-      if (!window.htmlToImage) return;
-      const what = this.state.exWhat || 'all';
-      const node = what === 'panel' ? this.panelRef.current : this.exportRef.current;
-      const w = Math.max(node.offsetWidth, node.scrollWidth), h = Math.max(node.offsetHeight, node.scrollHeight), s = 2, pad = 32;
-      const bg = this.state.exLook === 'print' ? '#fff' : THEMES[this.state.style].page;
-      const c = await window.htmlToImage.toCanvas(node, { pixelRatio: s, width: w, height: h, style: { width: w + 'px', height: h + 'px', margin: '0', flex: 'none' } });
-      const out = document.createElement('canvas'); out.width = (w + pad * 2) * s; out.height = (h + pad * 2) * s;
-      const ctx = out.getContext('2d'); ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(c, pad * s, pad * s, w * s, h * s);
-      const suffix = what === 'all' ? '-all' : what === 'table' ? '-panel-table' : what === 'notes' ? '-panel-notes' : '-panel';
-      this.download(out.toDataURL('image/png'), this.fileBase() + suffix + '.png');
-    });
-  }
-
-  exportHtml() {
-    return this.withExport(async () => {
-      const css = await (await fetch('styles.css')).text().catch(() => '');
-      const panel = this.panelRef.current.cloneNode(true);
-      for (const img of panel.querySelectorAll('img')) {
-        const txt = await (await fetch(img.getAttribute('src'))).text();
-        img.setAttribute('src', 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(txt))));
-      }
-      panel.querySelectorAll('[style]').forEach(n => { n.style.cursor = ''; });
-      const what = this.state.exWhat || 'all';
-      const incTable = what === 'table' || what === 'all';
-      const incNotes = (what === 'notes' || what === 'all') && !!(this.state.md && this.state.md.trim());
-      const tableNode = incTable && this.tableWrapRef.current ? this.tableWrapRef.current.cloneNode(true) : null;
-      const t = this.state.exLook === 'print' ? { ...THEMES[this.state.style], page: '#fff', text: '#201e1d', muted: '#5b5856', hair: 'rgba(32,30,29,.2)', rule: '#201e1d' } : THEMES[this.state.style];
-      const title = esc(this.state.title || 'Simple Touch');
-      const topRow = '<div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;width:100%">' + panel.outerHTML + (tableNode ? tableNode.outerHTML : '') + '</div>';
-      const notes = incNotes ? '<section style="border-top:2px solid ' + t.rule + ';padding-top:16px;font-size:15px;line-height:1.55;columns:' + (incTable ? '2 420px' : '1') + ';column-gap:40px">' + md2html(this.state.md) + '</section>' : '';
-      const isPanel = this.state.style === 'panel' || this.state.style === 'gold';
-      const credit = isPanel ? '<footer style="border-top:1px solid ' + t.hair + ';padding-top:16px;font-size:13px;line-height:1.5;color:' + t.muted + '">Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali\'s <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.</footer>' : '';
-      const fHref = this.state.fontUrl || (this.state.font && this.state.font !== 'Archivo' ? fontHref(this.state.font) : null);
-      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + title + '</title>'
-        + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">'
-        + (fHref ? '<link rel="stylesheet" href="' + esc(fHref) + '">' : '')
-        + '<style>' + css + '\nbody{margin:0;background:' + t.page + ';color:' + t.text + ';font-family:var(--font-body)}a{color:inherit}</style></head><body>'
-        + '<main style="max-width:1160px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">'
-        + '<h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">' + title + '</h1>'
-        + topRow + notes + credit + '</main></body></html>';
-      this.download(URL.createObjectURL(new Blob([html], { type: 'text/html' })), this.fileBase() + '.html');
-    });
-  }
-
-  renderVals() {
-    const { preset, style: st, edits, offsets, customs, sel, exporting } = this.state;
-    const pr = !!this.state.print;
-    const t = pr ? { ...THEMES[st], ...PRINT, devBorder: (st === 'panel' || st === 'gold') ? 'none' : PRINT.devBorder, chip: THEMES[st].chip, ink: THEMES[st].ink, padText: '#201e1d' } : THEMES[st];
-    const isPanel = st === 'panel' || st === 'gold';
-    const selOutline = '2px dashed ' + (st === 'light' ? '#2b6cdf' : '#7fb0ff');
-    const val = (id, f, i) => { const e = edits[id]; return e && e[f] !== undefined ? e[f] : this.preset(id)[i]; };
-    const pos = (key, g) => { const o = offsets[key] || { x: 0, y: 0 }; return { left: (g[0] + o.x) + '%', top: (g[1] + o.y) + '%' }; };
-    const geo = isPanel ? 'pan' : 'abs';
-    const faceBg = this.state.faceCol || FACE_DEF[st], padBg = this.state.padCol || PAD_DEF[st];
-    const face = { bg: faceBg, fg: textOn(faceBg), pad: '3px 5px', outline: pr ? 'none' : t.inkOutline };
-    const padc = { bg: padBg, fg: textOn(padBg), pad: '3px 5px', outline: pr ? 'none' : t.inkOutline };
-    const own = this.state.own;
-    const mk = (key, l, tp, tf, ch, extra) => ({ left: l + '%', top: tp + '%', tf, ...ch, outline: sel === key && !exporting ? selOutline : ch.outline,
-      align: 'center', sw: false, sub: null, op: '1', strike: 'none', onDown: e => this.startDrag(e, key), ...extra });
-    const OFF = /^(not|unused|-|x)$/i;
-    const strike = 'linear-gradient(to top right, transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px))';
-    const off = { op: '.45', strike };
-    const labels = [];
-    CTRL.forEach(c => {
-      const id = c[0], g = isPanel ? c[6] : c[5], isPad = id[0] === 'p';
-      const setName = val(id, 'name', 0), setSub = val(id, 'sub', 1);
-      const mine = edits[id] && edits[id].sub;
-      const ch = isPad ? padc : face;
-      const knob = KNOB_C[geo][id], fader = FADER[geo][id];
-      if (mine && OFF.test(mine.trim())) {
-        const [fl, ft, ftf] = fader ? fader : g; const oo = offsets[id] || { x: 0, y: 0 };
-        labels.push(mk(id, fl + oo.x, ft + oo.y, ftf, ch, { name: setName || 'unused', ...off }));
-        return;
-      }
-      let [l, tp, tf] = fader ? fader : g;
-      const o = offsets[id] || { x: 0, y: 0 }; l += o.x; tp += o.y;
-      if (knob && mine && own === 'below' && setName) {
-        labels.push(mk(id + ':set', knob[0], knob[1], 'translate(-50%,-50%)', { bg: 'transparent', fg: t.plainFg, pad: '0', outline: 'none' }, { name: setName, onDown: () => {} }));
-        labels.push(mk(id, l, tp, tf, ch, { name: mine }));
-        return;
-      }
-      let name = setName, sub = setSub;
-      if (mine) { if (own === 'replace') { name = mine; sub = null; } else sub = mine; }
-      if (!name && !sub) return;
-      labels.push(mk(id, l, tp, tf, ch, { name: name || ' ', sub: sub || null }));
-    });
-    SW.forEach((s, i) => {
-      const id = 'sw' + (i + 1), g = isPanel ? s.pan : s.abs;
-      const o = offsets[id] || { x: 0, y: 0 };
-      const a = preset === 'ld' ? s.a : preset === 'sx' ? s.sa : null, b = preset === 'ld' ? s.b : preset === 'sx' ? s.sb : null;
-      const mine = edits[id] && edits[id].sub;
-      const setName = val(id, 'name', 0) || (a ? a + '-' + b : null);
-      const cleared = preset === 'blank' || (edits[id] && edits[id].name === '' && !a);
-      if (mine && OFF.test(mine.trim())) { labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: setName || 'unused', ...off })); return; }
-      if (!mine && (cleared || (edits[id] && edits[id].name === ''))) return;
-      if (mine) {
-        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, own === 'replace' || !setName ? { name: mine } : { name: setName, sub: mine }));
-      } else {
-        labels.push(mk(id, g[0] + o.x, g[1] + o.y, g[2], face, { name: val(id, 'name', 0) || null, align: 'flex-start', sw: true, sw12: !a && preset === 'pd', swDir: s.dir, a, b }));
-      }
-    });
-    customs.forEach((c, i) => {
-      if (!c.text && !c.sub) return;
-      const key = 'c' + c.id;
-      labels.push(mk(key, c.x, c.y, 'translate(-50%,-50%)', face, { name: c.text || ' ', sub: c.sub || null, onDown: e => this.startDrag(e, key, true, i) }));
-    });
-    const opt = (list, key) => list.map(([v, label]) => {
-      const on = this.state[key] === v;
-      return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => this.setState({ [key]: v }) };
-    });
-    const rowIds = ['k1','k2','k3','k4','k5','k6','fl','fr','sw1','sw2','adc','dac','led','p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
-    const EX = { k1:'e.g. Filter cutoff', k2:'e.g. Volume', k3:'e.g. Crusher', k4:'e.g. Resonance', k5:'e.g. Delay time', k6:'e.g. Mix', fl:'e.g. Feedback', fr:'e.g. Reverb' };
-    const keyName = id => { const c = CTRL.find(x => x[0] === id); return c ? c[1].replace(' · audio in','').replace(' · audio out','').replace('touch_ch','pad ') : id; };
-    const allFonts = FONTS.includes(this.state.font) ? FONTS : [...FONTS, this.state.font];
-    const fontOpts = [...allFonts.map(f => ({ val: f, label: f })), { val: '__custom__', label: 'Custom…' }];
-    const parsedModalFont = parseFontInput(this.state.fontQuery || this.state.font, this.state.fontFamilyInput);
-    const applyCustomFont = () => {
-      const p = parseFontInput(this.state.fontQuery, this.state.fontFamilyInput);
-      if (p.family) ensureFontLoaded(p.family, p.url);
-      this.setState({ font: p.family || 'Archivo', fontUrl: p.url, showFontModal: false });
-    };
-    const what = this.state.exWhat || 'all';
-    const incTable = what === 'table' || what === 'all';
-    const incNotes = what === 'notes' || what === 'all';
-    const ratio = isPanel ? '0.6373' : '0.646';
-    const lookPrint = this.state.exLook === 'print';
-    const mmInk = lookPrint ? '#201e1d' : THEMES[st].text;
-    const mmMuted = lookPrint ? '#5b5856' : THEMES[st].muted;
-    const mm = {
-      sheetBg: lookPrint ? '#ffffff' : THEMES[st].page,
-      ink: mmInk,
-      muted: mmMuted,
-      panelBorder: t.active,
-      panelBg: lookPrint ? 'transparent' : (isPanel ? 'rgba(128,128,128,.12)' : THEMES[st].devBg),
-      faceFill: lookPrint ? 'transparent' : faceBg,
-      padFill: lookPrint ? mmInk : padBg,
-      tableBorder: incTable ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
-      tableBg: incTable ? 'rgba(236,48,19,.1)' : 'transparent',
-      tableOp: incTable ? '1' : '.38',
-      tableLbl: this.state.tableMode === 'blank' ? 'BLANK' : 'TABLE',
-      rowLine: (this.state.tableMode === 'blank' ? '1px dashed ' : '1.5px solid ') + mmInk,
-      notesBorder: incNotes ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
-      notesBg: incNotes ? 'rgba(236,48,19,.1)' : 'transparent',
-      notesOp: incNotes ? '1' : '.38',
-      caption: incTable && incNotes ? 'Panel + Table + Notes' : incTable ? 'Panel + Table' : incNotes ? 'Panel + Notes' : 'Panel only',
-      onPanel: () => this.setState({ exWhat: 'panel' }),
-      onTable: () => this.setState({ exWhat: incTable ? (incNotes ? 'notes' : 'panel') : (incNotes ? 'all' : 'table') }),
-      onNotes: () => this.setState({ exWhat: incNotes ? (incTable ? 'table' : 'panel') : (incTable ? 'all' : 'notes') })
-    };
-    return {
-      t, mm, labels, isPanel, isAbstract: !isPanel, editing: !exporting,
-      showControlsForm: !exporting && this.state.tableMode === 'off',
-      showTable: exporting ? incTable : (this.state.tableMode !== 'off'),
-      showNotesSection: exporting ? (incNotes && !!(this.state.md && this.state.md.trim())) : true,
-      tableModeLabel: this.state.tableMode === 'blank' ? 'Blank rows' : 'Filled',
-      editTableMode: () => this.setState({ tableMode: 'off' }),
-      isGold: !pr && st === 'gold', isGray: !pr && st === 'panel', isPrintSvg: pr && isPanel,
-      ratio, aspect: isPanel ? '940/1475' : '825/1277',
-      knobs: [[21.5,35.1],[40.4,35.1],[59.5,35.1],[78.5,35.1],[21.5,48.7],[78.5,48.7]].map(([l, tp]) => ({ l: l + '%', t: tp + '%' })),
-      panelRef: this.panelRef, exportRef: this.exportRef, mdRef: this.mdRef, tableWrapRef: this.tableWrapRef, busy: this.state.busy,
-      ex: exporting
-        ? { w: incTable ? '1120px' : '720px', wrap: 'nowrap', panelW: '460px', notesCols: 'minmax(0,1fr)', mdCols: incTable ? '2 420px' : '1' }
-        : { w: '100%', wrap: 'wrap', panelW: 'min(100%, max(380px, calc((100dvh - 48px) * ' + ratio + ')))', notesCols: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', mdCols: '1' },
-      title: this.state.title, onTitle: e => this.setState({ title: e.target.value }),
-      md: this.state.md, onMd: e => this.setState({ md: e.target.value }),
-      rows: rowIds.map(id => ({ key: keyName(id), name: val(id, 'name', 0) || '', sub: val(id, 'sub', 1) || '', ph: this.preset(id)[0] || '—', ex: EX[id] || 'Your label · “not” = unused',
-        onName: e => this.setEdit(id, 'name', e.target.value), onSub: e => this.setEdit(id, 'sub', e.target.value), onSel: () => this.setState({ sel: id }) })),
-      customs: customs.map((c, i) => ({ text: c.text, sub: c.sub, onText: e => this.setCustom(i, { text: e.target.value }), onSub: e => this.setCustom(i, { sub: e.target.value }),
-        onSel: () => this.setState({ sel: 'c' + c.id }), onRemove: () => this.setState(s => ({ customs: s.customs.filter((_, j) => j !== i) })) })),
-      addCustom: () => this.setState(s => { const id = Date.now(); return { customs: [...s.customs, { id, text: 'New label', sub: '', x: 50, y: 30 }], sel: 'c' + id }; }),
-      resetPos: () => this.setState({ offsets: {} }),
-      loadTouchBass: () => this.setState({ ...TOUCHBASS, exWhat: 'all', sel: null }),
-      clearEdits: () => this.setState({ edits: {} }),
-      doPng: () => this.exportPng(), doHtml: () => this.exportHtml(),
-      doShare: () => this.shareUrl(),
-      shareLabel: this.state.copied ? 'Copied link ✓' : 'Copy share link',
-      shareBg: this.state.copied ? t.active : 'transparent',
-      shareFg: this.state.copied ? '#fff' : t.text,
-      presetOpts: opt(PRESETS, 'preset'),
-      tableOpts: [['off','Edit'],['filled','Filled'],['blank','Blank rows']].map(([v, label]) => {
-        const on = this.state.tableMode === v;
-        return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => {
-          const next = { tableMode: v };
-          if (v !== 'off' && !incTable) next.exWhat = incNotes ? 'all' : 'table';
-          this.setState(next);
-        } };
-      }),
-      tableRows: rowIds.map(id => { const blank = this.state.tableMode === 'blank'; const m = (edits[id] && edits[id].sub) || '';
-        const sw = SW[id === 'sw1' ? 0 : id === 'sw2' ? 1 : -1];
-        const swPair = sw ? (preset === 'ld' ? sw.a + '-' + sw.b : preset === 'sx' ? sw.sa + '-' + sw.sb : null) : null;
-        return { key: keyName(id), name: blank ? '' : (val(id, 'name', 0) || swPair || ''), mine: blank ? '' : m, h: blank ? '24px' : 'auto' }; }),
-      libHref: 'index.html?labels=' + (preset === 'blank' ? 'none' : preset) + '&style=' + st,
-      fontOpts, font: this.state.font,
-      onFont: e => {
-        const v = e.target.value;
-        if (v === '__custom__') this.setState({ showFontModal: true, fontQuery: FONTS.includes(this.state.font) ? '' : (this.state.fontUrl || this.state.font) });
-        else this.setState({ font: v, fontUrl: null });
-      },
-      openFontModal: () => this.setState({ showFontModal: true, fontQuery: FONTS.includes(this.state.font) ? '' : (this.state.fontUrl || this.state.font) }),
-      closeFontModal: () => this.setState({ showFontModal: false }),
-      stopProp: e => e.stopPropagation(),
-      showFontModal: this.state.showFontModal,
-      fontQuery: this.state.fontQuery,
-      onFontQuery: e => this.setState({ fontQuery: e.target.value }),
-      onFontKey: e => { if (e.key === 'Enter') applyCustomFont(); else if (e.key === 'Escape') this.setState({ showFontModal: false }); },
-      needCustomFamily: parsedModalFont.needFamily,
-      fontFamilyInput: this.state.fontFamilyInput,
-      onFontFamilyInput: e => this.setState({ fontFamilyInput: e.target.value }),
-      fontSuggestions: EXTRA_FONTS.map(name => {
-        const on = parsedModalFont.family.toLowerCase() === name.toLowerCase();
-        return { name, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => { ensureFontLoaded(name, null); this.setState({ fontQuery: name, fontFamilyInput: '' }); } };
-      }),
-      previewFontName: parsedModalFont.family,
-      previewFontStack: "'" + parsedModalFont.family + "', var(--font-body)",
-      applyCustomFont,
-      size: this.state.size, sizeTxt: this.state.size + '%', onSize: e => this.setState({ size: +e.target.value }),
-      lblSize: 'clamp(8px, calc(1.5dvh * ' + (this.state.size / 100) + '), 32px)',
-      lblFont: "'" + this.state.font + "', var(--font-body)",
-      faceCol: faceBg, padCol: padBg, onFaceCol: e => this.setState({ faceCol: e.target.value }), onPadCol: e => this.setState({ padCol: e.target.value }),
-      resetLook: () => this.setState({ font: 'Archivo', fontUrl: null, size: 100, faceCol: null, padCol: null }),
-      ownOpts: opt([['below','Under set name'],['replace','Replace set name']], 'own'),
-      styleOpts: opt([['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold']], 'style'),
-      exWhatOpts: opt([['panel','Panel'],['table','Panel + table'],['notes','Panel + notes'],['all','All']], 'exWhat'),
-      exLookOpts: opt([['color','Colour'],['print','Print · line art']], 'exLook')
-    };
-  }
-}
+  if(q.has('ref')) V.ref= REF_SETS[q.get('ref')]? q.get('ref') : '';
+  if(THEME_NAMES.some(t=>t[0]===q.get('theme'))) V.theme=q.get('theme');
+  if(['phone','desktop'].includes(q.get('layout'))) V.layout=q.get('layout');
+  applyDesign(); setLabelFont(UI.font); applyChrome(); buildBars();
+  try{ await loadPanelArt(); }catch(e){ stage.innerHTML='<p class="hint">The panel drawing could not be loaded. Open this page from a web server (GitHub Pages or a local server), not as a file.</p>'; }
+  setFaceplate(doc.faceplate, doc.faceplateRef);
+  ready=true; sizePreview(); buildForm(); render();
+  $('busy').textContent=commMsg;
+  onFontsLoaded=render;
+  ensureFontLoaded(UI.font,UI.fontUrl).then(render);
+  document.fonts.ready.then(render);
+})();
 </script>
 </body>
 </html>

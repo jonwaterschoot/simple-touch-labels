@@ -1,0 +1,5 @@
+# Firmware faceplates (Synthux artwork via Fabio Bartali), and screenshots
+# that show them: kept out of the repository until the artwork is cleared.
+examples/faceplates/
+assets/example_designer_touchfx_gold.png
+assets/example_export_touchstring_print.png

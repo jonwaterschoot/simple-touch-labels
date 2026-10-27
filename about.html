@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Touch · About</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:title" content="Simple Touch · About">
+<meta property="og:description" content="How the Simple Touch library and designer work with firmware repositories and the Synthux community directory.">
+<meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ui.css">
+</head>
+<body class="ui-dark">
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <nav class="nav"><a href="index.html">Library</a><a href="editor.html">Designer</a><span class="on">About</span><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
+      <h1>About</h1>
+      <p>Control maps and manuals for the Synthux Simple Touch. The <a href="index.html">library</a> shows what every knob, fader, switch and pad does in a firmware; the <a href="editor.html">designer</a> is where those labels are made.</p>
+    </div>
+  </header>
+
+  <main class="about">
+    <h2 id="places">Three places</h2>
+    <div class="flow" role="list">
+      <div class="box" role="listitem"><b>Community directory</b><span>Synthux's list of community firmware: one small <code>projects/&lt;id&gt;.json</code> per project, with its name, author and repository.</span></div>
+      <div class="arr" aria-hidden="true">points to</div>
+      <div class="box" role="listitem"><b>Firmware repository</b><span>The creator's own GitHub or Codeberg repository: code, firmware, README, and optionally <code>simple-touch-labels.json</code>.</span></div>
+      <div class="arr" aria-hidden="true">read by</div>
+      <div class="box" role="listitem"><b>This site</b><span>Reads the directory's list, then each repository, in your browser.</span></div>
+    </div>
+    <p>The directory is <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">synthux-academy.github.io/community-instruments</a> (source: <a href="https://github.com/Synthux-Academy/community-instruments" target="_blank">Synthux-Academy/community-instruments</a>). This site only reads it. The designer can write back to both: a label file for the repository, and an entry for the directory.</p>
+
+    <h2 id="labels">How the library finds labels</h2>
+    <p>The official firmware (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchVink) have labels checked by hand. For the community firmware under <b>Community</b>, the library tries, in this order:</p>
+    <ol>
+      <li><b>The creator's label file.</b> A <code>simple-touch-labels.json</code> at the root of the repository's default branch, made in the designer. Shown as is. Faceplates from these files are not shown yet.</li>
+      <li><b>Auto-extracted from the README.</b> A script reads <code>README.md</code>, and a Markdown manual it links to, for control names (S30, P03, Switch A…) and the words next to them. These labels are a guess: they can be incomplete, shortened, or from another mode of the firmware. The library marks them as auto-extracted and lists the line each one came from.</li>
+      <li><b>Nothing found.</b> The drawing shows the Synthux names, with a link to the designer.</li>
+    </ol>
+    <p>Controls without a label show their Synthux name, so you can still find your way around.</p>
+
+    <h2 id="creators">For firmware creators</h2>
+    <h3>Make your labels</h3>
+    <ol>
+      <li>Open your firmware under <b>Community</b> in the library and follow <b>Build the labels in the Designer</b>. The designer opens with your name, author and repository filled in, plus anything the script found.</li>
+      <li>Check and finish the labels: line 1 and line 2 per control, modifiers (P10 + knob, or a tapped mode pad), notes.</li>
+      <li>Click <b>Save file</b> and rename the file to <code>simple-touch-labels.json</code>.</li>
+      <li>Add it to the root of your repository, on the default branch. The library shows your labels from then on.</li>
+    </ol>
+    <h3>Or everything at once</h3>
+    <p><b>Repository kit…</b> in the designer downloads one .zip with a README (intro, control map image, control table, your notes, install and build), <code>simple-touch-labels.json</code>, the directory entry and a short HOW-TO. Pick how the firmware is built (libDaisy or Plugdata) and flashed (internal flash or the Daisy bootloader) and the README suggests the matching steps. Only you know the details, so check those parts and fill in what is marked TODO.</p>
+    <h3>Not in the directory yet?</h3>
+    <p>In the designer, fill in <b>Repository</b> and <b>Author link</b> under Firmware, then click <b>Directory entry…</b>. It builds your <code>projects/&lt;id&gt;.json</code>, checks it the way the directory does, and opens a pull request on GitHub with the file filled in. Listing is not endorsement: Synthux does not review or test listed projects.</p>
+    <h3>A README the script can read</h3>
+    <p>If you'd rather keep everything in your README, write the controls as a table or a list, one control per line, using the Synthux names:</p>
+<pre>## Controls
+
+| Control | Function |
+|---|---|
+| S30 | **Cutoff** |
+| S36 | **Level** |
+| P03 | **Kick** |
+
+- **P10 + S30** · Resonance
+- **Switch A** · Mode: notes / drone / off</pre>
+    <ul>
+      <li><b>Names it knows:</b> knobs S30–S35 (or knob1–knob6), faders S36 and S37 (or left / right fader), pads P00–P11 (or P0–P11), switches S09-S10 and S07-S08 (or Switch A / B, SW1 / SW2, left / right switch).</li>
+      <li><b>The label</b> is bold text, or the words after a separator (<code>-</code>, <code>:</code>, <code>|</code>, <code>·</code>). Table rows count most, then lists and headings, then bold control names in sentences.</li>
+      <li><b>Modifiers</b> are written as a pair: <code>P10 + S30</code>, <code>P11 + left fader</code>.</li>
+      <li>Ranges with one name per pad work too: <code>P03–P09: kick, snare, hat, …</code>.</li>
+      <li>Code blocks are skipped.</li>
+    </ul>
+
+    <h2 id="privacy">What is read and stored</h2>
+    <ul>
+      <li>Everything runs in your browser. Pages are read from <code>synthux-academy.github.io</code>, <code>raw.githubusercontent.com</code> and <code>codeberg.org</code>; nothing is sent anywhere else.</li>
+      <li>Text from repositories is only ever shown as text, never run as code.</li>
+      <li>The designer keeps your work in this browser's storage. Nothing leaves it unless you save a file, copy a share link or open a pull request.</li>
+    </ul>
+  </main>
+
+  <footer class="foot">
+    <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Layout engine and manual format after Fabio Bartali's Simple Touch Manual Designer · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
+  </footer>
+</div>
+</body>
+</html>

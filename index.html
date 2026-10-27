@@ -1,306 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simple Touch · Control Map & Label Library</title>
+<title>Simple Touch · Library</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-<meta property="og:title" content="Simple Touch · Control Map & Label Library">
-<meta property="og:description" content="Control maps and an interactive label editor for the Synthux Simple Touch (Daisy Seed).">
+<meta property="og:title" content="Simple Touch · Library">
+<meta property="og:description" content="Control maps for the Synthux Simple Touch: Synthux, libDaisy and Pd names, and manuals for the official firmware.">
 <meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ui.css">
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
-<style>body{margin:0;font-family:var(--font-body)}a{color:inherit;text-underline-offset:3px}a:hover{color:var(--color-accent)}</style>
-</helmet>
-<div style="min-height:100vh;background:{{ t.page }};color:{{ t.text }};font-family:var(--font-body)">
-<div style="max-width:1280px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:24px">
-  <header style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px 32px;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 480px;min-width:0">
-    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase"><span style="color:{{ t.kicker }};border-bottom:2px solid {{ t.kicker }}">Label library</span><a href="{{ editorHref }}" style="color:{{ t.muted }};text-decoration:none">Customise in label editor →</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank" style="color:{{ t.muted }};text-decoration:none">GitHub ↗</a></nav>
-    <h1 style="margin:0;font-family:var(--font-heading);font-size:40px;line-height:1.05;font-weight:800">Simple Touch control map</h1>
-    <p style="margin:0;max-width:680px;font-size:15px;line-height:1.5;text-wrap:pretty">{{ intro }}</p>
+<script src="core.js"></script>
+<script src="community.js"></script>
+</head>
+<body class="ui-dark">
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <nav class="nav"><span class="on">Library</span><a href="editor.html" id="editLink">Designer</a><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
+      <h1 id="title">Simple Touch control map</h1>
+      <p id="intro"></p>
     </div>
-    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
-        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Export PNG</span>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
-          <div style="display:flex;flex-wrap:wrap">
-            <sc-for list="{{ exWhatOpts }}" as="o" hint-placeholder-count="3">
-              <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-            </sc-for>
-          </div>
-          <div style="display:flex;flex-wrap:wrap">
-            <sc-for list="{{ exLookOpts }}" as="o" hint-placeholder-count="2">
-              <button onClick="{{ o.onClick }}" style="font:600 13px var(--font-body);padding:6px 12px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-            </sc-for>
-          </div>
-          <button onClick="{{ doExport }}" style="font:700 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.active }};background:{{ t.active }};color:#fff;cursor:pointer;text-align:left;border-radius:0">Download PNG</button>
-        </div>
-        <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }}">Rendering…</span></sc-if>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none" title="Export layout minimap — click Panel or Table to toggle">
-        <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ t.muted }}">Preview</span>
-        <div style="width:104px;height:74px;padding:6px;background:{{ mm.sheetBg }};border:2px solid {{ t.text }};box-shadow:4px 4px 0 {{ t.hair }};display:flex;gap:4px;box-sizing:border-box">
-          <div onClick="{{ mm.onPanel }}" style="width:38px;flex:none;border:{{ mm.panelBorder }};background:{{ mm.panelBg }};opacity:{{ mm.panelOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px;box-sizing:border-box;cursor:pointer" title="Click to toggle Panel (left)">
-            <div style="height:42%;background:{{ mm.faceFill }};border:1px solid {{ mm.ink }}"></div>
-            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }};text-align:center">PANEL</span>
-            <div style="height:30%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px">
-              <div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div><div style="background:{{ mm.ink }}"></div>
-            </div>
-          </div>
-          <div onClick="{{ mm.onTable }}" style="flex:1;border:{{ mm.tableBorder }};background:{{ mm.tableBg }};opacity:{{ mm.tableOp }};display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;box-sizing:border-box;cursor:pointer" title="Click to toggle Table (right)">
-            <span style="font:800 7px/1 var(--font-body);letter-spacing:.05em;color:{{ mm.ink }}">TABLE</span>
-            <div style="display:flex;flex-direction:column;gap:3px">
-              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
-              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
-              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
-              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
-              <div style="border-bottom:1.5px solid {{ mm.ink }};height:2px"></div>
-            </div>
-            <span style="font:600 6px/1 var(--font-body);color:{{ mm.muted }}">right</span>
-          </div>
-        </div>
-        <span style="font-size:10px;color:{{ t.muted }};white-space:nowrap">{{ mm.caption }}</span>
-      </div>
+    <div class="export">
+      <span class="cap">Export</span>
+      <div class="btns"><button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button><span class="status" id="busy"></span></div>
     </div>
   </header>
 
-  <div style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;border-bottom:2px solid {{ t.rule }};padding-bottom:16px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Labels</span>
-      <div style="display:flex">
-        <sc-for list="{{ labelOpts }}" as="o" hint-placeholder-count="2">
-          <button onClick="{{ o.onClick }}" style="font:600 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-        </sc-for>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Style</span>
-      <div style="display:flex;flex-wrap:wrap">
-        <sc-for list="{{ styleOpts }}" as="o" hint-placeholder-count="4">
-          <button onClick="{{ o.onClick }}" style="font:600 14px var(--font-body);padding:8px 14px;border:2px solid {{ t.text }};margin-left:-2px;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;text-align:left;border-radius:0">{{ o.label }}</button>
-        </sc-for>
-      </div>
-    </div>
+  <div class="bar">
+    <div class="grp"><span class="cap">Label set</span><div class="seg" id="setSeg"></div></div>
+    <div class="grp"><span class="cap">Firmware</span><div class="seg" id="fwSeg"></div></div>
+    <div class="grp" id="commGrp" hidden><span class="cap">Community</span><select id="commSel" aria-label="Community firmware"></select></div>
+  </div>
+  <div class="bar">
+    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
+    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
+    <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
   </div>
 
-  <div ref="{{ allRef }}" style="display:flex;flex-wrap:{{ wide.wrap }};width:{{ wide.w }};gap:40px;align-items:flex-start;background:{{ t.page }}">
-    <div ref="{{ panelRef }}" style="position:relative;flex:none;width:min(100%, max(380px, calc((100dvh - 48px) * {{ ratio }})));aspect-ratio:{{ aspect }};background:{{ t.devBg }};border:{{ t.devBorder }};box-sizing:border-box;font-family:var(--font-body)">
-      <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ false }}">
-        <sc-if value="{{ isGold }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_gold.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-        <sc-if value="{{ isPrintSvg }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali_print.svg" alt="Simple Touch panel line art" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-        <sc-if value="{{ isGray }}" hint-placeholder-val="{{ false }}"><img src="assets/panel_full_bartali.svg" alt="Simple Touch panel drawing by Synthux" style="position:absolute;inset:0;width:100%;height:100%;display:block"></sc-if>
-      </sc-if>
-      <sc-if value="{{ isAbstract }}" hint-placeholder-val="{{ true }}">
-        <div style="position:absolute;left:0.8%;top:6.1%;width:98.6%;height:53.4%;background:{{ t.face }};border-radius:{{ t.faceRadius }};border:{{ t.faceBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:47%;top:6.1%;width:52.4%;height:19%;background:{{ t.strip }};clip-path:polygon(40% 0,100% 0,100% 100%,30% 100%,0 0)"></div>
-        <svg viewBox="0 0 825 1277" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
-          <g fill="{{ t.padFill }}" stroke="{{ t.padStroke }}" stroke-width="{{ t.padSW }}" stroke-linejoin="round">
-            <polygon points="255,12 440,12 432,70 268,72"></polygon>
-            <polygon points="452,12 640,12 628,72 460,70"></polygon>
-            <polygon fill="{{ t.padTop }}" points="150,770 335,770 345,895 175,905"></polygon>
-            <polygon fill="{{ t.padTop }}" points="345,770 500,770 480,900 360,895"></polygon>
-            <polygon fill="{{ t.padTop }}" points="510,770 680,770 690,900 490,905"></polygon>
-            <polygon points="15,930 160,915 165,1265 15,1265"></polygon>
-            <polygon points="175,905 325,905 330,1140 185,1145"></polygon>
-            <polygon points="340,905 440,920 445,1265 335,1265"></polygon>
-            <polygon points="455,915 690,910 690,1145 455,1140"></polygon>
-            <polygon points="700,925 815,915 815,1265 700,1265"></polygon>
-            <polygon points="120,1160 325,1155 330,1265 110,1265"></polygon>
-            <polygon points="460,1155 690,1160 690,1265 460,1265"></polygon>
-          </g>
-        </svg>
-        <div style="position:absolute;left:6.7%;top:11.7%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:6.7%;top:23.6%;width:7%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:{{ t.jack }};border:{{ t.jackBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:6.7%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
-        <div style="position:absolute;left:93.5%;top:34.1%;width:3.6%;height:19.5%;transform:translateX(-50%);background:{{ t.fader }};border-radius:{{ t.faderRadius }};border:{{ t.faderBorder }};box-sizing:border-box"></div>
-        <sc-for list="{{ knobs }}" as="k" hint-placeholder-count="6">
-          <div style="position:absolute;left:{{ k.l }};top:{{ k.t }};width:9%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:{{ t.knobBorder }};background:{{ t.knobFill }}"></div>
-        </sc-for>
-        <div style="position:absolute;left:36.1%;top:66.4%;width:11%;height:2.6%;transform:translate(-50%,-50%) rotate(-4deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
-        <div style="position:absolute;left:55.5%;top:71%;width:4.5%;height:6.6%;transform:translate(-50%,-50%) rotate(25deg);background:{{ t.sw }};border:{{ t.swBorder }}"></div>
-        <div style="position:absolute;left:85.1%;top:13.7%;width:3%;height:1.2%;transform:translate(-50%,-50%);background:{{ t.led }};outline:{{ t.ledOutline }}"></div>
-      </sc-if>
-
-      <div style="position:absolute;inset:0;font-size:clamp(10px,1.5dvh,14px);font-weight:700;line-height:1.1">
-        <sc-for list="{{ labels }}" as="l" hint-placeholder-count="0">
-          <span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:{{ l.tf }};background:{{ l.bg }};color:{{ l.fg }};padding:{{ l.pad }};outline:{{ l.outline }};white-space:nowrap;display:flex;align-items:center;gap:5px">
-            <sc-if value="{{ l.name }}" hint-placeholder-val="{{ true }}">
-              <span style="display:flex;flex-direction:column;gap:1px;align-items:{{ l.align }}">
-                <span>{{ l.name }}</span>
-                <sc-if value="{{ l.sub }}" hint-placeholder-val="{{ false }}"><span style="font-size:.82em;font-weight:500;opacity:.85">{{ l.sub }}</span></sc-if>
-              </span>
-            </sc-if>
-            <sc-if value="{{ l.sw }}" hint-placeholder-val="{{ false }}">
-              <span style="display:flex;flex-direction:{{ l.swDir }};align-items:center;gap:2px">
-                <sc-if value="{{ l.a }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.a }}</span></sc-if>
-                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">1</span></sc-if>
-                <span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor;opacity:.65">0</span>
-                <sc-if value="{{ l.sw12 }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:2px 3px;border:1px solid currentColor">2</span></sc-if>
-                <sc-if value="{{ l.b }}" hint-placeholder-val="{{ false }}"><span style="padding:0 3px">{{ l.b }}</span></sc-if>
-              </span>
-            </sc-if>
-          </span>
-        </sc-for>
-      </div>
-    </div>
-
-    <div ref="{{ tableRef }}" style="display:flex;flex-direction:column;gap:24px;min-width:0;flex:{{ wide.flex }};background:{{ t.page }}">
-      <sc-if value="{{ isPd }}" hint-placeholder-val="{{ true }}">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;white-space:{{ wide.ws }}">
-          <thead><tr>
-            <th style="text-align:left;padding:8px 8px 8px 0;border-bottom:2px solid {{ t.rule }}">Pd receive</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">Component</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">Pin</th>
-            <th style="text-align:left;padding:8px 0 8px 8px;border-bottom:2px solid {{ t.rule }}">Print</th>
-          </tr></thead>
-          <tbody>
-            <sc-for list="{{ pdRows }}" as="r" hint-placeholder-count="10">
-              <tr>
-                <td style="padding:8px 8px 8px 0;border-bottom:1px solid {{ t.hair }};vertical-align:top"><b>{{ r.name }}</b><sc-if value="{{ r.sub }}" hint-placeholder-val="{{ false }}"><br><span style="font-size:12px;color:{{ t.muted }}">{{ r.sub }}</span></sc-if></td>
-                <td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top">{{ r.comp }}</td>
-                <td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top">{{ r.pin }}</td>
-                <td style="padding:8px 0 8px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top">{{ r.print }}</td>
-              </tr>
-            </sc-for>
-          </tbody>
-        </table>
-      </sc-if>
-      <sc-if value="{{ isLd }}" hint-placeholder-val="{{ false }}">
-        <div style="overflow-x:{{ wide.ox }};max-width:{{ wide.mw }}">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;white-space:{{ wide.ws }}">
-          <thead><tr>
-            <th style="text-align:left;padding:8px 8px 8px 0;border-bottom:2px solid {{ t.rule }}">Control</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">PCB</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">Seed pin</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid {{ t.rule }}">libDaisy</th>
-            <th style="text-align:left;padding:8px 0 8px 8px;border-bottom:2px solid {{ t.rule }}">Note</th>
-          </tr></thead>
-          <tbody>
-            <sc-for list="{{ ldRows }}" as="r" hint-placeholder-count="10">
-              <tr>
-                <td style="padding:8px 8px 8px 0;border-bottom:1px solid {{ t.hair }};vertical-align:top"><b>{{ r.name }}</b></td>
-                <td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top">{{ r.pcb }}</td>
-                <td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top">{{ r.seed }}</td>
-                <td style="padding:8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;overflow-wrap:anywhere"><code>{{ r.lib }}</code></td>
-                <td style="padding:8px 0 8px 8px;border-bottom:1px solid {{ t.hair }};vertical-align:top;color:{{ t.muted }}">{{ r.note }}</td>
-              </tr>
-            </sc-for>
-          </tbody>
-        </table>
-        </div>
-        <p style="margin:0;font-size:13px;line-height:1.5;color:{{ t.muted }};text-wrap:pretty">{{ swNote }}</p>
-      </sc-if>
-
-      <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px">
-        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Sources</span>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:14px">
-          <sc-if value="{{ isPd }}" hint-placeholder-val="{{ true }}">
-            <a href="https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.json" target="_blank">simple_touch.json · board description</a>
-            <a href="https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.pd" target="_blank">simple_touch.pd · Plugdata patch</a>
-          </sc-if>
-          <sc-if value="{{ isSx }}" hint-placeholder-val="{{ false }}"><a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">Synthux-Academy/TouchBass · official firmware using S## / P## names</a></sc-if>
-          <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ false }}"><a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali's Touch FX manual</a></sc-if>
-          <a href="https://docs.google.com/spreadsheets/d/1xtg_s1tk8tm-6qNkBLFc6V1L_Mpmu-PCOvv7qEyr9mU/edit?usp=sharing" target="_blank">Simple Touch pin sheet · PCB, Seed and libDaisy names</a>
-        </div>
-      </div>
-    </div>
+  <section class="notice" id="notice" hidden></section>
+  <div class="lib">
+    <figure id="fig"><p class="hint">Loading the panel drawing…</p></figure>
+    <div class="split" id="libSplit" title="Drag to resize the drawing · double-click to reset"><span></span></div>
+    <div class="side" id="side"></div>
   </div>
+  <section class="md" id="notes" hidden></section>
 
-  <sc-if value="{{ isPd }}" hint-placeholder-val="{{ true }}">
-    <figure style="margin:0;display:flex;flex-direction:column;gap:10px;border-top:2px solid {{ t.rule }};padding-top:16px">
-      <figcaption style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">simple_touch.pd</figcaption>
-      <img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch" style="width:100%;height:auto;display:block;border:2px solid {{ t.rule }}">
-    </figure>
-  </sc-if>
-
-  <footer style="border-top:1px solid {{ t.hair }};padding-top:16px;font-size:13px;line-height:1.5;color:{{ t.muted }}">
-    <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
+  <footer class="foot">
+    <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Layout engine after Fabio Bartali's Simple Touch Manual Designer · Firmware data from Synthux Academy · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
   </footer>
 </div>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;defaultLabels&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pd&quot;,&quot;ld&quot;,&quot;sx&quot;,&quot;none&quot;],&quot;default&quot;:&quot;sx&quot;,&quot;tsType&quot;:&quot;'pd'|'ld'|'sx'|'none'&quot;},&quot;defaultStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;,&quot;vis&quot;,&quot;panel&quot;,&quot;gold&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'light'|'dark'|'vis'|'panel'|'gold'&quot;}}">
-const THEMES = {
-  light: { page:'#f3f2f2', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
-    devBg:'var(--color-neutral-400)', devBorder:'2px solid #201e1d', face:'#201e1d', faceRadius:'0', strip:'var(--color-neutral-300)',
-    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
-    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
-    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
-  dark: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
-    devBg:'var(--color-neutral-700)', devBorder:'2px solid var(--color-neutral-500)', face:'#0b0a0a', faceRadius:'0', strip:'var(--color-neutral-300)',
-    padFill:'var(--color-neutral-100)', padTop:'var(--color-neutral-100)', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #f3f2f2', knobFill:'transparent',
-    fader:'var(--color-neutral-600)', faderRadius:'0', jack:'var(--color-neutral-500)', sw:'var(--color-accent)', swBorder:'2px solid #201e1d',
-    led:'var(--color-accent)', ledOutline:'2px solid #201e1d', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'none', active:'var(--color-accent)' },
-  vis: { page:'#141414', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.35)', hair:'rgba(243,242,242,.14)', kicker:'#e3bb67',
-    devBg:'#4e4c4c', devBorder:'none', face:'#000', faceRadius:'6px', strip:'#d9a441',
-    padFill:'#e3bb67', padTop:'#c9b48e', padStroke:'#4e4c4c', padSW:12, knobBorder:'3px solid #fff', knobFill:'#1c1c1c',
-    fader:'#555', faderRadius:'20px', jack:'#555', sw:'#b3201c', swBorder:'2px solid #fff',
-    led:'#e08a3c', ledOutline:'1px solid #fff', chip:'#0a7d50', ink:'#0a7d50', padText:'#2b2219', inkOutline:'none', active:'#0a7d50' },
-  panel: { page:'#1a1918', text:'#f3f2f2', muted:'rgba(243,242,242,.7)', rule:'rgba(243,242,242,.4)', hair:'rgba(243,242,242,.15)', kicker:'var(--color-accent-400)',
-    devBg:'transparent', devBorder:'none', chip:'var(--color-accent)', ink:'#201e1d', padText:'#201e1d', inkOutline:'1px solid rgba(255,255,255,.35)', active:'var(--color-accent)' }
-};
 
-for (const k in THEMES) Object.assign(THEMES[k], { faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', ...THEMES[k] });
-const PRINT = { page:'#fff', text:'#201e1d', muted:'#5b5856', rule:'#201e1d', hair:'rgba(32,30,29,.2)', kicker:'var(--color-accent-700)',
-  devBg:'transparent', devBorder:'2px solid #201e1d', face:'transparent', faceBorder:'2px solid #201e1d', strip:'transparent',
-  padFill:'transparent', padTop:'transparent', padStroke:'#201e1d', padSW:3, knobBorder:'2px solid #201e1d', knobFill:'transparent',
-  fader:'transparent', faderBorder:'2px solid #201e1d', jack:'transparent', jackBorder:'2px solid #201e1d', sw:'transparent', swBorder:'2px solid #201e1d',
-  led:'transparent', ledOutline:'2px solid #201e1d', inkOutline:'none', plainFg:'#201e1d' };
-THEMES.gold = { ...THEMES.panel, faceBorder:'none', jackBorder:'none', faderBorder:'none', plainFg:'#fff', page:'#141414', kicker:'#e3bb67', chip:'#0a7d50', active:'#0a7d50' };
-const C = 'translate(-50%,-50%)', R = 'translate(-50%,-50%) rotate(-90deg)';
-// id: [pd name, pd sub, ld name, ld sub, abstract [l,t,tf,kind], panel [l,t,tf,kind]]
-const CTRL = [
-  ['adc', 'adc~ · audio in', null, 'in[0] · in[1]', 'pins 16 · 17', [12,11.7,'translateY(-50%)','chip'], [15,14.2,'translateY(-50%)','chip']],
-  ['dac', 'dac~ · audio out', null, 'out[0] · out[1]', 'pins 18 · 19', [12,23.6,'translateY(-50%)','chip'], [15,25.7,'translateY(-50%)','chip']],
-  ['led', 'daisyled', null, 'SetLed()', 'onboard', [85.1,12.4,'translate(-50%,-100%)','ink'], [86.4,14,C,'ink']],
-  ['fl', 'faderleft', null, 'A6 · D21', 'S36', [6.7,43.9,'translate(-25%,-50%)','chip'], [8.8,45.1,'translate(-25%,-50%)','chip']],
-  ['fr', 'faderright', null, 'A7 · D22', 'S37', [93.5,43.9,'translate(-75%,-50%)','chip'], [91.3,45.1,'translate(-75%,-50%)','chip']],
-  ['k2', 'knob2', null, 'A1 · D16', 'S31', [21.5,40.6,C,'plain'], [23.1,40.8,C,'chip']],
-  ['k3', 'knob3', null, 'A2 · D17', 'S32', [40.4,40.6,C,'plain'], [41.2,40.8,C,'chip']],
-  ['k4', 'knob4', null, 'A3 · D18', 'S33', [59.5,40.6,C,'plain'], [59.5,40.8,C,'chip']],
-  ['k5', 'knob5', null, 'A4 · D19', 'S34', [78.5,40.6,C,'plain'], [77.7,40.8,C,'chip']],
-  ['k1', 'knob1', null, 'A0 · D15', 'S30', [21.5,54.2,C,'plain'], [23.1,53.6,C,'chip']],
-  ['k6', 'knob6', null, 'A5 · D20', 'S35', [78.5,54.2,C,'plain'], [77.7,53.6,C,'chip']],
-  ['p10', 'touch_ch10', null, 'P10', null, [42.2,3.2,C,'pad'], [41.5,7.6,C,'chip']],
-  ['p11', 'touch_ch11', null, 'P11', null, [66.2,3.2,C,'pad'], [61,7.6,C,'chip']],
-  ['p0', 'touch_ch0', null, 'P0', null, [29.7,64.3,C,'pad'], [24.5,62.4,C,'ink']],
-  ['p1', 'touch_ch1', null, 'P1', null, [51,64.3,C,'pad'], [50,61.8,C,'ink']],
-  ['p2', 'touch_ch2', null, 'P2', null, [71,64.3,C,'pad'], [72,63.8,C,'ink']],
-  ['p3', 'touch_ch3', null, 'P3', null, [10.6,83,R,'pad'], [6.4,85,C,'ink']],
-  ['p4', 'touch_ch4', null, 'P4', null, [30.5,80,C,'pad'], [28,82,C,'ink']],
-  ['p5', 'touch_ch5', null, 'P5', null, [47.3,83,R,'pad'], [46,82,C,'ink']],
-  ['p6', 'touch_ch6', null, 'P6', null, [69.5,80,C,'pad'], [68,82,C,'ink']],
-  ['p7', 'touch_ch7', null, 'P7', null, [91.8,83,R,'pad'], [91.5,85,C,'ink']],
-  ['p8', 'touch_ch8', null, 'P8', null, [26.5,94.6,C,'pad'], [31,93.5,C,'ink']],
-  ['p9', 'touch_ch9', null, 'P9', null, [69.5,94.6,C,'pad'], [69,94,C,'ink']]
-];
-const SX = { adc:'audio in 1 · 2', dac:'audio out 1 · 2', led:'LED', fl:'S36', fr:'S37', k1:'S30', k2:'S31', k3:'S32', k4:'S33', k5:'S34', k6:'S35',
-  p0:'P0', p1:'P1', p2:'P2', p3:'P3', p4:'P4', p5:'P5', p6:'P6', p7:'P7', p8:'P8', p9:'P9', p10:'P10', p11:'P11' };
-const SX_SUB = { fl:'fader left', fr:'fader right', k1:'pot 0', k2:'pot 1', k3:'pot 2', k4:'pot 3', k5:'pot 4', k6:'pot 5' };
-const SW = [
-  { pd:'sw1', a:'D8', b:'D9', sa:'S09', sb:'S10', dir:'row', abs:[35.5,70,C,'ink'], pan:[38.5,69.4,C,'ink'] },
-  { pd:'sw2', a:'D7', b:'D6', sa:'S08', sb:'S07', dir:'column', abs:[63.5,71,C,'ink'], pan:[66,70.8,C,'ink'] }
-];
-
+<script>
 const PD_ROWS = [
-  ['knob1',null,'AnalogControl','15','knob1'],['knob2',null,'AnalogControl','16','knob2'],['knob3',null,'AnalogControl','17','knob3'],
-  ['knob4',null,'AnalogControl','18','knob4'],['knob5',null,'AnalogControl','19','knob5'],['knob6',null,'AnalogControl','20','knob6'],
-  ['faderleft',null,'AnalogControl','21','faderleft'],['faderright',null,'AnalogControl','22','faderright'],
+  ['knob1','','AnalogControl','15','knob1'],['knob2','','AnalogControl','16','knob2'],['knob3','','AnalogControl','17','knob3'],
+  ['knob4','','AnalogControl','18','knob4'],['knob5','','AnalogControl','19','knob5'],['knob6','','AnalogControl','20','knob6'],
+  ['faderleft','','AnalogControl','21','faderleft'],['faderright','','AnalogControl','22','faderright'],
   ['sw1','horizontal · left 1 / center 0 / right 2','Switch3 (on-off-on)','a 8 · b 9','sw1'],
   ['sw2','vertical · up 1 / center 0 / down 2','Switch3 (on-off-on)','a 7 · b 6','sw2'],
   ['daisyled','send','UserLed','onboard','—'],
-  ['touch_ch0 – ch11',null,'Mpr121','SCL 11 · SDA 12','P0 – P11'],
-  ['adc~ / dac~',null,'Audio','2 channels','—'],
-  ['notein / noteout',null,'MIDI','HAS_MIDI','MIDI']
-].map(([name,sub,comp,pin,print]) => ({ name, sub, comp, pin, print }));
-
+  ['touch_ch0 – ch11','','Mpr121','SCL 11 · SDA 12','P0 – P11'],
+  ['adc~ / dac~','','Audio','2 channels','—'],
+  ['notein / noteout','','MIDI','HAS_MIDI','MIDI']
+];
 const LD_ROWS = [
   ['knob1','S30','22','seed::A0 / D15','pot 0 bottom left'],['knob2','S31','23','seed::A1 / D16','pot 1 top left'],
   ['knob3','S32','24','seed::A2 / D17','pot 2 top'],['knob4','S33','25','seed::A3 / D18','pot 3 top'],
@@ -314,117 +78,148 @@ const LD_ROWS = [
   ['TRS MIDI','S14 · S15','14 · 15','seed::D13 / D14','USART1 Tx / Rx · OLED or MIDI, not both'],
   ['Audio in','—','16 · 17','in[0] · in[1]','line level'],['Audio out','—','18 · 19','out[0] · out[1]','line level'],
   ['LED','—','onboard','seed.SetLed()','Seed user LED']
-].map(([name,pcb,seed,lib,note]) => ({ name, pcb, seed, lib, note }));
+];
+const INTRO = {
+  sx: 'Synthux naming, as used in the official firmware: knobs, faders and switches by their PCB pin (S##), touchpads P0–P11. Switches are named as a pin pair, e.g. S07-S08.',
+  ld: 'libDaisy: each Simple Touch control with the Daisy Seed pin name used in libDaisy code, and its PCB label (S##).',
+  pd: 'Plugdata example: the receive names used in the Pd patch (r … @hv_param), from simple_touch.json.',
+};
+const SOURCES = {
+  pd: [['https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.json','simple_touch.json · board description'],['https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.pd','simple_touch.pd · Plugdata patch']],
+  sx: [['https://github.com/Synthux-Academy/TouchBass','Synthux-Academy/TouchBass · official firmware using S## / P## names']],
+  touchfx: [['https://bartali.nl/touch-fx-manual.html','Touch FX manual · Fabio Bartali']],
+};
+const PIN_SHEET = ['https://docs.google.com/spreadsheets/d/1xtg_s1tk8tm-6qNkBLFc6V1L_Mpmu-PCOvv7qEyr9mU/edit?usp=sharing','Simple Touch pin sheet · PCB, Seed and libDaisy names'];
+const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 
-class Component extends DCLogic {
-  state = (() => {
-    const q = new URLSearchParams(location.search);
-    const l = q.get('labels'), s = q.get('style');
-    return {
-      exWhat: 'panel', exLook: 'color',
-      labels: ['pd','ld','sx','none'].includes(l) ? l : (this.props.defaultLabels ?? 'sx'),
-      style: ['light','dark','vis','panel','gold'].includes(s) ? s : (this.props.defaultStyle ?? 'dark')
-    };
-  })();
+let doc=emptyDoc();
+const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null};
+const UI={src:'sx', proj:null, read:null, arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, exWhat:'panel', exLook:'color'};
+const $=id=>document.getElementById(id);
+let ready=false;
 
-  panelRef = React.createRef();
-  allRef = React.createRef();
-  tableRef = React.createRef();
-  async exportNode(which, print) {
-    if (!window.htmlToImage) return;
-    this.setState({ busy: true, print: !!print, wide: which !== 'panel' });
-    await new Promise(r => setTimeout(r, print ? 500 : 50));
-    try {
-      const node = which === 'all' ? this.allRef.current : which === 'table' ? this.tableRef.current : this.panelRef.current;
-      const w = Math.max(node.offsetWidth, node.scrollWidth), h = Math.max(node.offsetHeight, node.scrollHeight), s = 2, pad = 32;
-      const bg = print ? '#fff' : THEMES[this.state.style].page;
-      const c = await window.htmlToImage.toCanvas(node, { pixelRatio: s, width: w, height: h,
-        style: { width: w + 'px', height: h + 'px', margin: '0', flex: 'none' } });
-      const out = document.createElement('canvas');
-      out.width = (w + pad * 2) * s; out.height = (h + pad * 2) * s;
-      const ctx = out.getContext('2d');
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, out.width, out.height);
-      ctx.drawImage(c, pad * s, pad * s, w * s, h * s);
-      const a = document.createElement('a');
-      a.href = out.toDataURL('image/png');
-      a.download = 'simple-touch-' + this.state.labels + '-' + (print ? 'print' : this.state.style) + (which === 'all' ? '-panel-table' : which === 'table' ? '-table' : '-panel') + '.png';
-      a.click();
-    } catch (e) { console.error(e); }
-    this.setState({ busy: false, print: false, wide: false });
-  }
-
-  chip(kind, t) {
-    if (kind === 'chip') return { bg: t.chip, fg: '#fff', pad: '3px 5px', outline: 'none' };
-    if (kind === 'ink') return { bg: t.ink, fg: '#fff', pad: '3px 5px', outline: t.inkOutline };
-    if (kind === 'plain') return { bg: 'transparent', fg: t.plainFg, pad: '0', outline: 'none' };
-    return { bg: 'transparent', fg: t.padText, pad: '0', outline: 'none' };
-  }
-
-  renderVals() {
-    const { labels: ls, style: st } = this.state;
-    const pr = !!this.state.print;
-    const t = pr ? { ...THEMES[st], ...PRINT, devBorder: (st === 'panel' || st === 'gold') ? 'none' : PRINT.devBorder, chip: THEMES[st].chip, ink: THEMES[st].ink, padText: '#201e1d' } : THEMES[st];
-    const isPanel = st === 'panel' || st === 'gold', pd = ls === 'pd', sx = ls === 'sx';
-    const swKind = st === 'vis' ? 'chip' : 'ink';
-    const labels = ls === 'none' ? [] : CTRL.map(([id, pn, ps, ln, lsub, abs, pan]) => {
-      const [l, tp, tf, kind] = isPanel ? pan : abs;
-      return { left: l + '%', top: tp + '%', tf, ...this.chip(st === 'vis' && kind === 'ink' ? 'chip' : kind, t),
-        name: pd ? pn : sx ? SX[id] : ln, sub: pd ? ps : sx ? (SX_SUB[id] || null) : lsub, align: 'center', sw: false };
-    }).concat(SW.map(s => {
-      const [l, tp, tf, kind] = isPanel ? s.pan : s.abs;
-      return { left: l + '%', top: tp + '%', tf, ...this.chip(isPanel ? kind : swKind, t),
-        name: pd ? s.pd : null, sub: null, align: 'flex-start', sw: true, sw12: pd, swDir: s.dir, a: pd ? null : sx ? s.sa : s.a, b: pd ? null : sx ? s.sb : s.b };
-    }));
-    const opt = (list, key) => list.map(([v, label]) => {
-      const on = this.state[key] === v;
-      return { label, bg: on ? t.active : 'transparent', fg: on ? '#fff' : t.text, onClick: () => this.setState({ [key]: v }) };
-    });
-    const what = this.state.exWhat || 'panel';
-    const incPanel = what === 'panel' || what === 'all';
-    const incTable = what === 'table' || what === 'all';
-    const lookPrint = this.state.exLook === 'print';
-    const mmInk = lookPrint ? '#201e1d' : THEMES[st].text;
-    const mmMuted = lookPrint ? '#5b5856' : THEMES[st].muted;
-    const mm = {
-      sheetBg: lookPrint ? '#ffffff' : THEMES[st].page,
-      ink: mmInk,
-      muted: mmMuted,
-      panelBorder: incPanel ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
-      panelBg: lookPrint ? 'transparent' : (isPanel ? 'rgba(128,128,128,.12)' : THEMES[st].devBg),
-      panelOp: incPanel ? '1' : '.38',
-      faceFill: lookPrint ? 'transparent' : THEMES[st].chip,
-      tableBorder: incTable ? '1.5px solid ' + t.active : '1px dashed ' + mmMuted,
-      tableBg: incTable ? 'rgba(236,48,19,.1)' : 'transparent',
-      tableOp: incTable ? '1' : '.38',
-      caption: incPanel && incTable ? 'Panel + Table' : incTable ? 'Table only' : 'Panel only',
-      onPanel: () => this.setState({ exWhat: incPanel ? (incTable ? 'table' : 'panel') : (incTable ? 'all' : 'panel') }),
-      onTable: () => this.setState({ exWhat: incTable ? (incPanel ? 'panel' : 'table') : (incPanel ? 'all' : 'table') })
-    };
-    return {
-      t, mm, labels, isPanel, isAbstract: !isPanel, isPd: pd, isLd: !pd,
-      swNote: pd ? null : 'Switch3::Read() returns the same 1 / 0 / 2 values that Pd receives: pin_a closed gives 1 (POS_UP / POS_LEFT), pin_b closed gives 2 (POS_DOWN / POS_RIGHT), neither gives 0 (POS_CENTER).',
-      busy: !!this.state.busy,
-      wide: this.state.wide ? { wrap:'nowrap', w:'max-content', flex:'none', ox:'visible', mw:'none', ws:'nowrap' } : { wrap:'wrap', w:'auto', flex:'1 1 360px', ox:'auto', mw:'100%', ws:'normal' }, panelRef: this.panelRef, allRef: this.allRef,
-      tableRef: this.tableRef,
-      doExport: () => this.exportNode(this.state.exWhat || 'panel', this.state.exLook === 'print'),
-      exWhatOpts: opt([['panel','Panel'],['table','Table'],['all','Panel + table']], 'exWhat'),
-      exLookOpts: opt([['color','Colour'],['print','Print · line art']], 'exLook'),
-      isGold: !pr && st === 'gold', isGray: !pr && st === 'panel', isPrintSvg: pr && isPanel,
-      ratio: isPanel ? '0.6373' : '0.646', aspect: isPanel ? '940/1475' : '825/1277',
-      knobs: [[21.5,35.1],[40.4,35.1],[59.5,35.1],[78.5,35.1],[21.5,48.7],[78.5,48.7]].map(([l, tp]) => ({ l: l + '%', t: tp + '%' })),
-      pdRows: PD_ROWS, ldRows: LD_ROWS,
-      intro: ls === 'none' ? 'Drawing only: no labels on the panel. The libDaisy table is kept for reference.'
-        : pd
-        ? 'Plugdata example: hardware labels from simple_touch.json and the receive names used in the Pd patch (r … @hv_param).'
-        : sx ? 'Synthux naming, as used in the official TouchBass firmware: knobs, faders and switches by their PCB pin (S##), touchpads P0–P11. Switches are named as a pin pair, e.g. S07-S08.'
-        : 'libDaisy: each Simple Touch control with its PCB label (S##), the physical Daisy Seed pin and the pin name used in libDaisy code.',
-      editorHref: 'editor.html?preset=' + (ls === 'none' ? 'blank' : ls) + '&style=' + st,
-      labelOpts: opt([['pd','Pd / Plugdata'],['ld','libDaisy'],['sx','Synthux'],['none','None']], 'labels'),
-      isSx: sx,
-      styleOpts: opt([['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold']], 'style')
-    };
-  }
+function seg(el, opts, isOn, pick){
+  el.innerHTML='';
+  for(const [v,l] of opts){ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.setAttribute('aria-pressed',String(!!isOn(v))); b.onclick=()=>pick(v); el.append(b); }
 }
+function buildBars(){
+  seg($('setSeg'), Object.entries(REF_SETS).map(([k,r])=>[k,r.label]), v=>UI.src===v, pick);
+  seg($('fwSeg'), FIRMWARE.map(k=>[k,EXAMPLES[k].label]), v=>UI.src===v, pick);
+  $('commSel').value= UI.proj? UI.proj.id : '';
+  seg($('themeSeg'), THEME_NAMES, v=>V.theme===v, v=>{ V.theme=v; update(); });
+  seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; update(); });
+  seg($('partSeg'), [['main','Main'],['second','Secondary']], v=>UI.partsOn[v], v=>{
+    const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
+  seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
+  seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
+  // greyed out rather than hidden, so the toolbar never shifts
+  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second;
+  for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
+}
+/* entries from the Synthux community directory; listed ones have no label file yet */
+function buildCommunity(list){
+  const s=$('commSel');
+  s.replaceChildren(new Option(`Choose (${list.length})…`,''), ...list.map(p=>new Option(p.name,p.id)));
+  s.value= UI.proj? UI.proj.id : '';
+  s.onchange=()=>{ const p=list.find(x=>x.id===s.value); if(p) pick('community',p); };
+  $('commGrp').hidden=!list.length;
+}
+async function pick(src, proj=null){
+  UI.src=src; UI.proj=proj; UI.read=null;
+  if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
+  else if(proj){
+    doc=communityDoc(proj); V.ref='sx'; setFaceplate(''); update();   // the entry at once; its labels follow
+    $('busy').textContent='Reading '+repoShort(proj.repo)+'…';
+    const r=await readRepo(proj); if(UI.proj!==proj) return;   // another pick meanwhile
+    $('busy').textContent=''; doc=r.doc; UI.read=r;
+    V.ref= r.source==='file'? '' : 'sx';   // controls without a label show their Synthux names
+  }
+  else {
+    $('busy').textContent='Loading…';
+    try{ doc=await loadExample(src); $('busy').textContent=''; }
+    catch(e){ $('busy').textContent='Could not load '+EXAMPLES[src].label+': '+e.message; return; }
+    V.ref='';
+  }
+  setFaceplate(doc.faceplate, doc.faceplateRef);
+  update();
+}
+const isFw=()=>!REF_SETS[UI.src];
+function libTable(){
+  const th=h=>h.map(x=>`<th>${esc(x)}</th>`).join('');
+  if(UI.src==='pd') return `<table class="ctab"><thead><tr>${th(['Pd receive','Component','Pin','Print'])}</tr></thead><tbody>${PD_ROWS.map(([n,s,c,p,pr])=>`<tr><td><b>${esc(n)}</b>${s?`<br><span class="k">${esc(s)}</span>`:''}</td><td>${esc(c)}</td><td>${esc(p)}</td><td>${esc(pr)}</td></tr>`).join('')}</tbody></table>`;
+  if(!isFw()) return `<table class="ctab"><thead><tr>${th(['Control','PCB','Seed pin','libDaisy','Note'])}</tr></thead><tbody>${LD_ROWS.map(([n,p,s,l,no])=>`<tr><td><b>${esc(n)}</b></td><td>${esc(p)}</td><td>${esc(s)}</td><td><code>${esc(l)}</code></td><td class="k">${esc(no)}</td></tr>`).join('')}</tbody></table>`
+    +'<p class="hint">Switch3::Read() returns the same 1 / 0 / 2 values that Pd receives: pin_a closed gives 1 (POS_UP / POS_LEFT), pin_b closed gives 2 (POS_DOWN / POS_RIGHT), neither gives 0 (POS_CENTER).</p>';
+  return tableHTML(false);
+}
+/* where a community entry's labels came from: its own label file, a README read by a script, or nowhere yet */
+function noticeHTML(editHref){
+  const r=UI.read, how='<a href="about.html#labels">How this works</a>';
+  if(!r) return '<p><b>Reading the repository…</b> Looking for a label file or a README with control names.</p>';
+  const files=r.files.map(f=>`<a href="${escAttr(f.url)}" target="_blank">${esc(f.path)}</a>`).join(' and ');
+  const creator=`<p><b>Made this firmware?</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
+  if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository.${r.faceplate?' Its faceplate is not shown here yet.':''} ${how}</p>`;
+  if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
+  const row=f=>`<tr><td><b>${esc(lab(SLOT[f.id]))}</b>${f.key==='main'?'':` <span class="k">+ ${esc(lab(SLOT[f.key.slice(2)]))}</span>`}</td><td>${esc(f.text)}</td><td class="k">${esc(f.line)}</td></tr>`;
+  return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete, shortened or from another mode, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+creator
+    +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th><th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
+}
+function update(){
+  buildBars(); if(!ready) return;
+  document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
+  for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
+  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second;
+  part= !sec? 'main' : both? 'main' : (UI.partsOn.second? 'second' : 'main');
+  bw= sec && UI.bwPreview;
+
+  const build=buildFor(V.layout), draw=pt=>svgOf(build(true,V.theme,pt));
+  const fig=$('fig'), stack=both&&UI.arrange==='stack'; fig.className= V.layout==='desktop'||(both&&!stack)? 'wide' : ''; sizeFig();
+  fig.innerHTML= both? `<div class="duo${stack?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
+  curPart=part;
+  const P=UI.proj, view=`theme=${V.theme}&layout=${V.layout}`;
+  const editHref='editor.html?'+(P? 'community='+encodeURIComponent(P.id) : isFw()? 'start='+UI.src : 'start=blank&ref='+UI.src)+'&'+view;
+  $('title').textContent= P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';
+  $('intro').textContent= isFw()? [fw.description, fw.author&&'By '+fw.author+'.'].filter(Boolean).join(' ')||'Firmware for the Simple Touch.' : INTRO[UI.src];
+  const repo= P? P.repo : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
+  const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
+  const nt=$('notice'); nt.hidden=!P; nt.innerHTML= P? noticeHTML(editHref) : '';
+  $('side').innerHTML= libTable()+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
+    +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
+  const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
+  $('editLink').href=editHref;
+  const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
+}
+$('pngBtn').onclick=()=>{
+  const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
+  openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(), tableNotesOnly:true,
+    include:{table:['table','all'].includes(UI.exWhat), notes:UI.exWhat==='all'},
+    content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? libTable() : '', withNotes:inc.notes,
+      fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+    onChange:(inc,look)=>{ UI.exWhat= inc.notes? 'all' : inc.table? 'table' : 'panel'; UI.exLook=look; }});
+};
+/* drag the divider between drawing and table to set the drawing's width (kept per layout); double-click resets */
+const figKey=()=>'stManualLib.figW.'+$('fig').className;
+function sizeFig(){ let w=0; try{ w=+localStorage.getItem(figKey())||0; }catch(e){} $('fig').style.width= w? `min(100%, ${w}px)` : ''; }
+$('libSplit').addEventListener('pointerdown',e=>{
+  e.preventDefault(); const f=$('fig'), x0=e.clientX, w0=f.getBoundingClientRect().width;
+  const move=ev=>{ const w=Math.round(Math.max(260,Math.min(1600,w0+ev.clientX-x0))); f.style.width=`min(100%, ${w}px)`; try{ localStorage.setItem(figKey(),String(w)); }catch(err){} };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); };
+  addEventListener('pointermove',move); addEventListener('pointerup',up);
+});
+$('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(figKey()); }catch(e){} sizeFig(); });
+
+(async()=>{
+  const q=new URLSearchParams(location.search);
+  const src=q.get('src'); if(REF_SETS[src]||FIRMWARE.includes(src)) UI.src=src;
+  if(THEME_NAMES.some(t=>t[0]===q.get('theme'))) V.theme=q.get('theme');
+  if(['phone','desktop'].includes(q.get('layout'))) V.layout=q.get('layout');
+  buildBars();
+  try{ await loadPanelArt(); }catch(e){ $('fig').innerHTML='<p class="hint">The panel drawing could not be loaded. Open this page from a web server (GitHub Pages or a local server), not as a file.</p>'; return; }
+  ready=true; onFontsLoaded=update;
+  const community=loadCommunity().then(list=>{ buildCommunity(list); return list; }).catch(()=>[]);
+  const P= q.get('community') && (await community).find(p=>p.id===q.get('community'));
+  await (P? pick('community',P) : pick(UI.src));
+  document.fonts.ready.then(update);
+})();
 </script>
 </body>
 </html>
