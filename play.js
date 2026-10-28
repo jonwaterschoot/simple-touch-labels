@@ -35,7 +35,7 @@ const Play = (()=>{
     state:'idle',   // idle | loading | running
     run:0,          // bumps on every start and stop, so a slow load can tell it was overtaken
     st:null, ctx:null, out:null, inGain:null,
-    controls:{}, levers:{}, pads:{},
+    controls:{}, levers:{}, pads:{}, latched:new Set(),
     led:false, oled:null, oledUrl:'', boot:null, stopBoot:null,
     msg:'', err:false, loaded:0,
     input:'off', inputs:null, inputNode:null, inputStream:null, buffers:new Map(),
@@ -83,7 +83,7 @@ const Play = (()=>{
       S.layout=k; S.layoutSet=true; try{ localStorage.setItem(PLAY_KEYS_PREF,k); }catch(err){} refresh(); });
     fillMidi(); body();
     $p('playCredit').innerHTML=`Browser build <code>${esc(e.sha256.slice(0,12))}</code>, approved by ${esc(fw.author||'its author')}. It runs in this page: the sound is the firmware's own.`
-      +` Drag a knob up or down, click or drag a fader, click or slide a lever. Press a pad higher up to press it harder, and drag up or down while holding it; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`
+      +` Drag a knob up or down, click or drag a fader, click or slide a lever. Press a pad higher up to press it harder, and drag up or down while holding it; right-click a pad to keep it held (for a combo), right-click it again to let go; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`
       +(mods().length? ' A modifier shows what it does on the labels: while held, or after a tap for a mode.' : '')
       +(navigator.standalone===false? ' On iPhone, Share › Add to Home Screen opens it full screen, without the browser\'s bars.' : '');   // iOS Safari only
   }
@@ -222,7 +222,7 @@ const Play = (()=>{
     try{ S.st?.disconnect(); }catch(e){}
     S.ctx?.close().catch(()=>{});
     S.st=S.ctx=S.out=S.inGain=S.live=null;
-    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.pads={}; S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
+    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
     S.mode=null; S.held=[]; soloMod=null;
     keys(false);
     say('');
@@ -594,7 +594,7 @@ const Play = (()=>{
   function setControl(id,v){ v=clamp(v); if(v===S.controls[id]) return; S.controls[id]=v; drawControl(id); S.st?.setControl(id,v); }
   function setLever(id,pos){ S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); }
   function pad(i,down,force=0.5){ const was=S.pads[i]!==undefined;
-    if(down) S.pads[i]=force; else delete S.pads[i]; drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force);
+    if(down) S.pads[i]=force; else { delete S.pads[i]; S.latched.delete(i); } drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force);
     if(down!==was) modPad(padId(i),down); }
   /* Touch: a buzz the moment a control is taken, a light tick as its value runs (a firmer one at the ends),
      a clear click per lever position. Android vibrates for the time asked. iPhone has no vibrate, but Safari 18
@@ -653,9 +653,13 @@ const Play = (()=>{
       // (top = hard, bottom = soft), then dragging up or down from there. A touch screen's "pressure" is
       // mostly the size of the finger, so it is not used.
       const force=(e,c)=> e.pointerType==='pen' && e.pressure>0 && e.pressure!==0.5? e.pressure : clamp(c.base+(c.y-e.clientY)/120);
-      drag(el, e=>{ const c={y:e.clientY, base:clamp(1-(svgPoint(S.svg,e).y-top)/h, 0.05, 1)}, f=force(e,c);
+      const hit=e=>({y:e.clientY, base:clamp(1-(svgPoint(S.svg,e).y-top)/h, 0.05, 1)});
+      drag(el, e=>{ const c=hit(e), f=force(e,c);
           pad(i,true,f); buzz(e,12); c.k=Math.round(f*16); return c; },
         (e,c)=>{ const f=force(e,c); pad(i,true,f); tick(e,c,f,16); }, ()=>pad(i,false));
+      // right-click: the pad stays held (a mouse can then play combos such as P2 + P11) until it is right-clicked again or played
+      el.addEventListener('pointerdown',e=>{ if(e.button!==2) return; e.preventDefault();
+        if(S.latched.has(i)) pad(i,false); else { pad(i,true,force(e,hit(e))); S.latched.add(i); } });
     });
   }
   const CODE_PAD=Object.fromEntries(Object.entries(PLAY_CODES).map(([i,c])=>[c,+i]));
