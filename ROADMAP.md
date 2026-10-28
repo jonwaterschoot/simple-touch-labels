@@ -39,7 +39,7 @@ Bridging an existing, large community firmware (Plaits, OLED, USB/TRS MIDI, QSPI
 ## Runtime (simple-touch-web)
 
 - [x] Released as `v1.1`, with a README note on `CC_SOURCES` and `ifdef SIMPLE_TOUCH_WEB`. ABI stays `simple-touch-web/1`.
-- [x] `v1.2`: LED changes inside one main-loop pass are queued with the pass's clock and shown when the audio gets there (TouchPlaited's blinks showed only in the boot film). Board only: no page or ABI change. Test bench: right-click hold, QWERTY / AZERTY. Smoke test: pad combos (`2+11`).
+- [x] `v1.2`: LED changes inside one main-loop pass are queued with the pass's clock and shown when the audio gets there (TouchPlaited's blinks showed only in the boot film). Board only: no page or ABI change. Test bench: right-click hold, QWERTY / AZERTY. Smoke test: pad combos (`2+11`). LED and right-click checked in the browser, test bench and library (2026-10-28).
 - [x] `v1` moved to `v1.2` (2026-10-28, by hand: the permission check blocks tag force-pushes). TouchPlaited back on `@v1`. With each new 1.x, move it the same way: `git tag -f -a v1 -m v1 "v1.N^{}" && git push -f origin v1`.
 - [ ] OLED frames inside one pass: only a pass's last frame shows. Fine so far; queue frames the same way if an animation needs it.
 - [ ] Vendored code (`thirdparty/`, `lib/`) compiled without `-Wall`, so a firmware's own warnings stand out.

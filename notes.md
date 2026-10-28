@@ -62,7 +62,7 @@ Nothing else needed changing: `__disable_irq`, `__DSB`, `__ISB`, `DSY_SDRAM_BSS`
 
 ### Tested in the browser (2026-10-28)
 
-The test bench and the library preview behave the same. Audio plays; the drums start and stop with P2 + P11 from the keyboard. With a mouse alone, a combo couldn't be played: now a right-click keeps a pad held, on both pages. The test bench had QWERTY keys only: now it plays by key position with a QWERTY / AZERTY switch, as the library does. The LED blinked only in the boot film: fixed, see below.
+The test bench and the library preview behave the same. Audio plays; the drums start and stop with P2 + P11 from the keyboard. With a mouse alone, a combo couldn't be played: now a right-click keeps a pad held, on both pages. The test bench had QWERTY keys only: now it plays by key position with a QWERTY / AZERTY switch, as the library does. The LED blinked only in the boot film: fixed, see below. Second round (build `8acf93d464ec`, simple-touch-web v1.2): the LED blinks and right-click hold both work, on the test bench and in the library preview.
 
 ### Things to check in the browser
 
