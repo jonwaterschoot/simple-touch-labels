@@ -54,10 +54,15 @@ async function repoFaceplate(repo, path){
   if(/\.svg$/i.test(path)){ const f=await repoFile(repo, path, MAX_FACEPLATE); return f && f.text; }
   const r=repoParts(repo); if(!r) return null;
   const p=path.split('/').map(encodeURIComponent).join('/');
-  const url= r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${p}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${p}`;
+  return faceplateAt(r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${p}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${p}`, path);
+}
+/* the faceplate file at url; its path says whether it is an SVG or an image */
+async function faceplateAt(url, path){
+  if(!FP_PATH.test(path||'')) return null;
   try{
     const res=await fetch(url); if(!res.ok) return null;
     const blob=await res.blob(); if(blob.size>MAX_FACEPLATE) return null;
+    if(/\.svg$/i.test(path)) return await blob.text();
     const ext=path.split('.').pop().toLowerCase(), type={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'}[ext];
     return (await imageFaceplate(new Blob([blob],{type}))).svg;
   }catch(e){ return null; }
@@ -107,14 +112,20 @@ function labelFileDoc(d, repo){
    3. the entry alone, with blank labels */
 const repoReads = {};
 const readRepo = p => repoReads[p.repo] ||= readRepoNow(p).catch(()=>({doc:communityDoc(p), source:'none', files:[]}));
+/* A label file's text as a doc, with its faceplate read by faceplate(path) and cleaned; null if it isn't one */
+async function labelDocOf(text, repo, faceplate){
+  let d=null; try{ d=labelFileDoc(JSON.parse(text), repo); }catch(e){}
+  if(!d) return null;
+  if(d.faceplateFile) d.faceplate=await faceplate(d.faceplateFile) || '';
+  try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
+  return d;
+}
 async function readRepoNow(p){
   const base=communityDoc(p);
   const lf=await repoFile(p.repo, LABEL_FILE);
   if(lf){
-    let d=null; try{ d=labelFileDoc(JSON.parse(lf.text), p.repo); }catch(e){}
+    const d=await labelDocOf(lf.text, p.repo, path=>repoFaceplate(p.repo, path));
     if(d){
-      if(d.faceplateFile) d.faceplate=await repoFaceplate(p.repo, d.faceplateFile) || '';
-      try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
       for(const k of ['name','author','description','repo','authorUrl']) if(!d.firmware[k].trim()) d.firmware[k]=base.firmware[k];
       return {doc:d, source:'file', files:[lf]};
     }
@@ -272,4 +283,142 @@ function prose(raw, put){
     put(t[0].id,'main',labelFrom(m[2],3),4);
   }
   for(const m of raw.matchAll(RANGE_RE)) rangeList(+m[1],+m[2],raw.slice(m.index+m[0].length),put,3,true);
+}
+
+/* ============================================================
+   README: a repository's own README.md, under its manual in the library, drawn as GitHub draws it.
+   Markdown by marked, cleaned by DOMPurify (no scripts, styles, forms or event handlers; ids get
+   user-content- in front, as on GitHub, so they never clash with the page's). Relative images point
+   at the repository's raw files and relative links at its pages. A video link on a line of its own
+   becomes a player, a YouTube link an embed, a ```mermaid block its drawing. The libraries load from
+   jsDelivr, pinned by hash, when a README is first opened; mermaid only for one with a flowchart.
+   ============================================================ */
+const README_LIBS = {
+  marked:    ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js',        'sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi'],
+  DOMPurify: ['https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js', 'sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a'],
+  mermaid:   ['https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js',  'sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I'],
+};
+const libReqs = {};
+function loadLib(name){
+  return libReqs[name] ||= new Promise((ok,no)=>{
+    const [src,integrity]=README_LIBS[name], s=document.createElement('script');
+    Object.assign(s,{src, integrity, crossOrigin:'anonymous'});
+    s.onload=()=> window[name]? ok(window[name]) : no(new Error(name+' did not load'));
+    s.onerror=()=>{ delete libReqs[name]; s.remove(); no(new Error(name+' could not be loaded')); };
+    document.head.append(s);
+  });
+}
+const readmeReqs = {};
+const readmeOf = repo => readmeReqs[repo] ||= repoReadme(repo).then(f=>{ if(!f) delete readmeReqs[repo]; return f; });
+
+/* where a README's relative paths point: raw (images, videos) and page (links) */
+function repoBases(repo){
+  const r=repoParts(repo); if(!r) return null;
+  return r.host==='github.com'
+    ? {raw:`https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/`, page:`${repo}/blob/HEAD/`}
+    : {raw:`https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/`, page:`${repo}/src/branch/HEAD/`};
+}
+/* an http(s) URL against a base, else '' (DOMPurify has already taken out javascript: and the like) */
+function absUrl(u, base){
+  try{ const x=new URL(String(u).trim(), base); return /^https?:$/.test(x.protocol)? x.href : ''; }catch(e){ return ''; }
+}
+/* a file to show: github.com/<owner>/<repo>/blob/<ref>/<path> is the page around it, the file itself is raw */
+const rawFile = u => u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/([^?#]+)(?:\?raw=true)?$/, 'https://raw.githubusercontent.com/$1/$2/$3');
+const VIDEO_RE = /^https:\/\/(?:github\.com\/user-attachments\/assets\/[0-9a-f-]{36}|[^\s?#]+\.(?:mp4|m4v|mov|webm)(?:[?#]\S*)?)$/i;
+const YOUTUBE_RE = /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:\S*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/i;
+const ALERTS = {NOTE:'Note', TIP:'Tip', IMPORTANT:'Important', WARNING:'Warning', CAUTION:'Caution'};
+/* a heading's anchor, as GitHub makes it */
+const slugOf = t => t.trim().toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu,'').replace(/ /g,'-');
+let chartCount = 0;
+
+/* README text → a fragment to put in the page. dark picks the flowcharts' colours. */
+async function readmeFragment(md, repo, dark){
+  const [marked, purify]=await Promise.all([loadLib('marked'), loadLib('DOMPurify')]);
+  const B=repoBases(repo);
+  const frag=purify.sanitize(marked.parse(md,{gfm:true}), {RETURN_DOM_FRAGMENT:true, SANITIZE_NAMED_PROPS:true,
+    FORBID_TAGS:['style','form','button','textarea','select','option'], FORBID_ATTR:['style']});
+  const make=(tag,attrs)=>Object.assign(document.createElement(tag),attrs);
+  // headings get GitHub's anchors, so the README's own #links work
+  const seen={};
+  for(const h of frag.querySelectorAll('h1,h2,h3,h4,h5,h6')){
+    const s=slugOf(h.textContent), n=seen[s]=(seen[s]??-1)+1;
+    if(!h.id) h.id='user-content-'+s+(n? '-'+n : '');
+  }
+  for(const a of frag.querySelectorAll('a[href]')){
+    const h=a.getAttribute('href');
+    if(h.startsWith('#')){ a.setAttribute('href', h.startsWith('#user-content-')? h : '#user-content-'+h.slice(1).toLowerCase()); continue; }
+    const u=/^mailto:/i.test(h)? h : absUrl(h, B.page);
+    if(!u){ a.removeAttribute('href'); continue; }
+    Object.assign(a,{href:u, target:'_blank', rel:'noopener noreferrer'});
+  }
+  for(const el of frag.querySelectorAll('img[src], video[src], source[src], video[poster]')){
+    for(const k of ['src','poster']) if(el.hasAttribute(k)){ const u=absUrl(el.getAttribute(k), B.raw); u? el.setAttribute(k, rawFile(u)) : el.removeAttribute(k); }
+  }
+  for(const el of frag.querySelectorAll('[srcset]')){
+    el.setAttribute('srcset', el.getAttribute('srcset').split(',').map(c=>{ const [u,...w]=c.trim().split(/\s+/), x=absUrl(u, B.raw); return x && [rawFile(x),...w].join(' '); }).filter(Boolean).join(', '));
+  }
+  for(const im of frag.querySelectorAll('img')){ im.loading='lazy'; im.referrerPolicy='no-referrer'; }
+  for(const v of frag.querySelectorAll('video')){ v.controls=true; v.preload='metadata'; v.playsInline=true; }
+  for(const i of frag.querySelectorAll('input')){ if(i.type==='checkbox') i.disabled=true; else i.remove(); }   // task lists
+  // a link alone on its line: a video plays here, a YouTube video is embedded
+  for(const p of frag.querySelectorAll('p')){
+    const a=p.firstElementChild;
+    if(!a || a.tagName!=='A' || p.childElementCount!==1 || p.textContent.trim()!==a.textContent.trim()) continue;
+    const u=a.href, yt=u.match(YOUTUBE_RE);
+    if(VIDEO_RE.test(u)) p.replaceWith(make('video',{src:u, controls:true, preload:'metadata', playsInline:true}));
+    else if(yt){
+      const box=make('div',{className:'rm-yt'});
+      box.append(make('iframe',{src:`https://www.youtube-nocookie.com/embed/${yt[1]}`, title:a.textContent.trim()||'YouTube video', loading:'lazy',
+        allow:'encrypted-media; picture-in-picture; fullscreen', allowFullscreen:true, referrerPolicy:'strict-origin-when-cross-origin'}));
+      p.replaceWith(box);
+    }
+  }
+  // > [!NOTE] and the other GitHub alerts
+  for(const q of frag.querySelectorAll('blockquote')){
+    const p=q.firstElementChild, t=p && p.tagName==='P' && p.firstChild, m=t && t.nodeType===3 && t.data.match(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i);
+    if(!m) continue;
+    t.data=t.data.slice(m[0].length); if(t.data==='' && t.nextSibling && t.nextSibling.nodeName==='BR') t.nextSibling.remove();
+    if(!p.textContent.trim() && !p.querySelector('img')) p.remove();
+    const k=m[1].toUpperCase();
+    q.className='rm-alert rm-'+k.toLowerCase(); q.prepend(make('p',{className:'rm-alert-title', textContent:ALERTS[k]}));
+  }
+  for(const t of frag.querySelectorAll('table')){ const w=make('div',{className:'tw'}); t.replaceWith(w); w.append(t); }
+  // flowcharts: strict mermaid (no scripts or links in labels); a chart it can't read stays as its text
+  const charts=[...frag.querySelectorAll('pre > code.language-mermaid')];
+  if(charts.length){
+    const mermaid=await loadLib('mermaid');
+    mermaid.initialize({startOnLoad:false, securityLevel:'strict', suppressErrorRendering:true, theme: dark? 'dark' : 'default', fontFamily:'Archivo, system-ui, sans-serif'});
+    for(const code of charts){
+      const id='rm-mermaid-'+(chartCount++);   // unique on the page: each chart's CSS is scoped to its id
+      try{ const {svg}=await mermaid.render(id, code.textContent); const d=make('div',{className:'rm-mermaid'}); d.innerHTML=svg; code.parentElement.replaceWith(d); }
+      catch(e){ const x=document.getElementById(id); if(x) x.remove(); }
+    }
+  }
+  return frag;
+}
+
+/* The page's README section (<details id="readme"> with #readmeName and #readmeBody), collapsed under the manual.
+   Read and drawn when opened, again when the repository changes or the page turns light or dark while it is open. */
+const RM = {repo:'', drawn:''};
+function readmeSection(repo){
+  const d=document.getElementById('readme'); if(!d) return;
+  if(!d.dataset.bound){ d.dataset.bound='1'; d.addEventListener('toggle',()=>{ if(d.open) drawReadme(); }); }
+  RM.repo= repo||''; d.hidden=!RM.repo;
+  document.getElementById('readmeName').textContent= RM.repo? repoShort(RM.repo) : '';
+  if(d.open) drawReadme();
+}
+async function drawReadme(){
+  const repo=RM.repo, dark=!document.body.classList.contains('ui-light'), key=repo+'|'+dark;
+  if(!repo || RM.drawn===key) return;
+  RM.drawn=key;
+  const box=document.getElementById('readmeBody'), gone=()=>RM.drawn!==key;
+  if(box.dataset.repo!==repo){ box.dataset.repo=''; box.innerHTML='<p class="hint">Reading the README…</p>'; }
+  const f=await readmeOf(repo); if(gone()) return;
+  if(!f){ RM.drawn=''; box.innerHTML=`<p class="hint">No README.md in <a href="${escAttr(repo)}" target="_blank">${esc(repoShort(repo))}</a>.</p>`; return; }
+  const src=`<p class="hint rm-src">The README of <a href="${escAttr(f.url)}" target="_blank" rel="noopener">${esc(repoShort(repo))}</a>, as it is on its default branch. Images and videos load from where it points to.</p>`;
+  try{
+    const frag=await readmeFragment(f.text, repo, dark); if(gone()) return;
+    const body=document.createElement('div'); body.className='md rm'; body.append(frag);
+    box.innerHTML=src; box.append(body); box.dataset.repo=repo;
+  }catch(e){ if(gone()) return; RM.drawn=''; box.innerHTML=src+`<p class="hint">It could not be drawn here (${esc(e.message)}). <a href="${escAttr(f.url)}" target="_blank" rel="noopener">Read it in the repository</a>.</p>`; }
 }

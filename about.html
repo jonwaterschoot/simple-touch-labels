@@ -30,6 +30,69 @@
   </header>
 
   <main class="about">
+    <h2 id="route">The whole route</h2>
+    <p>From a first line of code to a firmware anyone can read, play and host. Each step names the tool that does it and what it leaves behind.</p>
+    <ol class="route">
+      <li class="step" id="step-0">
+        <span class="num" aria-hidden="true">0</span>
+        <div class="card">
+          <div class="head"><b>Set up</b><span class="tools"><span class="tool">VS Code</span><span class="tool">Git</span><span class="tool">Daisy Toolchain</span></span></div>
+          <p>An editor, Git, and an account on GitHub or Codeberg. The <a href="https://daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes libDaisy firmware; a Plugdata patch goes through Plugdata's Daisy export instead.</p>
+        </div>
+      </li>
+      <li class="step" id="step-1">
+        <span class="num" aria-hidden="true">1</span>
+        <div class="card">
+          <div class="head"><b>Build or fork a firmware</b><span class="tools"><span class="tool">VS Code</span><span class="tool">GitHub</span></span></div>
+          <p>Start from scratch, from an official firmware or from a community one. Push it to a repository of your own.</p>
+          <p class="out"><span>Leaves</span> your firmware repository</p>
+        </div>
+      </li>
+      <li class="step" id="step-2">
+        <span class="num" aria-hidden="true">2</span>
+        <div class="card">
+          <div class="head"><b>Get listed and labelled, in either order</b></div>
+          <div class="fork">
+            <div class="way" id="step-2a">
+              <span class="cap">List it first</span>
+              <p><span class="tool t-des">Designer</span> <b>Directory entry…</b> opens a pull request on the <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">community directory</a>. Once it is merged, the <span class="tool t-lib">Library</span> lists your firmware under Community and a script reads labels from your README.</p>
+              <p>Then check what it read: <b>Build the labels in the Designer</b> opens them there to fix and finish.</p>
+            </div>
+            <div class="or" aria-hidden="true">or</div>
+            <div class="way" id="step-2b">
+              <span class="cap">Manual first</span>
+              <p>In the <span class="tool t-des">Designer</span>: labels, modifiers, MIDI, notes and your own look. <b>Repository kit…</b> writes a README with the control map, the label file and the directory entry in one .zip.</p>
+              <p>Then <b>Directory entry…</b> to get listed.</p>
+            </div>
+          </div>
+          <p class="out"><span>Leaves</span> <code>simple-touch-labels.json</code> (and a README) in your repository, and an entry in the directory</p>
+        </div>
+      </li>
+      <li class="step" id="step-3">
+        <span class="num" aria-hidden="true">3</span>
+        <div class="card">
+          <div class="head"><b>See it in the library</b><span class="tools"><span class="tool t-lib">Library</span></span></div>
+          <p>Your labels on the drawing, in your look (the Creator theme) with your faceplate, the control table, your notes, and your whole README underneath. <b>Preview in library</b> in the designer shows this before you publish.</p>
+        </div>
+      </li>
+      <li class="step" id="step-4">
+        <span class="num" aria-hidden="true">4</span>
+        <div class="card">
+          <div class="head"><b>Make it playable</b><span class="tools"><span class="tool t-web">simple-touch-web</span><span class="tool t-des">Designer</span></span></div>
+          <p>Split <code>main()</code> into a setup and a loop half and add one workflow file. Every push then builds the firmware for the browser, checks it boots and publishes it in your repository. Listen to it on the test bench; if it sounds right, paste its <code>emulator</code> block into <b>Browser build</b> and save the label file again. <a href="#play">How</a></p>
+          <p class="out"><span>Leaves</span> a Play button in the library: the drawing becomes the instrument</p>
+        </div>
+      </li>
+      <li class="step" id="step-5">
+        <span class="num" aria-hidden="true">5</span>
+        <div class="card">
+          <div class="head"><b>A page of your own</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub Pages</span></span></div>
+          <p><b>Web app…</b> gives your manual as a site of its own: the library's page for just your firmware, in your look, with Play, the control table, your notes and README. Copy the folder into <code>docs/</code>, switch on GitHub Pages for that folder, done; the dialog and the .zip's <code>HOW-TO-PAGES.md</code> walk you through it. <a href="#webapp">More</a></p>
+          <p class="out"><span>Leaves</span> <code>&lt;you&gt;.github.io/&lt;firmware&gt;</code></p>
+        </div>
+      </li>
+    </ol>
+
     <h2 id="places">Three places</h2>
     <div class="flow" role="list">
       <div class="box" role="listitem"><b>Community directory</b><span>Synthux's list of community firmware: one small <code>projects/&lt;id&gt;.json</code> per project, with its name, author and repository.</span></div>
@@ -43,11 +106,13 @@
     <h2 id="labels">How the library finds labels</h2>
     <p>The official firmware (TouchBass, Touch FX, Touch String, Audrey II Touch) have labels checked by hand. For the community firmware under <b>Community</b>, the library tries, in this order:</p>
     <ol>
-      <li><b>The creator's label file.</b> A <code>simple-touch-labels.json</code> at the root of the repository's default branch, made in the designer. Shown as is. Faceplates from these files are not shown yet.</li>
+      <li><b>The creator's label file.</b> A <code>simple-touch-labels.json</code> at the root of the repository's default branch, made in the designer. Shown as is, first in the creator's own look (the <b>Creator</b> theme), and with their faceplate if the file names one.</li>
       <li><b>Auto-extracted from the README.</b> A script reads <code>README.md</code>, and a Markdown manual it links to, for control names (S30, P03, Switch A…) and the words next to them. These labels are a guess: they can be incomplete, shortened, or from another mode of the firmware. The library marks them as auto-extracted and lists the line each one came from.</li>
       <li><b>Nothing found.</b> The drawing shows the Synthux names, with a link to the designer.</li>
     </ol>
     <p>Controls without a label show their Synthux name, so you can still find your way around.</p>
+    <h3 id="readme">The README underneath</h3>
+    <p>Below every firmware's manual, official or community, the library keeps the repository's own <code>README.md</code>, folded away. Open it and it is read from the default branch and drawn as GitHub draws it: headings, tables, code blocks, notes like <code>&gt; [!NOTE]</code>, <code>```mermaid</code> flowcharts, and images and videos from where the README points. A video link on a line of its own plays in the page, and a YouTube link is embedded.</p>
 
     <h2 id="creators">For firmware creators</h2>
     <h3>Make your labels</h3>
@@ -55,7 +120,7 @@
       <li>Open your firmware under <b>Community</b> in the library and follow <b>Build the labels in the Designer</b>. The designer opens with your name, author and repository filled in, plus anything the script found.</li>
       <li>Check and finish the labels: line 1 and line 2 per control, modifiers (P10 + knob, or a tapped mode pad), notes. If the firmware speaks MIDI, fill in the MIDI column too (e.g. <code>CC 20</code> or <code>note 36 ch 10</code>): it becomes a column of the control table, and while someone plays the firmware here, each row shows the values that pass.</li>
       <li>Style it if you like: colours, sizes, a Google font and your own faceplate. The library shows your manual in this look first, as the <b>Creator</b> theme. <b>Preview in library</b> shows it there before you publish.</li>
-      <li>Click <b>Save file</b> and rename the file to <code>simple-touch-labels.json</code>. With a faceplate of your own, Save file also downloads it as an SVG; the label file names where it goes, <code>img/faceplate.svg</code> unless you change it under Style.</li>
+      <li>Click <b>Save file</b> and rename the file to <code>simple-touch-labels.json</code>. With a faceplate of your own, Save file also downloads it, as the SVG or the image you uploaded; the label file names where it goes, <code>img/faceplate.svg</code> (or <code>.png</code>, <code>.jpg</code>…) unless you change it under Style.</li>
       <li>Add the label file to the root of your repository, on the default branch, and the faceplate at its path. The library shows your labels from then on.</li>
     </ol>
     <h3>Or everything at once</h3>
@@ -68,6 +133,15 @@
       <li>If it does, paste the <code>emulator</code> block from the run's summary into <b>Browser build</b> in the designer (under Firmware), save the file and add it to your repository as above. <code>"embed": "allowed"</code> lets the library play that build; <code>"link-only"</code> with a <code>"url"</code> only links to your own page. Add <code>"oled": true</code> if the firmware drives the optional OLED.</li>
     </ol>
     <p>The block pins the build by its hash: the library refuses any other file, so a later build only plays here once you approve it. The build has to come from your own repository (its raw files or your Pages site). The library feeds it loops from simple-touch-web or the visitor's mic or own sound file.</p>
+    <p>Visitors then drag the knobs and faders on the drawing, flip the levers and press the pads (higher up on a pad is harder), or play the pads from the computer keyboard. Web MIDI connects a keyboard to the firmware's USB MIDI and its output to a device; with a MIDI column in your labels, each row of the control table shows the values passing. On a phone, Full screen turns the drawing into the whole instrument.</p>
+    <h3 id="webapp">Your own web app</h3>
+    <p><b>Web app…</b> in the designer packs your manual as a site for GitHub Pages: one page with the drawing in your look, the control table, your notes, your README and, with an approved browser build, <b>Play</b>. It runs on the same code as the library, copied into the .zip, so it keeps working whatever happens to this site. <b>Preview ↗</b> in the dialog shows it first, following your edits.</p>
+    <ol>
+      <li>Put <code>simple-touch-labels.json</code> (and your faceplate) at the root of your repository, as above.</li>
+      <li>Copy everything in the .zip's folder into a <code>docs</code> folder in your repository, and push.</li>
+      <li>On GitHub: <b>Settings › Pages</b>, Source <b>Deploy from a branch</b>, your default branch, folder <b>/docs</b>, Save. A minute later it is at <code>https://&lt;you&gt;.github.io/&lt;repository&gt;/</code>.</li>
+    </ol>
+    <p>Online, the page reads the label file from the root of your repository, so a build you approve later shows there without a new export. On your own computer (<code>python -m http.server</code> in the folder) it shows the copy beside it, so you can try changes before you push. Already using Pages for something else? Any subfolder works, e.g. <code>docs/play/</code>.</p>
     <h3>Not in the directory yet?</h3>
     <p>In the designer, fill in <b>Repository</b> and <b>Author link</b> under Firmware, then click <b>Directory entry…</b>. It builds your <code>projects/&lt;id&gt;.json</code>, checks it the way the directory does, and opens a pull request on GitHub with the file filled in. Listing is not endorsement: Synthux does not review or test listed projects.</p>
     <h3>A README the script can read</h3>
@@ -92,7 +166,8 @@
 
     <h2 id="privacy">What is read and stored</h2>
     <ul>
-      <li>Everything runs in your browser. Pages are read from <code>synthux-academy.github.io</code>, <code>raw.githubusercontent.com</code> and <code>codeberg.org</code>; nothing is sent anywhere else.</li>
+      <li>Everything runs in your browser. Pages are read from <code>synthux-academy.github.io</code>, <code>raw.githubusercontent.com</code> and <code>codeberg.org</code>; nothing is sent anywhere else. The export and README tools load from <code>cdn.jsdelivr.net</code>, pinned to fixed versions.</li>
+      <li>A README is only read when you open it. Its images and videos then load from wherever it points (as on GitHub), and a YouTube video from <code>youtube-nocookie.com</code>. It is cleaned first: no scripts, styles, forms or event handlers, and its flowcharts are drawn in mermaid's strict mode.</li>
       <li>Text from repositories is only ever shown as text, never run as code. A creator's look passes as plain numbers, colours and words only, and their faceplate SVG is cleaned of scripts and outside links. A Google font in a creator's look is loaded from <code>fonts.googleapis.com</code>.</li>
       <li>The one exception is <b>Play</b>, and only when you press it: it runs the firmware build its author approved, checked against the hash in their label file, from their own repository or Pages site. It runs as WebAssembly in the page's audio thread, where it can only exchange sound, control positions and MIDI with the page. The loops come from <code>jonwaterschoot.github.io</code>; the mic and MIDI devices are only opened if you choose them.</li>
       <li>The designer keeps your work in this browser's storage. Nothing leaves it unless you save a file, copy a share link or open a pull request.</li>

@@ -35,6 +35,7 @@
       <div class="btns">
         <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
+        <button type="button" class="outline" id="appBtn" title="Your manual as a page of its own, playable when a browser build is approved, ready for GitHub Pages">Web app…</button>
         <button type="button" id="shareBtn">Copy share link</button>
         <button type="button" id="previewBtn" title="Your manual as the library will show it, in a new tab that follows your edits">Preview in library</button>
       </div>
@@ -119,6 +120,18 @@
     </div>
     <div class="kitfiles"><span class="cap">In the .zip</span><ul id="kitFiles"></ul></div>
     <div class="mfoot"><span class="status" id="kitBusy"></span><button type="button" class="primary" id="kitZip">Download kit (.zip)</button></div>
+  </form>
+</dialog>
+
+<dialog id="appModal" class="app">
+  <form method="dialog" class="modal">
+    <div class="mhead"><span>Web app</span><button value="cancel" class="tight">Close</button></div>
+    <p class="hint">Your manual as a page of its own, for GitHub Pages: the drawing in your look, the control table, your notes and README, and <b>Play</b> when your label file approves a browser build. It is the library's page for this one firmware. <a href="about.html#step-5" target="_blank">Where this fits</a></p>
+    <div id="appWarn"></div>
+    <div class="kithead"><span class="cap">How to put it online</span><span class="hint" id="appUrl"></span></div>
+    <div class="md kitmd" id="appSteps"></div>
+    <div class="kitfiles"><span class="cap">In the .zip</span><ul id="appFiles"></ul></div>
+    <div class="mfoot"><span class="status" id="appBusy"></span><button type="button" id="appPreview" title="Your manual as the web app shows it, in a new tab that follows your edits">Preview ↗</button><button type="button" class="primary" id="appZip">Download web app (.zip)</button></div>
   </form>
 </dialog>
 
@@ -919,6 +932,78 @@ $('kitZip').onclick=async()=>{
     download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
     $('kitBusy').textContent='';
   }catch(err){ console.error(err); $('kitBusy').textContent='The kit could not be made: '+err.message; }
+};
+
+/* ============================================================
+   WEB APP: the manual as a page of its own (player.html, as index.html) with the files it needs, for
+   GitHub Pages. Online it reads the repository's own simple-touch-labels.json, so a build approved
+   later shows without a new export; the copy in the .zip is for trying it out and as a fallback.
+   ============================================================ */
+const APP_FILES=['core.js','community.js','play.js','ui.css','styles.css','assets/panel_blank.svg','assets/favicon.svg','assets/apple-touch-icon.png',
+  'vendor/simple-touch-web/simple-touch.js','vendor/simple-touch-web/simple-touch-processor.js','vendor/simple-touch-web/oled.js','vendor/simple-touch-web/README.md'];
+/* where GitHub or Codeberg Pages serves a repository */
+function pagesUrl(repo){
+  const r=repoParts(normRepo(repo)); if(!r) return '';
+  const home=(r.host==='github.com'? `${r.owner}.github.io` : `${r.owner}.codeberg.page`).toLowerCase();
+  return r.name.toLowerCase()===home? `https://${home}/` : `https://${home}/${r.name}/`;
+}
+function appState(){
+  const fw=doc.firmware, repo=normRepo(fw.repo), ok=REPO_RE.test(repo), e=doc.emulator;
+  const warn=[!oneLine(fw.name)&&'No firmware name yet: the page is titled after it.',
+    !Object.keys(cleanData().labels).length&&'No labels yet.',
+    !ok&&'No repository yet (Labels tab, under Firmware). The page reads its labels, README and browser build from there; without one it only shows the copy in the .zip, and has no Play.',
+    ok&&!e&&'No browser build approved yet (Browser build, under Firmware): the page is a manual without Play for now. Approve one later and the page picks it up from your label file, without a new export.',
+    e&&e.embed!=='allowed'&&'The browser build is link-only: the page links to your own page instead of playing.'].filter(Boolean);
+  return {repo, ok, url:pagesUrl(repo), codeberg:/^https:\/\/codeberg\.org\//.test(repo), id:slug(), warn};
+}
+/* the steps, shown in the dialog and saved as HOW-TO-PAGES.md (Markdown that md2html reads too: no code blocks) */
+function pagesMD(k){
+  const name=oneLine(doc.firmware.name)||'Your firmware', repo=k.ok? `[${repoShort(k.repo)}](${k.repo})` : 'your repository';
+  const url=k.url||'https://<you>.github.io/<repository>/', link=k.url? `[${k.url}](${k.url})` : `\`${url}\``;
+  const fp=customFp()? ` and your faceplate at \`${fpFile()}\`` : '';
+  return [`# ${name} as a web app`,'',
+    `This folder is your manual as a page of its own: the drawing in your look, the control table, your notes and README, and Play when your label file approves a browser build. Made with [Simple Touch labels](${SITE}).`,'',
+    '## On GitHub Pages','',
+    `1. Check that \`${LABEL_FILE}\`${fp} is at the root of ${repo}, on its default branch. Online the page reads its labels from there, so later changes (a newly approved browser build, say) show up without exporting again.`,
+    '2. Make a folder `docs` at the root of the repository and copy everything in this folder into it: `docs/index.html`, `docs/core.js` and the rest, `.nojekyll` too. Commit and push.',
+    '3. On GitHub, open the repository\'s **Settings › Pages**. Under **Build and deployment**, set **Source** to **Deploy from a branch**, pick your default branch (usually `main`) and the folder **/docs**, and click **Save**.',
+    `4. After a minute or two the page is live at ${link}. The **Actions** tab shows it being published (pages build and deployment).`,
+    '5. Link to it from your README, so people find it.','',
+    '## Good to know','',
+    '- **Try it first.** Open a terminal in this folder, run `python -m http.server` and go to [http://localhost:8000](http://localhost:8000). Opened as a file it doesn\'t work. On your own computer the page shows the copy of the label file beside it, so you can try changes before you push them.',
+    `- **Already have a Pages site,** or a \`docs\` folder for something else? Put this folder in a subfolder of what Pages serves, e.g. \`docs/play/\`. Every path in it is relative, so it then lives at \`${url}play/\`.`,
+    '- **Play** needs an `emulator` block with `"embed": "allowed"` in your label file (Browser build, in the designer). The build loads from your repository\'s `simple-touch-web` branch or your Pages site, and its sha256 has to match.',
+    `- **Codeberg:** Codeberg Pages serves a branch named \`pages\`. Push this folder's contents to the root of that branch and the page is at \`${k.codeberg&&k.url? k.url : 'https://<you>.codeberg.page/<repository>/'}\`.`,
+    `- \`${LABEL_FILE}\` in this folder is a copy, for trying things out and for when the repository can't be read. The one at the root of the repository is the one that counts.`,
+    '- `.nojekyll` tells GitHub Pages to serve the files as they are. Keep it.','',
+    '## Licenses','',
+    'The page and its code (`index.html`, `*.js`, `*.css`) come from Simple Touch labels, under the MIT license: see `LICENSE-simple-touch-labels.txt`. `vendor/simple-touch-web/` is MIT too. The Simple Touch panel drawing (`assets/panel_blank.svg`) is © Roey Tsemah / Synthux Academy and not under the MIT license: keep the credit in the page\'s footer.',''].join('\n');
+}
+function appUpdate(){
+  const k=appState();
+  $('appWarn').replaceChildren(...(k.warn.length? [el('ul',{className:'dirmsg'},...k.warn.map(t=>el('li',{textContent:t})))] : []));
+  $('appUrl').textContent= k.url? 'it will be at '+k.url : '';
+  $('appSteps').innerHTML=md2html(pagesMD(k));
+  const files=[['index.html','the page'],['core.js, community.js, play.js, ui.css, styles.css','what it runs on, from Simple Touch labels'],['assets/','the panel drawing and icons'],
+    ['vendor/simple-touch-web/','the runtime that plays the browser build'],[LABEL_FILE,'a copy of your labels'], ...(customFp()? [[fpFile(),'your faceplate']] : []),
+    ['HOW-TO-PAGES.md','the steps above'],['LICENSE-simple-touch-labels.txt, .nojekyll','the license, and a note for GitHub Pages']];
+  $('appFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
+}
+$('appBtn').onclick=()=>{ $('appBusy').textContent=''; appUpdate(); $('appModal').showModal(); };
+$('appPreview').onclick=()=>{ saveNow(); window.open(`player.html?preview&theme=creator&layout=${V.layout}`, 'stAppPreview'); };
+$('appZip').onclick=async()=>{
+  const k=appState(), base=`${k.id}-web-app/`;
+  $('appBusy').textContent='Making the .zip…';
+  try{
+    const get=async path=>{ const r=await fetch(path,{cache:'no-cache'}); if(!r.ok) throw new Error(`${path}: ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
+    const files=[{name:base+'index.html', data:await get('player.html')},
+      ...await Promise.all(APP_FILES.map(async f=>({name:base+f, data:await get(f)}))),
+      {name:base+'LICENSE-simple-touch-labels.txt', data:await get('LICENSE')},
+      {name:base+LABEL_FILE, data:labelFileText()}, ...(customFp()? [{name:base+fpFile(), data:fpFileData().data}] : []),
+      {name:base+'HOW-TO-PAGES.md', data:pagesMD(k)}, {name:base+'.nojekyll', data:''}];
+    download(`${k.id}-web-app.zip`, URL.createObjectURL(zipBlob(files)));
+    $('appBusy').textContent='';
+  }catch(err){ console.error(err); $('appBusy').textContent='The web app could not be made: '+err.message; }
 };
 
 /* ============================================================

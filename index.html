@@ -56,6 +56,10 @@
     <div class="side" id="side"></div>
   </div>
   <section class="md" id="notes" hidden></section>
+  <details class="readme" id="readme" hidden>
+    <summary><span class="cap">README</span> <span id="readmeName"></span></summary>
+    <div id="readmeBody"></div>
+  </details>
 
   <footer class="foot">
     <a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">Source on GitHub</a> · Code licensed under <a href="LICENSE" target="_blank">MIT</a> · Layout engine after Fabio Bartali's Simple Touch Manual Designer · Firmware data from Synthux Academy · Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy" target="_blank">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html" target="_blank">Touch FX manual</a>.
@@ -144,16 +148,8 @@ function syncLook(){
   // the font once; the boxes are measured again when it is in
   if(L && L.font!=='Archivo' && !lookFonts.has(L.font)){ lookFonts.add(L.font); ensureFontLoaded(L.font).then(()=>{ if(doc.look===L) update(); }); }
 }
-/* Preview: the designer's current state in this browser, as the library shows a label file */
-const DESIGNER_KEY='simpleTouchManual.v1';
-async function previewDoc(){
-  let s=null; try{ s=JSON.parse(localStorage.getItem(DESIGNER_KEY)||'null'); }catch(e){}
-  if(!s || !s.doc) return null;
-  const d=await resolveFaceplate(normalise(s.doc)), u=s.UI||{};
-  d.look=lookOf({design:s.design, view:s.V, font:{family:u.font, url:u.fontUrl}});
-  try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
-  return {doc:d, ref:(s.V||{}).ref||'', refMode:(s.V||{}).refMode||'both'};
-}
+/* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
+const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
   Play.reset();
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
@@ -236,6 +232,7 @@ function update(){
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
   Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
+  readmeSection(repo);
   $('editLink').href=editHref;
   const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : pv? `?preview&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
 }

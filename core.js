@@ -1160,6 +1160,17 @@ async function decodeShareState(str){
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
+/* The designer's current state in this browser, as a label file shows it: ?preview in the library and the web app */
+const DESIGNER_KEY = 'simpleTouchManual.v1';
+async function designerPreview(){
+  let s=null; try{ s=JSON.parse(localStorage.getItem(DESIGNER_KEY)||'null'); }catch(e){}
+  if(!s || !s.doc) return null;
+  const d=await resolveFaceplate(normalise(s.doc)), u=s.UI||{};
+  d.look=lookOf({design:s.design, view:s.V, font:{family:u.font, url:u.fontUrl}});
+  try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
+  return {doc:d, ref:(s.V||{}).ref||'', refMode:(s.V||{}).refMode||'both'};
+}
+
 /* ============================================================
    EXPORT: PNG (via html-to-image) and the standalone manual page
    ============================================================ */
