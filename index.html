@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simple Touch · Library</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<!-- added to the home screen (iPhone: Share > Add to Home Screen) it opens without the browser's bars -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Simple Touch">
+<meta name="theme-color" content="#1a1918">
 <meta property="og:title" content="Simple Touch · Library">
 <meta property="og:description" content="Control maps for the Synthux Simple Touch: Synthux, libDaisy and Pd names, and manuals for the official firmware.">
 <meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
@@ -116,7 +123,7 @@ function buildBars(){
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
   // greyed out rather than hidden, so the toolbar never shifts
-  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on;
+  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
   for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
 }
 /* entries from the Synthux community directory; listed ones have no label file yet */
@@ -207,8 +214,8 @@ function update(){
   syncLook(); buildBars(); if(!ready) return;
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
-  // while playing, one drawing: the one the controls are on
-  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on;
+  // while playing or full screen, one drawing: the one the controls are on
+  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
   part= !sec? 'main' : both? 'main' : (UI.partsOn.main? 'main' : 'second');
   bw= sec && UI.bwPreview;
 

@@ -163,6 +163,7 @@ function resolveVars(svg, m){ let prev; do{ prev=svg; svg=svg.replace(/var\(--([
 const T = { font:"'Archivo', system-ui, sans-serif" };
 let design = cloneDesign(DESIGN_DEFAULT);
 let part = 'main', curPart = 'main', bw = false;
+let soloMod = null;   // while playing: the modifier held or tapped; the main view then shows what it does
 function applyDesign(d=design){
   for(const k of ['size1','size2','padX','padY','radius','gap','weight']) T[k]=d[k];
   T.size3 = d.size3 || Math.round(T.size2*0.72);   // reference captions: their own size, or line 2's
@@ -371,7 +372,7 @@ function slotLines(s, mode='phone'){
   try{
     let L=slotLines0(s,mode);
     if(curPart==='main') L=withRef(s,L,mode);
-    if(L.length && isMod(s.id) && curPart!=='main'){ L.modBox=modColor(s.id); L.modIdx=modIndex(s.id); }
+    if(L.length && isMod(s.id) && (curPart!=='main' || s.id===soloMod)){ L.modBox=modColor(s.id); L.modIdx=modIndex(s.id); }
     if(pad) L.pal={box:T.box, text:T.text};
     return L;
   } finally { [T.box,T.text]=keep; }
@@ -398,6 +399,11 @@ function slotLines0(s, mode='phone'){
   const L=[]; const add=(text,color,n)=>{ text=arrows(text); if(text) L.push({text,color,size:n}); };
   const own = isMod(s.id) && curPart!=='main' ? modColor(s.id) : T.text;
   const a=arrows(val(s.id,'main')), b=NO_LINE2.includes(s.id)?'':arrows(val(s.id,'main_2'));
+  // main view with a modifier in use (Play): the modifier shows its name, the controls it changes what they do with it
+  if(curPart==='main' && soloMod && isMod(soloMod)){
+    if(s.id===soloMod){ add(a||slotName(s.id),modColor(s.id),1); return L; }
+    if(MODDABLE.includes(s.kind) && has(s.id,'m_'+soloMod)){ add(val(s.id,'m_'+soloMod),modColor(soloMod),1); return L; }
+  }
   // main view: a modifier with no function of its own (only its name, e.g. "P10") is left out
   if(curPart==='main' && isMod(s.id) && (!a || a===lab(SLOT[s.id])) && !b) return L;
   if(curPart==='second'){
@@ -418,7 +424,7 @@ function slotLines0(s, mode='phone'){
   return L;
 }
 const customLines = c => { const L=[]; if((c.text||'').trim()) L.push({text:c.text.trim(),color:T.text,size:1}); if((c.sub||'').trim()) L.push({text:c.sub.trim(),color:T.text,size:2}); return L; };
-const boxStyle = s => s && isMod(s.id) && curPart!=='main' ? {stroke:modColor(s.id),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{});
+const boxStyle = s => s && isMod(s.id) && (curPart!=='main' || s.id===soloMod) ? {stroke:modColor(s.id),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{});
 const usesMod = m => SLOTS.some(s=>s.id!==m && has(s.id,'m_'+m));
 const hasSecondary = () => mods().some(usesMod);
 const splitOn = () => curPart==='second' && mods().filter(usesMod).length>1;
@@ -843,7 +849,7 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
 const buildFor = layout => layout==='desktop'? buildDesktop : buildPhone;
 const svgLabel = () => (doc.firmware.name||'Simple Touch')+' controls';
 function svgOf(r){
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${r.vb}" role="img" aria-label="${escAttr(svgLabel())}" style="${r.panelVars}">${r.art}${r.over}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${r.vb}" role="img" aria-label="${escAttr(svgLabel())}" style="${r.panelVars}">${r.art}<g class="over">${r.over}</g></svg>`;
 }
 
 /* ============================================================

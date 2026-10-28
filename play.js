@@ -44,6 +44,7 @@ const Play = (()=>{
     layout:'qwerty', layoutSet:false,
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
     hot:new Set(), cool:{},   // table rows of the controls in use
+    mode:null, held:[],       // the toggle modifier tapped last, the hold modifiers held: the labels follow them
     lock:matchMedia('(pointer: coarse)').matches, stage:false, sound:false, padLabels:true,   // touch: scroll lock; full screen, its sound sheet and pad labels
   };
   try{ const k=localStorage.getItem(PLAY_KEYS_PREF); if(PLAY_LAYOUTS[k]){ S.layout=k; S.layoutSet=true; } }catch(e){}
@@ -82,7 +83,9 @@ const Play = (()=>{
       S.layout=k; S.layoutSet=true; try{ localStorage.setItem(PLAY_KEYS_PREF,k); }catch(err){} refresh(); });
     fillMidi(); body();
     $p('playCredit').innerHTML=`Browser build <code>${esc(e.sha256.slice(0,12))}</code>, approved by ${esc(fw.author||'its author')}. It runs in this page: the sound is the firmware's own.`
-      +` Drag a knob up or down, click or drag a fader, click a lever's end. Press a pad higher up to press it harder; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`;
+      +` Drag a knob up or down, click or drag a fader, click or slide a lever. Press a pad higher up to press it harder, and drag up or down while holding it; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`
+      +(mods().length? ' A modifier shows what it does on the labels: while held, or after a tap for a mode.' : '')
+      +(navigator.standalone===false? ' On iPhone, Share › Add to Home Screen opens it full screen, without the browser\'s bars.' : '');   // iOS Safari only
   }
   function build(box){
     box.innerHTML=`<div class="pctl">
@@ -149,7 +152,7 @@ const Play = (()=>{
     const fs=document.fullscreenElement;
     if(on && !fs) document.documentElement.requestFullscreen?.().catch(()=>{});
     if(!on && fs) document.exitFullscreen?.().catch(()=>{});
-    body();
+    refresh();   // full screen shows one drawing
   }
   document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement && S.stage) stage(false); });   // Esc or back left it
   addEventListener('keydown',e=>{ if(e.key==='Escape' && S.stage && !document.fullscreenElement) stage(false); });
@@ -220,6 +223,7 @@ const Play = (()=>{
     S.ctx?.close().catch(()=>{});
     S.st=S.ctx=S.out=S.inGain=S.live=null;
     S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.pads={}; S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
+    S.mode=null; S.held=[]; soloMod=null;
     keys(false);
     say('');
     refresh();
@@ -345,8 +349,6 @@ const Play = (()=>{
       t.tBodies[0].insertAdjacentHTML('beforeend', row('MIDI_IN','MIDI in')+row('MIDI_OUT','MIDI out'));
     }
     document.querySelectorAll('#side tr.hot').forEach(r=>r.classList.remove('hot'));
-    for(const id of S.hot) paintRow(id);
-    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     midiRefs=null;   // the labels may have changed
     for(const id in S.mval) paintMv(id);
     const side=document.getElementById('side');
@@ -357,7 +359,31 @@ const Play = (()=>{
     if(fig && !fig.dataset.hover){ fig.dataset.hover='1';
       fig.addEventListener('pointerover',e=>setHover(pointed(e.target)));
       fig.addEventListener('pointerleave',()=>setHover(null)); }
-    const h=hovId; hovId=null; setHover(h);   // the drawing and the table were drawn again
+    tagLabels();
+  }
+  /* after the labels were drawn again: which hide with "Pad labels" off, and the marks on them */
+  function tagLabels(){
+    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
+    for(const id of S.hot) paintRow(id);
+    const h=hovId; hovId=null; setHover(h);
+  }
+  /* A modifier in use: the drawing's labels show what it does (soloMod, core.js). A hold modifier while held,
+     else the toggle tapped last. Only the labels are drawn again, so the controls being held stay held. */
+  function relabel(){
+    const want= S.state!=='idle' && part==='main' ? (S.held.at(-1) || S.mode) : null;
+    if(want===soloMod) return;
+    soloMod=want;
+    const over=S.svg?.querySelector(':scope > g.over'); if(!over) return;
+    over.innerHTML=buildFor(V.layout)(true,V.theme,part,null).over;
+    tagLabels();
+  }
+  /* a modifier pad pressed or let go; a toggle switches on release. Toggles are a set of modes (TouchVink's
+     OSC / DIST), so tapping the one in use keeps it, unless it is the only toggle: then it switches off. */
+  function modPad(id, down){
+    if(!isMod(id)) return;
+    if(isToggle(id)){ if(down) return; S.mode= S.mode===id && mods().filter(isToggle).length===1? null : id; }
+    else { S.held=S.held.filter(m=>m!==id); if(down) S.held.push(id); }
+    relabel();
   }
   /* ---------------------------------------------------------- hover and use, shown together: on the drawing the control's own
      shape (light on hover, strong in use) and a glow on its label, in the table its row */
@@ -567,8 +593,25 @@ const Play = (()=>{
   const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
   function setControl(id,v){ v=clamp(v); if(v===S.controls[id]) return; S.controls[id]=v; drawControl(id); S.st?.setControl(id,v); }
   function setLever(id,pos){ S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); }
-  function pad(i,down,force=0.5){ if(down) S.pads[i]=force; else delete S.pads[i]; drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force); }
+  function pad(i,down,force=0.5){ const was=S.pads[i]!==undefined;
+    if(down) S.pads[i]=force; else delete S.pads[i]; drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force);
+    if(down!==was) modPad(padId(i),down); }
+  /* Touch: a buzz the moment a control is taken, a light tick as its value runs (a firmer one at the ends),
+     a clear click per lever position. Android vibrates for the time asked. iPhone has no vibrate, but Safari 18
+     ticks when a switch is toggled from a touch, so a hidden one is toggled: one tick, whatever the length. */
+  const buzz=(e,ms)=>{
+    if(e.pointerType!=='touch') return;
+    if(navigator.vibrate){ try{ navigator.vibrate(ms); }catch(err){} return; }
+    const l=document.createElement('label'); l.ariaHidden='true'; l.style.display='none';
+    l.innerHTML='<input type="checkbox" switch>'; document.head.append(l); l.click(); l.remove();
+  };
+  function tick(e,c,v,steps){ const k=Math.round(clamp(v)*steps); if(k===c.k) return;
+    const now=performance.now(); if(c.k!==undefined && now-(c.t||0)>25){ buzz(e, k===0||k===steps? 15 : 4); c.t=now; }
+    c.k=k; }
   function drag(el, onDown, onMove, onUp){
+    // a long press is not the browser's: no context menu, and none of its own buzz a second in
+    el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
+    el.addEventListener('contextmenu',e=>e.preventDefault());
     el.addEventListener('pointerdown',e=>{
       if(e.button>0) return;
       e.preventDefault(); el.setPointerCapture(e.pointerId);
@@ -582,25 +625,37 @@ const Play = (()=>{
   function bind(){
     const m=S.mod;
     m.querySelectorAll('.playov .hit.knob').forEach(el=>{ const id=el.parentNode.dataset.knob;
-      // 160 screen pixels for the whole turn, whatever the drawing's size
-      drag(el, e=>{ hot(id,true); return {y:e.clientY, v:S.controls[id]}; }, (e,c)=>setControl(id, c.v+(c.y-e.clientY)/160), ()=>hot(id,false));
+      // 160 screen pixels for the whole turn, whatever the drawing's size; a double tap or click puts it in the middle
+      let last=0;
+      drag(el, e=>{ hot(id,true); buzz(e,12);
+          if(e.timeStamp-last<300) setControl(id,0.5); last=e.timeStamp;
+          return {y:e.clientY, v:S.controls[id], k:Math.round(S.controls[id]*32)}; },
+        (e,c)=>{ setControl(id, c.v+(c.y-e.clientY)/160); tick(e,c,S.controls[id],32); }, ()=>hot(id,false));
       el.addEventListener('wheel',e=>{ e.preventDefault(); flash(id); setControl(id, S.controls[id]-Math.sign(e.deltaY)*0.02); },{passive:false});
-      el.addEventListener('dblclick',()=>{ flash(id); setControl(id,0.5); });
     });
     m.querySelectorAll('.playov .hit.fader').forEach(el=>{ const id=el.parentNode.dataset.fader;
       const at=e=>{ const p=svgPoint(S.svg,e); setControl(id,(FADER_RUN[0]-p.y)/(FADER_RUN[0]-FADER_RUN[1])); };
-      drag(el, e=>{ hot(id,true); at(e); }, at, ()=>hot(id,false));
+      drag(el, e=>{ hot(id,true); buzz(e,12); at(e); return {k:Math.round(S.controls[id]*32)}; }, (e,c)=>{ at(e); tick(e,c,S.controls[id],32); }, ()=>hot(id,false));
       el.addEventListener('wheel',e=>{ e.preventDefault(); flash(id); setControl(id, S.controls[id]-Math.sign(e.deltaY)*0.02); },{passive:false});
     });
-    m.querySelectorAll('.playov .hit.lever').forEach(el=>{ const id=el.parentNode.dataset.lever;
-      drag(el, ()=>setLever(id, el.dataset.pos));
+    // a lever: the third pressed, then sliding along it to the next position (a few units past the line, so it doesn't chatter)
+    m.querySelectorAll('.playov .hit.lever').forEach(el=>{ const g=el.parentNode, id=g.dataset.lever, L=PLAY_LEVERS[id];
+      const order=[L.ends[0],'centre',L.ends[1]], b=Math.max(L.w,L.h)/6;
+      drag(el, e=>{ setLever(id, el.dataset.pos); buzz(e,25); }, e=>{
+        const p=svgPoint(g,e), at= L.w>L.h? p.x : p.y, k= at<-b? 0 : at>b? 2 : 1, cur=order.indexOf(S.levers[id]);
+        if(k===cur) return;
+        const edge= k+cur===1? -b : k+cur===3? b : null;
+        if(edge!==null && Math.abs(at-edge)<4) return;
+        setLever(id, order[k]); buzz(e,25); });
     });
     m.querySelectorAll('.playov .pad').forEach(el=>{ const i=+el.dataset.pad, ys=S.polys[i].map(p=>p[1]), top=Math.min(...ys), h=Math.max(...ys)-top;
-      // a pen's or touch screen's own pressure where there is one; else where the pad was hit
-      // (top = hard, bottom = soft), then dragging up or down from there
-      const force=(e,c)=> e.pointerType!=='mouse' && e.pressure>0 && e.pressure!==0.5? e.pressure : clamp(c.base+(c.y-e.clientY)/120);
-      drag(el, e=>{ const c={y:e.clientY, base:clamp(1-(svgPoint(S.svg,e).y-top)/h, 0.05, 1)}; pad(i,true,force(e,c)); return c; },
-        (e,c)=>pad(i,true,force(e,c)), ()=>pad(i,false));
+      // a pen's own pressure where there is one; else (mouse and touch alike) where the pad was hit
+      // (top = hard, bottom = soft), then dragging up or down from there. A touch screen's "pressure" is
+      // mostly the size of the finger, so it is not used.
+      const force=(e,c)=> e.pointerType==='pen' && e.pressure>0 && e.pressure!==0.5? e.pressure : clamp(c.base+(c.y-e.clientY)/120);
+      drag(el, e=>{ const c={y:e.clientY, base:clamp(1-(svgPoint(S.svg,e).y-top)/h, 0.05, 1)}, f=force(e,c);
+          pad(i,true,f); buzz(e,12); c.k=Math.round(f*16); return c; },
+        (e,c)=>{ const f=force(e,c); pad(i,true,f); tick(e,c,f,16); }, ()=>pad(i,false));
     });
   }
   const CODE_PAD=Object.fromEntries(Object.entries(PLAY_CODES).map(([i,c])=>[c,+i]));
@@ -616,5 +671,6 @@ const Play = (()=>{
   return {
     strip, attach, table, reset, stop,
     get on(){ return S.state!=='idle'; },
+    get stage(){ return S.stage; },
   };
 })();
