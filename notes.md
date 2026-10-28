@@ -60,9 +60,13 @@ Hardware: the same branch built with `make clean && make` and flashed to a Simpl
 
 Nothing else needed changing: `__disable_irq`, `__DSB`, `__ISB`, `DSY_SDRAM_BSS`, `CpuLoadMeter`, the SSD1306 driver subclass, the USB and UART MIDI handlers and the D25 clock-out GPIO all work as they are.
 
+### Tested in the browser (2026-10-28)
+
+The test bench and the library preview behave the same. Audio plays; the drums start and stop with P2 + P11 from the keyboard. With a mouse alone, a combo couldn't be played: now a right-click keeps a pad held, on both pages. The test bench had QWERTY keys only: now it plays by key position with a QWERTY / AZERTY switch, as the library does. The LED blinked only in the boot film: fixed, see below.
+
 ### Things to check in the browser
 
-- **LED blinks inside a pass.** In the emulator, `System::Delay()` inside a main-loop pass only advances that pass's clock and returns, and the page reads the LED between passes. TouchPlaited draws its blinks inside one pass (`set_led(true); delay_serviced(130); set_led(false); delay_serviced(70);`), so the page may only see the final state. The smoke test reported 0 LED changes, but plain note play doesn't blink anyway. Test a model change (P0 + S35), the Rec entry hold, and a P2 + pad mute. If they vanish, the fix belongs in the board (record pin changes with their virtual time, as the boot film does), not in the firmware.
+- **LED blinks inside a pass** (fixed in simple-touch-web v1.2). In the emulator, `System::Delay()` inside a main-loop pass only advances that pass's clock and returns, and the page reads the LED between passes. TouchPlaited draws its blinks inside one pass (`set_led(true); delay_serviced(130); set_led(false); delay_serviced(70);`), so in the browser the LED only blinked during the boot film. The board now queues each LED change with the pass's clock, and `st_led()` shows it when the audio gets there. Smoke test, P0+P2 held 0.4 s: 0 LED changes before, 4 after. TouchVink unchanged.
 - **Waits on the audio thread.** The P0+P2 stage wait loops on `GetNow() - t0 < 500` while the audio interrupt changes the hold counters. In the emulator the audio callback doesn't run during a pass, so the wait always runs its full 500 virtual ms. It ends because `delay_serviced(5)` advances the clock, so it can't hang, but releasing early won't cut it short.
 - **CPU on a phone** with seven voices, the sequencer and four reverb/delay groups busy. The Seed needed ITCM to fit; a phone's AudioWorklet may need a larger block or fewer voices.
 - **MIDI**: the firmware sends a lot (telemetry SysEx for the visualizer). Check that the library's MIDI rows and Web MIDI out cope.

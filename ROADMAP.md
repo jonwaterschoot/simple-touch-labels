@@ -39,10 +39,23 @@ Bridging an existing, large community firmware (Plaits, OLED, USB/TRS MIDI, QSPI
 ## Runtime (simple-touch-web)
 
 - [x] Released as `v1.1`, with a README note on `CC_SOURCES` and `ifdef SIMPLE_TOUCH_WEB`. ABI stays `simple-touch-web/1`.
-- [ ] Move `v1` to `v1.1` (the actions convention: `v1` = newest 1.x), so firmwares on `@v1` get it; existing builds keep their hashes. Needs a force-push of the tag, so done by hand. TouchPlaited can then go back to `@v1`.
-- [ ] LED (and OLED) changes inside one main-loop pass: record them with their virtual time and let the page play them back, as the boot film does. Without it, blinks made with `Delay()` inside a pass don't show. Check first whether TouchPlaited's blinks actually vanish in the browser.
+- [x] `v1.2`: LED changes inside one main-loop pass are queued with the pass's clock and shown when the audio gets there (TouchPlaited's blinks showed only in the boot film). Board only: no page or ABI change. Test bench: right-click hold, QWERTY / AZERTY. Smoke test: pad combos (`2+11`).
+- [ ] Move `v1` to the newest 1.x (the actions convention), so firmwares on `@v1` get it; existing builds keep their hashes. Needs a force-push of the tag, which the permission check blocks, so it's done by hand (`git tag -f -a v1 -m v1 "v1.2^{}" && git push -f origin v1`). TouchPlaited can then go back to `@v1`.
+- [ ] OLED frames inside one pass: only a pass's last frame shows. Fine so far; queue frames the same way if an animation needs it.
 - [ ] Vendored code (`thirdparty/`, `lib/`) compiled without `-Wall`, so a firmware's own warnings stand out.
 - [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
+
+## In sync?
+
+What can drift between the repos, and where it stands (2026-10-28):
+
+| Piece | Now | Behind |
+|---|---|---|
+| simple-touch-web tags | `v1.2` newest | `v1` still at the first release (7be8d8f) |
+| TouchPlaited workflow | `@v1.2` | |
+| TouchVink workflow | `@v1` | builds without `.cc` support and the LED queue (needs neither so far). Its approved build is from `v1` |
+| Library `vendor/simple-touch-web/` | same as `web/` at `v1.2` | |
+| TouchPlaited approved build | none yet; newest is `8acf93d464ec` (v1.2) | `00503220fe68` (v1.1) has no LED blinks |
 
 ## The shared standard
 
