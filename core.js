@@ -297,7 +297,6 @@ const EXAMPLES = {
   touchfx:     { label:'Touch FX',        file:'examples/touchfx.json',     repo:'https://github.com/Synthux-Academy/TouchFX', faceplateFile:'examples/faceplates/touchfx.svg' },
   touchstring: { label:'Touch String',    file:'examples/touchstring.json', repo:'https://github.com/Synthux-Academy/TouchString', faceplateFile:'examples/faceplates/touchstring.svg' },
   audreytouch: { label:'Audrey II Touch', file:'examples/audreytouch.json', repo:'https://github.com/Synthux-Academy/AudreyTouch' },
-  touchvink:   { label:'TouchVink',       file:'examples/touchvink.json',   repo:'https://github.com/jonwaterschoot/TouchVink' },
 };
 const exampleCache = {};
 async function loadExample(key){

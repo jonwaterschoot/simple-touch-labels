@@ -34,7 +34,7 @@
     <p>The directory is <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">synthux-academy.github.io/community-instruments</a> (source: <a href="https://github.com/Synthux-Academy/community-instruments" target="_blank">Synthux-Academy/community-instruments</a>). This site only reads it. The designer can write back to both: a label file for the repository, and an entry for the directory.</p>
 
     <h2 id="labels">How the library finds labels</h2>
-    <p>The official firmware (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchVink) have labels checked by hand. For the community firmware under <b>Community</b>, the library tries, in this order:</p>
+    <p>The official firmware (TouchBass, Touch FX, Touch String, Audrey II Touch) have labels checked by hand. For the community firmware under <b>Community</b>, the library tries, in this order:</p>
     <ol>
       <li><b>The creator's label file.</b> A <code>simple-touch-labels.json</code> at the root of the repository's default branch, made in the designer. Shown as is. Faceplates from these files are not shown yet.</li>
       <li><b>Auto-extracted from the README.</b> A script reads <code>README.md</code>, and a Markdown manual it links to, for control names (S30, P03, Switch A…) and the words next to them. These labels are a guess: they can be incomplete, shortened, or from another mode of the firmware. The library marks them as auto-extracted and lists the line each one came from.</li>
