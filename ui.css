@@ -162,6 +162,7 @@ pre.kitmd { margin:0; }
 .notice summary { cursor:pointer; font-weight:700; }
 .notice details .ctab { margin-top:8px; }
 .notice details td.k { font-size:12px; overflow-wrap:anywhere; }
+.notice .seg { display:inline-flex; vertical-align:middle; margin-left:4px; }
 
 /* the firmware repository's README, collapsed under the manual (drawn by readmeFragment in community.js) */
 .readme { border-top:2px solid var(--rule); padding-top:14px; }

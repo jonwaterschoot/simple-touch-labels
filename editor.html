@@ -54,6 +54,7 @@
     <div class="grp"><span class="cap">Start from</span><div class="seg" id="startSeg"></div></div>
     <div class="grp"><span class="cap">Reference names</span><div class="seg" id="refSeg"></div><div class="seg" id="refModeSeg" data-why="Pick a reference set first"></div></div>
     <div class="grp"><span class="cap">Table</span><div class="seg" id="tableSeg"></div></div>
+    <div class="grp" id="modeGrp" hidden><span class="cap">Labels from mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
   <div class="bar">
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
@@ -142,7 +143,7 @@
 const KEY='simpleTouchManual.v1';
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'sx', refMode:'both', focusId:null};
-const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main:true,second:true}, bwPreview:false, font:'Archivo', fontUrl:null, tableMode:'off', exWhat:'panel', exLook:'color', kit:null};
+const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main:true,second:true}, bwPreview:false, font:'Archivo', fontUrl:null, tableMode:'off', exWhat:'panel', exLook:'color', kit:null, imported:null};
 const $=id=>document.getElementById(id);
 const stage=$('stage'), form=$('formCol');
 let ready=false;
@@ -152,7 +153,7 @@ function snapshot(forShare){
   if(d.faceplateRef) delete d.faceplate;                 // example faceplates are fetched again
   else if(forShare) delete d.faceplate;                  // a custom faceplate is too big for a link
   return {doc:d, V:{theme:V.theme,layout:V.layout,ref:V.ref,refMode:V.refMode},
-    UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit},
+    UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit,imported:UI.imported},
     design};
 }
 async function restore(s){
@@ -229,7 +230,24 @@ function buildBars(){
   fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
   if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
   fs.value=UI.font;
+  // a README with a section per switch position: refill the labels from another mode
+  const im=UI.imported, modes= im && im.repo===doc.firmware.repo && im.modes.length>1;
+  $('modeGrp').hidden=!modes;
+  if(modes){ seg($('modeSeg'), im.modes.map(m=>[m.key,m.name]), v=>im.mode===v, pickMode);
+    $('modeSeg').querySelectorAll('button').forEach((b,i)=>b.title=`${lab(SLOT[im.modes[i].id])} ${im.modes[i].pos}: fill the labels from this mode's sections in the README`); }
   syncBars();
+}
+/* the labels a script read for one mode (labelsOf, community.js), over the current ones; Ctrl+Z brings them back */
+const importedOf = (p, r) => r.source==='readme' && r.modes?.length>1? {id:p.id, repo:p.repo, modes:r.modes.map(({key,id,pos,name})=>({key,id,pos,name})), mode:null} : null;
+async function pickMode(key){
+  const im=UI.imported, m=im.modes.find(m=>m.key===key);
+  $('busy').textContent='Reading '+repoShort(im.repo)+'…';
+  const p=(await loadCommunity().catch(()=>[])).find(p=>p.id===im.id), r=p && await readRepo(p);
+  if(!r?.modes?.some(x=>x.key===key)){ flash('Could not read the modes from '+repoShort(im.repo)+' again.'); return; }
+  histRecord();
+  const l=labelsOf(r, key); doc.labels=l.labels; doc.modifiers=l.modifiers; im.mode=key;
+  buildBars(); buildForm(); render();
+  flash(`Labels from ${m.name} (${lab(SLOT[m.id])} ${m.pos}). Ctrl+Z undoes.`);
 }
 function applyChrome(){
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
@@ -1027,9 +1045,13 @@ $('appZip').onclick=async()=>{
       $('busy').textContent='Reading '+repoShort(p.repo)+'…';
       const r=await readRepo(p);
       doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx';
-      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}. Check every one.`
+      UI.imported=importedOf(p, r); if(UI.imported) UI.imported.mode=r.mode;
+      const m=UI.imported?.modes.find(m=>m.key===r.mode);
+      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}${m? `, from the ${m.name} mode (pick another under Labels from mode)` : ''}. Check every one.`
         : r.source==='file'? `Opened ${LABEL_FILE} from the repository.` : '';
     }
+    // imported before the script knew modes: offer them, without touching the labels
+    else if(p && doc.firmware.repo===p.repo && !UI.imported){ const r=await readRepo(p); UI.imported=importedOf(p, r); }
   }
   if(q.has('ref')) V.ref= REF_SETS[q.get('ref')]? q.get('ref') : '';
   if(THEME_NAMES.some(t=>t[0]===q.get('theme'))) V.theme=q.get('theme');

@@ -78,6 +78,21 @@ The test bench and the library preview behave the same. Audio plays; the drums s
 - The visualizer's `controls-meta.ts` already holds controls, pads, switch positions, CCs and notes. It is the source to copy from in the designer. A converter would be quicker, but doing it by hand in the designer is the point of the case study.
 - Likely fit: main labels for the generic function, modifier columns as the three modes (tapped mode switch, as TouchVink does with P00/P02), engine detail in the notes. Where that falls short is input for the "modes" item in the roadmap.
 
+### Labels: the import (2026-10-28)
+
+The first import mixed modes: knobs from the manual's Basic Pitch table, pads from the Seq drum table (the Basic Pitch row `P3–P9 | Play notes` was skipped as a range), S35 from Arp/Mel, P10/P11 from Recording. The import now reads mode sections (headings naming a switch position), table ranges and `P10 / P11` pairs, and fills one mode at a time:
+
+| | Basic Pitch | Arp/Mel | Seq |
+|---|---|---|---|
+| S31…S34 | Decay, Harmonics, Timbre, Morph | Decay, Division, Swing, Density | Tempo, Shuffle, Pattern density, Step chance |
+| SW1 | Scale | Sub-state | Genre |
+| P3–P9 | Play notes | Arp | Kick, Snare, Cl. hat… |
+| P10 / P11 | Octave down / up (P0: root) | Base octave − / + | Drum pitch −1 / +1 (P0: kick preset) |
+
+Labels for the printed panel, chosen by hand: pads by scale degree on line 1 (`1 · root` … `7`), the drum on line 2. Degrees stay right in every scale and key; note names wouldn't (SW1 and P0 + P10/P11 move them).
+
+Still leaking from outside the mode sections: the Recording section (a sub-mode of Seq, at the same heading level) fills Seq's P2 + S35.
+
 ### Later ideas
 
 - The visualizer (`visualizer/`, Vite) talks to the hardware over MIDI telemetry and has a mock transport. A transport backed by the wasm build would let it run without hardware: the firmware's own page and the library playing the same build.

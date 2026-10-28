@@ -61,7 +61,8 @@ What can drift between the repos, and where it stands (2026-10-28):
 
 - [ ] Write the spec for `simple-touch-labels.json`: the `simple-touch-manual/3` fields, the library's extras (`emulator`, `midi`, creator look, faceplate path), what the library accepts and drops. A JSON Schema next to it, like the directory's `schema/`.
 - [ ] One page, "what a firmware repo carries": README, `simple-touch-labels.json`, faceplate (`img/faceplate.svg` or `.png`), `.bin` in releases, `.wasm` on the `simple-touch-web` branch, the two workflows.
-- [ ] Modes: decide how a firmware whose labels change with a switch position (TouchPlaited's SW2: Seq / Arp-Mel / Pitch) is described. Modifiers as tapped mode switches work today; see whether a `mode` per modifier (switch position instead of pad) is worth adding.
+- [x] Import per mode: a README heading that names a switch position (`### Seq (SW2 Up)`) starts a mode section; the import fills from one mode, with a button per mode in the designer and the library (2026-10-28).
+- [ ] Modes in the format: per-mode labels tied to a switch position (TouchPlaited's SW2: Basic Pitch / Arp-Mel / Seq), printed as one set (the default mode plus line 2), and in the player relabelled live as the emulated switch moves. Modifiers as tapped mode switches work today. Decide after the TouchPlaited labels are done.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 
 ## Library

@@ -137,7 +137,7 @@ async function readRepoNow(p){
   const ex=extractLabels(files);
   if(!ex.found.length) return {doc:base, source:'none', files};
   base.labels=ex.labels; base.modifiers=ex.modifiers;
-  return {doc:base, source:'readme', files, found:ex.found};
+  return {doc:base, source:'readme', files, found:ex.found, modes:ex.modes, modSeen:ex.modSeen, mode:ex.mode};
 }
 
 /* ============================================================
@@ -145,7 +145,10 @@ async function readRepoNow(p){
    Reads, best first: table rows (| S30 | **Cutoff** |), modifier pairs (P11 + S30 – Delay time,
    or **Width** (P10 + S30)), lines that start with a control (- **P01** - Throw a stone),
    headings (### Switch A — transport), then bold controls in sentences (**S32** harmonics).
-   A guess: it can't tell modes apart, and it never reads code blocks.
+   Modes: a heading that names a switch position (### Basic Pitch (SW2 Down)) starts a section for that
+   mode, up to the next heading of its level. Labels from one mode never mix with another's: labelsOf()
+   fills a panel from one mode (the first, by default) and what's outside every mode section.
+   A guess all the same, and it never reads code blocks.
    ============================================================ */
 const PAD = n => 'P'+String(n).padStart(2,'0');
 /* Synthux names (S30, P03, S07-S08), short pads (P3), Pd names (knob1, faderleft, sw1) and plain words */
@@ -188,16 +191,34 @@ function fitWords(t, max){
   while(w.length && (a+' '+w[0]).trim().length<=max) a=(a+' '+w.shift()).trim();
   return a? [a, w.join(' ')] : [t.slice(0,max), ''];
 }
+/* "Basic Pitch (SW2 Down)" → {id:'S07_S08', pos:'down', name:'Basic Pitch'}: a heading for one switch position */
+const POS_RE = /^\s*[:=]?\s*(up|down|cent(?:re|er)|middle|left|right)\b/i;
+function modeOf(text){
+  for(const t of tokens(text)){
+    if(!/^S\d\d_S\d\d$/.test(t.id) || !/\([^)]*$/.test(text.slice(0,t.i))) continue;
+    const p=text.slice(t.j).match(POS_RE); if(!p) continue;
+    const name=text.slice(0,text.lastIndexOf('(',t.i)).replace(/\*+/g,'').replace(/[\s:—–-]+$/,'').trim();
+    if(name) return {id:t.id, pos:/^(cent|mid)/i.test(p[1])? 'centre' : p[1].toLowerCase(), name:name.slice(0,LIMITS.line)};
+  }
+  return null;
+}
 function extractLabels(files){
-  const best={}, modSeen=[];
+  const best={}, modSeen=[], modes=[]; let seq=0;
   for(const f of files){
+    let mode=null;   // the mode section this line is in: {level, key}
     for(const line of plainMd(f.text).split('\n')){
       const raw=line.trim(); if(!raw) continue;
       const excerpt=raw.length>160? raw.slice(0,157)+'…' : raw;
+      const hd=raw.match(/^(#{1,6})\s/);
+      if(hd){
+        if(mode && hd[1].length<=mode.level) mode=null;
+        const m=modeOf(raw.slice(hd[0].length));
+        if(m){ const key=m.id+':'+m.pos; if(!modes.some(x=>x.key===key)) modes.push({key,...m}); mode={level:hd[1].length, key}; }
+      }
       const put=(id,key,text,tier)=>{
         if(!SLOT[id] || !text || key==='m_'+id) return;
-        const k=id+'|'+key, o=best[k]; if(o && o.tier<=tier) return;
-        best[k]={id,key,text,tier,file:f.path,url:f.url,line:excerpt};
+        const md=mode? mode.key : '', k=id+'|'+key+'|'+md, o=best[k]; if(o && o.tier<=tier) return;
+        best[k]={id,key,text,tier,mode:md,n:seq++,file:f.path,url:f.url,line:excerpt};
         if(key.startsWith('m_') && !modSeen.includes(key.slice(2))) modSeen.push(key.slice(2));
       };
       const tk=tokens(raw);
@@ -207,6 +228,11 @@ function extractLabels(files){
         const a=tk[n], b=tk[n+1];
         if(!isPad(a.id) || a.id===b.id || !/^\s*\*{0,2}\s*\+\s*\*{0,2}\s*$/.test(raw.slice(a.j,b.i))) continue;
         let end=b.j; const c=tk[n+2];
+        // "P0 + P10 / P11 | Root semitone down / up": two pairs, a name each
+        if(c && isPad(b.id) && isPad(c.id) && c.id!==a.id && /^\s*\/\s*$/.test(raw.slice(b.j,c.i)) && !/^\s*\+/.test(raw.slice(c.j))){
+          const [x,y]=twoNames(raw.slice(c.j)), tier=raw.startsWith('|')? 1 : 2;
+          put(b.id,'m_'+a.id,x,tier); put(c.id,'m_'+a.id,y,tier); n++; continue;
+        }
         if(c && c.id===b.id && /^\s*\(\s*$/.test(raw.slice(b.j,c.i))) end=c.j+1;   // "right fader (S37)"
         let t= setOff(raw.slice(end))? labelFrom(raw.slice(end)) : '';
         if(!t){ const m=raw.slice(0,a.i).match(/\*\*([^*]{1,40})\*\*\s*\(\s*(?:hold\s+)?$/i); if(m) t=labelFrom('**'+m[1]+'**'); }
@@ -217,15 +243,30 @@ function extractLabels(files){
       else if(!subjectLine(raw.replace(/^(?:[-*+>]|\d+[.)])\s+/,''),put)) prose(raw,put);
     }
   }
-  const labels={}, found=Object.values(best);
-  for(const b of found){
+  // modes on one switch only (the one with the most); sections for another switch count as outside every mode
+  const sw=Object.entries(modes.reduce((c,m)=>(c[m.id]=(c[m.id]||0)+1, c),{})).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const ms=modes.filter(m=>m.id===sw), found=Object.values(best);
+  for(const b of found) if(b.mode && !ms.some(m=>m.key===b.mode)) b.mode='';
+  const order=TABLE_ORDER.concat(SLOTS.map(s=>s.id)), mi=k=>ms.findIndex(m=>m.key===k);
+  found.sort((x,y)=>order.indexOf(x.id)-order.indexOf(y.id) || (x.key==='main'? -1 : y.key==='main'? 1 : x.key.localeCompare(y.key)) || mi(x.mode)-mi(y.mode));
+  const ex={found, modes:ms, modSeen, mode:ms[0]?.key||''};
+  return {...ex, ...labelsOf(ex, ex.mode)};
+}
+/* the panel for one mode: its own labels first, then what's outside every mode; best tier, then first seen */
+function labelsOf(ex, mode){
+  const pick={};
+  for(const f of ex.found){
+    if(f.mode && f.mode!==mode) continue;
+    const k=f.id+'|'+f.key, o=pick[k];
+    if(!o || (!!f.mode!==!!o.mode? !!f.mode : f.tier<o.tier || (f.tier===o.tier && f.n<o.n))) pick[k]=f;
+  }
+  const labels={}, used=new Set();
+  for(const b of Object.values(pick)){
     const o=labels[b.id] ||= {};
     if(b.key==='main'){ const [l1,l2]=fitWords(b.text,LIMITS.line); o.main=l1; if(l2 && !NO_LINE2.includes(b.id)) o.main_2=fitWords(l2,LIMITS.line2)[0]; }
-    else o[b.key]=fitWords(b.text,LIMITS.line2)[0];
+    else { o[b.key]=fitWords(b.text,LIMITS.line2)[0]; used.add(b.key.slice(2)); }
   }
-  const order=TABLE_ORDER.concat(SLOTS.map(s=>s.id));
-  found.sort((x,y)=>order.indexOf(x.id)-order.indexOf(y.id) || (x.key==='main'? -1 : y.key==='main'? 1 : x.key.localeCompare(y.key)));
-  return {labels, modifiers:modSeen.filter(id=>SLOT[id]).slice(0,MOD_MAX), found};
+  return {labels, modifiers:ex.modSeen.filter(id=>SLOT[id] && used.has(id)).slice(0,MOD_MAX)};
 }
 /* | S30 | **Main** — mix level |, | P03 | Press | **Saturation** burst |, | 22 | S31 **Scale** | */
 function tableRow(raw, put){
@@ -234,10 +275,18 @@ function tableRow(raw, put){
   for(let k=0;k<cells.length;k++){
     const c=cells[k].replace(/^\*\*(?=\S)/,''), t=tokens(c);
     if(!t.length || t[0].i>0) continue;
+    const next=()=>cells.slice(k+1).find(x=>x && !GESTURE.test(x) && !/^[\d\s.,%–-]+$/.test(x))||'';
+    // | P3–P9 | Play notes |: a range, one name for all or one per pad
+    const rg=[...c.matchAll(RANGE_RE)][0];
+    if(rg && rg.index===0 && !c.slice(rg[0].length).trim()){ rangeList(+rg[1],+rg[2],next(),put,1); return; }
+    // | P10 / P11 | Octave down / up |: two pads, a name each
+    if(t.length===2 && isPad(t[0].id) && isPad(t[1].id) && /^\s*\/\s*$/.test(c.slice(t[0].j,t[1].i)) && !c.slice(t[1].j).trim()){
+      const [a,b]=twoNames(next()); put(t[0].id,'main',a,1); put(t[1].id,'main',b,1);
+      return;
+    }
     if(t.some(x=>x.id!==t[0].id) || /^\s*\+/.test(c.slice(t[0].j))) return;   // a pair or a range ("P2 + pad"), not a name
     const own= setOff(c.slice(t[0].j))? labelFrom(c.slice(t[0].j)) : '';   // "S31 **Scale**", not "P10 alone"
-    const next=own? '' : cells.slice(k+1).find(x=>x && !GESTURE.test(x) && !/^[\d\s.,%–-]+$/.test(x));
-    put(t[0].id,'main',own||labelFrom(next||'',8),1);
+    put(t[0].id,'main',own||labelFrom(next(),8),1);
     return;
   }
 }
@@ -267,12 +316,27 @@ function subjectLine(body, put){
   }
   return true;
 }
-/* P03–P09 followed by as many names as pads ("kick, snare, …"), or one name for all of them */
+/* "Octave down / up" → Octave down, Octave up; "Drum pitch −1 / +1 semitone" → Drum pitch −1, Drum pitch +1 semitone;
+   "Previous / next kick preset" → Previous kick preset, Next kick preset */
+function twoNames(text){
+  const [a='',b='']=text.replace(/^[\s|:—–-]+/,'').split(/\s\|\s|\s[–—]\s/)[0].split(/\s+\/\s+/).map(s=>s.trim());
+  if(!a || !b) return ['',''];
+  const wa=a.split(' '), wb=b.split(' ');
+  if(wa.length===1 && wb.length>1 && /^[A-Za-z]/.test(b)) return [labelFrom([a,...wb.slice(1)].join(' ')), labelFrom(b)];
+  const lone=wb.length===1 || !/^[A-Za-z]/.test(b);
+  return [labelFrom(a), labelFrom(lone && wa.length>1? [...wa.slice(0,-1),b].join(' ') : b)];
+}
+/* P03–P09 followed by as many names as pads ("kick, snare, …", "Play drums: kick / snare / cl. hat / …"),
+   or one name for all of them */
 function rangeList(a, b, rest, put, tier, listOnly=false){
   if(b<=a || b-a>11) return;
   const ids=[]; for(let n=a;n<=b;n++) ids.push(PAD(n));
-  const items=rest.replace(/^\*\*/,'').replace(/^[\s:—–-]+/,'').replace(/\.\s*$/,'').split(/,\s*|\s+and\s+/).map(s=>s.trim());
-  if(items.length===ids.length && items.every(s=>s && s.split(' ').length<=4)){ ids.forEach((id,n)=>put(id,'main',labelFrom(items[n]),tier)); return; }
+  for(const r of [rest.replace(/^[^:]{1,30}:\s*/,''), rest]){
+    const items=r.replace(/^\*\*/,'').replace(/^[\s:—–-]+/,'').replace(/\.\s*$/,'').split(/,\s*|\s+\/\s+|\s+and\s+/).map(s=>s.trim());
+    // a name each, abbreviations kept ("cl. hat")
+    const name=s=>labelFrom(s.replace(/\.(?=\s)/g,''))? capFirst(s.replace(/\*+/g,'').trim()) : '';
+    if(items.length===ids.length && items.every(s=>s && s.split(' ').length<=4)){ ids.forEach((id,n)=>put(id,'main',name(items[n]),tier)); return; }
+  }
   if(!listOnly){ const t=labelFrom(rest); if(t) ids.forEach(id=>put(id,'main',t,tier)); }
 }
 /* sentences: "**S32** harmonics, **S33** timbre", "Turn **S31** for tempo", "the musical pads **P3–P9** — kick, snare, …" */

@@ -202,9 +202,12 @@ function noticeHTML(editHref){
   const creator=`<p><b>Made this firmware?</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
   if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository${UI.read.doc.look?', in their own look (Creator)':''}. ${how}</p>`;
   if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
-  const row=f=>`<tr><td><b>${esc(lab(SLOT[f.id]))}</b>${f.key==='main'?'':` <span class="k">+ ${esc(lab(SLOT[f.key.slice(2)]))}</span>`}</td><td>${esc(f.text)}</td><td class="k">${esc(f.line)}</td></tr>`;
-  return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete, shortened or from another mode, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+creator
-    +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th><th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
+  const ms=r.modes||[], modeName=k=>ms.find(m=>m.key===k)?.name||'';
+  const row=f=>`<tr><td><b>${esc(lab(SLOT[f.id]))}</b>${f.key==='main'?'':` <span class="k">+ ${esc(lab(SLOT[f.key.slice(2)]))}</span>`}</td><td>${esc(f.text)}</td>${ms.length>1?`<td>${esc(modeName(f.mode))}</td>`:''}<td class="k">${esc(f.line)}</td></tr>`;
+  // a README with a section per switch position: one mode at a time on the drawing
+  const modes= ms.length>1? `<p><b>Modes.</b> The README describes ${ms.length} on ${esc(lab(SLOT[ms[0].id]))}. The drawing shows one: <span class="seg">${ms.map(m=>`<button type="button" data-mode="${escAttr(m.key)}" aria-pressed="${m.key===r.mode}" title="${escAttr(lab(SLOT[m.id])+' '+m.pos)}">${esc(m.name)}</button>`).join('')}</span></p>` : '';
+  return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete or shortened, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+modes+creator
+    +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th>${ms.length>1?'<th>Mode</th>':''}<th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
 }
 function update(){
   syncLook(); buildBars(); if(!ready) return;
@@ -228,6 +231,8 @@ function update(){
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
   const nt=$('notice'); nt.hidden=!P&&!pv;
   nt.innerHTML= P? noticeHTML(editHref) : pv? previewHTML() : '';
+  nt.onclick=e=>{ const b=e.target.closest('[data-mode]'), r=UI.read; if(!b || !r?.modes) return;
+    const l=labelsOf(r, b.dataset.mode); r.mode=b.dataset.mode; doc.labels=l.labels; doc.modifiers=l.modifiers; update(); };
   $('side').innerHTML= libTable()+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
   Play.table();

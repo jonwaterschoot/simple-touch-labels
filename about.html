@@ -107,7 +107,7 @@
     <p>The official firmware (TouchBass, Touch FX, Touch String, Audrey II Touch) have labels checked by hand. For the community firmware under <b>Community</b>, the library tries, in this order:</p>
     <ol>
       <li><b>The creator's label file.</b> A <code>simple-touch-labels.json</code> at the root of the repository's default branch, made in the designer. Shown as is, first in the creator's own look (the <b>Creator</b> theme), and with their faceplate if the file names one.</li>
-      <li><b>Auto-extracted from the README.</b> A script reads <code>README.md</code>, and a Markdown manual it links to, for control names (S30, P03, Switch A…) and the words next to them. These labels are a guess: they can be incomplete, shortened, or from another mode of the firmware. The library marks them as auto-extracted and lists the line each one came from.</li>
+      <li><b>Auto-extracted from the README.</b> A script reads <code>README.md</code>, and a Markdown manual it links to, for control names (S30, P03, Switch A…) and the words next to them. These labels are a guess: they can be incomplete or shortened. The library marks them as auto-extracted and lists the line each one came from. When the README has a section per mode, the drawing shows one mode at a time, with a button for each.</li>
       <li><b>Nothing found.</b> The drawing shows the Synthux names, with a link to the designer.</li>
     </ol>
     <p>Controls without a label show their Synthux name, so you can still find your way around.</p>
@@ -160,7 +160,8 @@
       <li><b>Names it knows:</b> knobs S30–S35 (or knob1–knob6), faders S36 and S37 (or left / right fader), pads P00–P11 (or P0–P11), switches S09-S10 and S07-S08 (or Switch A / B, SW1 / SW2, left / right switch).</li>
       <li><b>The label</b> is bold text, or the words after a separator (<code>-</code>, <code>:</code>, <code>|</code>, <code>·</code>). Table rows count most, then lists and headings, then bold control names in sentences.</li>
       <li><b>Modifiers</b> are written as a pair: <code>P10 + S30</code>, <code>P11 + left fader</code>.</li>
-      <li>Ranges with one name per pad work too: <code>P03–P09: kick, snare, hat, …</code>.</li>
+      <li>Ranges with one name per pad work too: <code>P03–P09: kick, snare, hat, …</code>. So do pairs: <code>| P10 / P11 | Octave down / up |</code>.</li>
+      <li><b>Modes:</b> if a switch changes what the controls do, give each position a heading that names it, such as <code>### Seq (SW2 Up)</code>, and put that mode's table under it. Labels from different modes are never mixed. The library and the designer offer a button per mode, and everything outside the mode sections counts for all of them.</li>
       <li>Code blocks are skipped.</li>
     </ul>
 
