@@ -46,9 +46,10 @@
     <h3>Make your labels</h3>
     <ol>
       <li>Open your firmware under <b>Community</b> in the library and follow <b>Build the labels in the Designer</b>. The designer opens with your name, author and repository filled in, plus anything the script found.</li>
-      <li>Check and finish the labels: line 1 and line 2 per control, modifiers (P10 + knob, or a tapped mode pad), notes.</li>
-      <li>Click <b>Save file</b> and rename the file to <code>simple-touch-labels.json</code>.</li>
-      <li>Add it to the root of your repository, on the default branch. The library shows your labels from then on.</li>
+      <li>Check and finish the labels: line 1 and line 2 per control, modifiers (P10 + knob, or a tapped mode pad), notes. If the firmware speaks MIDI, fill in the MIDI column too (e.g. <code>CC 20</code> or <code>note 36 ch 10</code>): it becomes a column of the control table, and while someone plays the firmware here, each row shows the values that pass.</li>
+      <li>Style it if you like: colours, sizes, a Google font and your own faceplate. The library shows your manual in this look first, as the <b>Creator</b> theme. <b>Preview in library</b> shows it there before you publish.</li>
+      <li>Click <b>Save file</b> and rename the file to <code>simple-touch-labels.json</code>. With a faceplate of your own, Save file also downloads it as an SVG; the label file names where it goes, <code>img/faceplate.svg</code> unless you change it under Style.</li>
+      <li>Add the label file to the root of your repository, on the default branch, and the faceplate at its path. The library shows your labels from then on.</li>
     </ol>
     <h3>Or everything at once</h3>
     <p><b>Repository kit…</b> in the designer downloads one .zip with a README (intro, control map image, control table, your notes, install and build), <code>simple-touch-labels.json</code>, the directory entry and a short HOW-TO. Pick how the firmware is built (libDaisy or Plugdata) and flashed (internal flash or the Daisy bootloader) and the README suggests the matching steps. Only you know the details, so check those parts and fill in what is marked TODO.</p>
@@ -85,8 +86,8 @@
     <h2 id="privacy">What is read and stored</h2>
     <ul>
       <li>Everything runs in your browser. Pages are read from <code>synthux-academy.github.io</code>, <code>raw.githubusercontent.com</code> and <code>codeberg.org</code>; nothing is sent anywhere else.</li>
-      <li>Text from repositories is only ever shown as text, never run as code.</li>
-      <li>The one exception is <b>Play</b>, and only when you press it: it runs the firmware build its author approved, checked against the hash in their label file, from their own repository or Pages site. It runs as WebAssembly in the page's audio thread, where it can only exchange sound, control positions and MIDI with the page. The loops come from <code>jonwaterschoot.github.io</code>; the mic is only opened if you choose it.</li>
+      <li>Text from repositories is only ever shown as text, never run as code. A creator's look passes as plain numbers, colours and words only, and their faceplate SVG is cleaned of scripts and outside links. A Google font in a creator's look is loaded from <code>fonts.googleapis.com</code>.</li>
+      <li>The one exception is <b>Play</b>, and only when you press it: it runs the firmware build its author approved, checked against the hash in their label file, from their own repository or Pages site. It runs as WebAssembly in the page's audio thread, where it can only exchange sound, control positions and MIDI with the page. The loops come from <code>jonwaterschoot.github.io</code>; the mic and MIDI devices are only opened if you choose them.</li>
       <li>The designer keeps your work in this browser's storage. Nothing leaves it unless you save a file, copy a share link or open a pull request.</li>
     </ul>
   </main>

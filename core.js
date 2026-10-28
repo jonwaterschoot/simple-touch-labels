@@ -24,14 +24,15 @@ const BUILD = '2';
 const PANEL_BOX = {x:70, y:75, w:940, h:1475};
 const DEVICE = {x:93.67, y:97.61, w:894.14, h:1429.88, r:25.9};   // the device outline, a hair outside its stroke
 const DESK = {colW:460, gap:36, maxLine:400};   // maxLine: widest single line before line 2 wraps
-const LIMITS = {line:20, line2:24, name:40, author:60, version:16, desc:300, notes:8000};
+const LIMITS = {line:20, line2:24, midi:40, name:40, author:60, version:16, desc:300, notes:8000};
 const MOD_MAX = 4;
 const TOP_PLATE_EDGE = 942.5;   // bottom edge of the top faceplate (pads start below it)
 const PAD_TOP_CLEAR = 31;       // phone: minimum space between that edge and the P00–P02 labels
+const TOP_PADS_BOTTOM = 236;    // phone: P10 / P11 labels start below their pads (which end at y 232)
 const KNOB_R = 34;              // knob radius on the drawing; phone knob labels hang just below it
 const SLOTS = [
-  {id:'P10', kind:'mod',   x:448.4, y:169.7},
-  {id:'P11', kind:'mod',   x:647.1, y:169.7},
+  {id:'P10', kind:'mod',   x:448.4, y:169.7, minTop:TOP_PADS_BOTTOM},
+  {id:'P11', kind:'mod',   x:647.1, y:169.7, minTop:TOP_PADS_BOTTOM},
   {id:'S36', kind:'fader', x:152.3, y:739.7, lockX:true, name:'left fader'},
   {id:'S30', kind:'knob',  x:287.39,y:800.66},
   {id:'S31', kind:'knob',  x:287.39,y:611.53},
@@ -125,7 +126,7 @@ const THEME_NAMES = [['light','Light'],['dark','Dark'],['vis','Visualiser'],['pa
 const DESIGN_V = 2;
 const DESIGN_DEFAULT = {
   v: DESIGN_V,
-  size1:29, size2:26, padX:24, padY:19, radius:10, gap:8, weight:400,
+  size1:25, size2:21, size3:null, padX:14, padY:10, radius:10, gap:8, weight:400,
   modStyle:'outline',    // modifier label in secondary view: outline | filled | hold | double
   multiMod:'divided',    // control with 2+ modifiers (secondary view): divided | separate
   boxOpacity:1,          // label box fill, 0 = no box
@@ -133,7 +134,7 @@ const DESIGN_DEFAULT = {
   fx:'none', fxColor:'#000000', fxSize:6,   // label effect: none | shadow | glow
   themes: THEME_DEFAULT,
 };
-const DESIGN_KEYS = ['size1','size2','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW'];
+const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW'];
 const cloneDesign = d => structuredClone(d);
 /* Before version 2 the themes were dark (now 'panel'), light (now 'print') and gold */
 const OLD_THEME = { dark:'panel', light:'print' };
@@ -164,7 +165,7 @@ let design = cloneDesign(DESIGN_DEFAULT);
 let part = 'main', curPart = 'main', bw = false;
 function applyDesign(d=design){
   for(const k of ['size1','size2','padX','padY','radius','gap','weight']) T[k]=d[k];
-  T.size3 = Math.round(T.size2*0.72);
+  T.size3 = d.size3 || Math.round(T.size2*0.72);   // reference captions: their own size, or line 2's
   T.lh1 = Math.round(T.size1*1.19); T.lh2 = Math.round(T.size2*1.18); T.lh3 = Math.round(T.size3*1.25);
 }
 const SZ = n => T['size'+n], LH = n => T['lh'+n];
@@ -184,12 +185,14 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
   s.labels = structuredClone(d.labels||{});
   s.faceplate = d.faceplate||''; s.faceplateRef = d.faceplateRef||'';
+  if(FP_PATH.test(s.faceplate)){ s.faceplateFile=s.faceplate; s.faceplate=''; }   // a label file names its faceplate's file
+  else if(typeof d.faceplateFile==='string' && FP_PATH.test(d.faceplateFile)) s.faceplateFile=d.faceplateFile;
   s.customs = Array.isArray(d.customs)? structuredClone(d.customs) : [];
   s.offsets = {phone:{...((d.offsets||{}).phone||{})}, desktop:{...((d.offsets||{}).desktop||{})}};
   s.modTypes = {...(d.modTypes||{})};
@@ -202,6 +205,50 @@ function normalise(d){
   }
   return s;
 }
+/* A faceplate kept as a file in the firmware's repository: an SVG at a plain relative path */
+const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.svg$/;
+const FP_DEFAULT_FILE='img/faceplate.svg';
+const fpFile=()=>FP_PATH.test(doc.faceplateFile||'')? doc.faceplateFile : FP_DEFAULT_FILE;
+/* A creator's look from a label file (design, font, theme), for the library's Creator theme. Files come from anywhere,
+   so only plain values pass: numbers, colours, known words. The font is a Google Fonts family name. */
+const SAFE_COLOUR=/^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?\s*(,\s*[\d.]+%?\s*){2,3}\)|transparent|none|[a-z]{3,20})$/i;
+const SAFE_WORD={modStyle:['outline','filled','hold','double'], multiMod:['divided','separate'], fx:['none','shadow','glow'], drawing:['synthux','simple'], ui:['light','dark','vis','gold']};
+function safeDesign(d){
+  const def=cloneDesign(DESIGN_DEFAULT), out=mergeDesign(d);
+  const ok=(k,v,dv)=> SAFE_WORD[k]? SAFE_WORD[k].includes(v)
+    : k==='size3'? v===null || (typeof v==='number' && Number.isFinite(v) && v>0 && v<=200)
+    : typeof dv==='number'? typeof v==='number' && Number.isFinite(v) && Math.abs(v)<=1000
+    : typeof v==='string' && SAFE_COLOUR.test(v.trim());
+  for(const k of DESIGN_KEYS) if(!ok(k,out[k],def[k])) out[k]=def[k];
+  for(const th in out.themes) for(const part of ['phone','desktop','panel']){
+    const o=out.themes[th][part], dflt=def.themes[th][part];
+    for(const k of Object.keys(o)){
+      const v=o[k];
+      if(SAFE_WORD[k]? SAFE_WORD[k].includes(v) : typeof v==='number'? Number.isFinite(v) && Math.abs(v)<=1000 : typeof v==='string' && SAFE_COLOUR.test(v.trim())) continue;
+      if(k in dflt) o[k]=dflt[k]; else delete o[k];
+    }
+  }
+  return out;
+}
+const GOOGLE_FAMILY=/^[A-Za-z0-9][A-Za-z0-9 ]{0,60}$/;
+function lookOf(d){
+  if(!d || typeof d.design!=='object' || !d.design || !('size1' in d.design)) return null;
+  const theme= d.view && THEME_NAMES.some(t=>t[0]===d.view.theme)? d.view.theme : 'panel';
+  const f=d.font||{}, google= !f.url || /^https:\/\/fonts\.googleapis\.com\//.test(f.url);
+  return {design:safeDesign(d.design), theme, font: google && GOOGLE_FAMILY.test(f.family||'')? f.family : 'Archivo'};
+}
+/* placement of a faceplate from a file: plain numbers and known words only */
+const FP_BLENDS=['normal','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','hard-light','soft-light','difference','exclusion','hue','saturation','color','luminosity'];
+function safeFpStyle(o){
+  const n=(v,lo,hi)=>typeof v==='number' && Number.isFinite(v)? Math.min(hi,Math.max(lo,v)) : undefined;
+  if(!o || typeof o!=='object') return {};
+  const out={};
+  if(['panel','top'].includes(o.area)) out.area=o.area;
+  if(FP_BLENDS.includes(o.blend)) out.blend=o.blend;
+  for(const [k,lo,hi] of [['opacity',0,1],['scale',0.05,20],['x',-5000,5000],['y',-5000,5000],['ratio',0.01,100]]){ const v=n(o[k],lo,hi); if(v!==undefined) out[k]=v; }
+  if(typeof o.stretch==='boolean') out.stretch=o.stretch;
+  return out;
+}
 /* The manual file (Fabio's simple-touch-manual/3), plus this editor's extras */
 function cleanData(){
   const labels={};
@@ -213,6 +260,7 @@ function cleanData(){
   const fw={}; for(const [k,v] of Object.entries(doc.firmware)){ const t=String(v||'').trim(); if(t||FW_FIELDS.includes(k)) fw[k]=t; }
   const out={format:'simple-touch-manual/3', firmware:fw, labels, modifiers:mods()};
   if(doc.faceplate) out.faceplate=doc.faceplate;
+  if(doc.faceplate && !doc.faceplateRef && doc.faceplateFile) out.faceplateFile=doc.faceplateFile;
   if(doc.faceplateRef) out.faceplateRef=doc.faceplateRef;
   if(doc.faceplate && Object.keys(doc.fpStyle||{}).length) out.fpStyle=doc.fpStyle;
   if(doc.customs.length) out.customs=doc.customs;
@@ -794,7 +842,7 @@ let panelSrc='', panelBaseSrc='', panelCtlSrc='', topPlateD='', fpMarkup='', fpM
 function ensureDefs(){
   if(document.getElementById('stDefs')) return;
   const d=document.createElement('div');
-  d.innerHTML='<svg id="stDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="panelBase"></g><g id="faceplateArt"></g><g id="panelCtl"></g><clipPath id="fpTop"><path id="fpTopPath"/></clipPath>'+FP_TOP_SIMPLE+'</defs></svg>';
+  d.innerHTML='<svg id="stDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="panelBase"></g><g id="faceplateArt"></g><g id="panelCtl"></g><clipPath id="fpTop"><path id="fpTopPath"/></clipPath>'+FP_TOP_SIMPLE+fpHoles(false)+fpHoles(true)+'</defs></svg>';
   document.body.prepend(d.firstChild);
 }
 /* one top-level layer of the drawing: st-Black_BG, st-Faceplate_BOTTOM, st-Layer_2, st-Faceplate_TOP, st-Knobs_Faders_Jacks */
@@ -824,10 +872,19 @@ function fpTransform(f){
   if(f.scale===1 && sy===1 && !f.x && !f.y) return '';
   return `translate(${(cx+f.x).toFixed(1)} ${(cy+f.y).toFixed(1)}) scale(${f.scale.toFixed(3)} ${(f.scale*sy).toFixed(3)}) translate(${-cx} ${(-cy).toFixed(2)})`;
 }
+/* The faceplate stays out of the knobs, faders and jacks: a mask with their shapes cut out, per drawing */
+function fpHoles(simple){
+  const k=simple? 38 : 32.03, j=simple? 31 : 27.01, w=simple? 32 : 27.85, y=simple? 601 : 601.27, h=simple? 277 : 276.91, r=simple? 0 : 13.92;
+  return `<mask id="fpHoles${simple?'Simple':''}" maskUnits="userSpaceOnUse" x="0" y="0" width="${ARTBOARD.w}" height="${ARTBOARD.h}"><rect width="${ARTBOARD.w}" height="${ARTBOARD.h}" fill="#fff"/>`
+    + SLOTS.filter(s=>s.kind==='knob').map(s=>`<circle cx="${s.x}" cy="${s.y}" r="${k}"/>`).join('')
+    + ['IN','OUT'].map(id=>`<circle cx="${SLOT[id].x}" cy="${SLOT[id].y}" r="${j}"/>`).join('')
+    + ['S36','S37'].map(id=>`<rect x="${(SLOT[id].x-w/2).toFixed(2)}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`).join('')
+    + '</mask>';
+}
 const fpUse=()=>{ if(!doc.faceplate) return ''; const f=fpStyle(), tr=fpTransform(f);
   const st=[f.opacity<1?`opacity:${f.opacity}`:'', f.blend!=='normal'?`mix-blend-mode:${f.blend}`:''].filter(Boolean).join(';');
-  const top= design.themes[T.theme].panel.drawing==='simple'? 'fpTopSimple' : 'fpTop';
-  return `<g${st?` style="${st}"`:''}${f.area==='top'?` clip-path="url(#${top})"`:''}><use href="#faceplateArt" xlink:href="#faceplateArt"${tr?` transform="${tr}"`:''}/></g>`; };
+  const simple= design.themes[T.theme].panel.drawing==='simple', top= simple? 'fpTopSimple' : 'fpTop';
+  return `<g${st?` style="${st}"`:''}${f.area==='top'?` clip-path="url(#${top})"`:''} mask="url(#fpHoles${simple?'Simple':''})"><use href="#faceplateArt" xlink:href="#faceplateArt"${tr?` transform="${tr}"`:''}/></g>`; };
 function sanitizeFaceplate(text){
   const d=new DOMParser().parseFromString(text,'image/svg+xml');
   if(d.querySelector('parsererror')) throw new Error('this is not a valid SVG file');
@@ -878,7 +935,7 @@ function setFaceplate(clean, ref='', style=null){
   document.getElementById('faceplateArt').innerHTML = fpMarkup;
 }
 const bakeColours=(svg,th)=>resolveVars(svg, panelVarMap(th));
-const panelDefs=()=>`<g id="panelBase">${panelBaseSrc}</g><g id="panelCtl">${panelCtlSrc}</g><clipPath id="fpTop"><path d="${topPlateD}"/></clipPath>${FP_TOP_SIMPLE}`+(doc.faceplate?`<g id="faceplateArt">${fpMarkup}</g>`:'');
+const panelDefs=()=>`<g id="panelBase">${panelBaseSrc}</g><g id="panelCtl">${panelCtlSrc}</g><clipPath id="fpTop"><path d="${topPlateD}"/></clipPath>${FP_TOP_SIMPLE}${fpHoles(false)}${fpHoles(true)}`+(doc.faceplate?`<g id="faceplateArt">${fpMarkup}</g>`:'');
 /* Standalone SVG of the drawing alone (colours baked in), used as an <img> in the PNG export */
 function artImageSVG(r){
   return bakeColours(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${r.vb}"><defs>${panelDefs()}</defs>${r.art}</svg>`, r.th);
@@ -1022,15 +1079,38 @@ function md2html(src){
 /* ============================================================
    CONTROL TABLE: control | reference name | function | + each modifier
    ============================================================ */
+/* A control's MIDI, as its label file writes it: "CC 20", "note 36 ch 10 · CC 31", "CC 30 ≥ 64".
+   Parts are split on · , or ;. Channels count from 1; no channel = any. A range after a CC number
+   narrows it to those values. Returns [{cc|note, ch, lo, hi}]; what it cannot read, it leaves out. */
+const NOTE_PC={c:0,d:2,e:4,f:5,g:7,a:9,b:11};
+function midiMap(text){
+  const out=[];
+  for(const part of String(text||'').split(/[·,;]/)){
+    const chm=part.match(/\bch(?:annel)?\s*(\d{1,2})\b/i), ch= chm && chm[1]>=1 && chm[1]<=16 ? chm[1]-1 : null;
+    const cc=part.match(/\bcc\s*(\d{1,3})(?:\s*(<=|>=|≤|≥|<|>)\s*(\d{1,3}))?/i);
+    if(cc && cc[1]<128){
+      const v=+cc[3], lo={'>=':v,'≥':v,'>':v+1}[cc[2]], hi={'<=':v,'≤':v,'<':v-1}[cc[2]];
+      out.push({cc:+cc[1], ch, lo:lo??0, hi:hi??127});
+      continue;
+    }
+    const n=part.match(/\bnote\s*(?:(\d{1,3})\b|([a-g])([#♯b♭]?)(-?\d)\b)/i);
+    if(n){
+      const num= n[1]!==undefined? +n[1] : NOTE_PC[n[2].toLowerCase()] + ({'#':1,'♯':1,'b':-1,'♭':-1}[n[3]]||0) + 12*(+n[4]+1);
+      if(num>=0 && num<128) out.push({note:num, ch});
+    }
+  }
+  return out;
+}
 function tableHTML(blank){
   const ms=mods().filter(usesMod), refLabel=V.ref&&REF_SETS[V.ref]? REF_SETS[V.ref].label : '';
-  const head=`<tr><th>Control</th>${refLabel?`<th>${esc(refLabel)}</th>`:''}<th>Function</th>${blank?'':ms.map(m=>`<th class="m" style="color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(slotName(m))}</th>`).join('')}</tr>`;
+  const midi=!blank && TABLE_ORDER.some(id=>val(id,'midi').trim());
+  const head=`<tr><th>Control</th>${refLabel?`<th>${esc(refLabel)}</th>`:''}<th>Function</th>${blank?'':ms.map(m=>`<th class="m" style="color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(slotName(m))}</th>`).join('')}${midi?'<th class="midi">MIDI</th>':''}</tr>`;
   const rows=TABLE_ORDER.map(id=>{
-    const s=SLOT[id], r=refOf(id);
+    const s=SLOT[id], r=refOf(id), mi=midi? val(id,'midi').trim() : '';
     const fn=blank? '' : [val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
     const mc=blank? '' : ms.map(m=>`<td>${m===id?'<em>modifier</em>':esc(val(id,'m_'+m))}</td>`).join('');
-    if(!blank && !fn && !mc.replace(/<td><\/td>/g,'') && !r) return '';
-    return `<tr${blank?' class="blank"':''}><td><b>${esc(lab(s))}</b> <span class="k">${KIND_NAME[s.kind]}</span></td>${refLabel?`<td>${r?esc(r[0]):''}</td>`:''}<td>${esc(fn)}</td>${mc}</tr>`;
+    if(!blank && !fn && !mc.replace(/<td><\/td>/g,'') && !r && !mi) return '';
+    return `<tr data-id="${id}"${blank?' class="blank"':''}><td><b>${esc(lab(s))}</b> <span class="k">${KIND_NAME[s.kind]}</span></td>${refLabel?`<td>${r?esc(r[0]):''}</td>`:''}<td>${esc(fn)}</td>${mc}${midi?`<td class="midi">${mi.split(/\s*·\s*/).map(x=>`<span>${esc(x)}</span>`).join(' · ')}</td>`:''}</tr>`;
   }).join('');
   return `<table class="ctab"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
@@ -1101,7 +1181,9 @@ const DOC_CSS = `
 .md th,.md td,.ctab th,.ctab td{text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--hair);vertical-align:top}
 .md th,.ctab th{border-bottom:2px solid var(--rule);font-weight:700}
 .ctab .k{font-size:12px;color:var(--muted);font-weight:400}
-.ctab tr.blank td{height:30px}`;
+.ctab tr.blank td{height:30px}
+.ctab td.midi{font-family:ui-monospace,Menlo,monospace;font-size:.85em}
+.ctab td.midi span{white-space:nowrap}`;
 document.head.insertAdjacentHTML('beforeend',`<style>${DOC_CSS}</style>`);
 
 /* Export minimap: a thumbnail of the PNG sheet in the export theme's colours. Click the table or the

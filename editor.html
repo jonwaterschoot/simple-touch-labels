@@ -29,6 +29,7 @@
         <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
         <button type="button" id="shareBtn">Copy share link</button>
+        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a new tab that follows your edits">Preview in library</button>
       </div>
       <div class="btns">
         <button type="button" id="openBtn">Open file…</button>
@@ -144,11 +145,39 @@ async function restore(s){
   if(s.design) design=mergeDesign(s.design);
 }
 let saveTimer=null;
-function autosave(){ if(!ready) return; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{
+function autosave(){ if(!ready) return; clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,300); }
+function saveNow(){
+  clearTimeout(saveTimer); histRecord();
   const s=snapshot(false);
   try{ localStorage.setItem(KEY,JSON.stringify(s)); }
   catch(e){ try{ delete s.doc.faceplate; localStorage.setItem(KEY,JSON.stringify(s)); flash('Faceplate too big to keep in this browser. Use Save file.'); }catch(e2){} }
-},300); }
+}
+/* Undo and redo (Ctrl+Z; Ctrl+Shift+Z or Ctrl+Y): the labels, the style and the font, one step per pause in
+   editing (the autosave's). The faceplate is kept by reference, so steps stay small. */
+const HIST_MAX=100, hist={past:[], future:[], cur:null};
+function histState(){ const d=cleanData(); delete d.faceplate; return {key:JSON.stringify({d, design, font:UI.font, fontUrl:UI.fontUrl}), fp:doc.faceplate, fpRef:doc.faceplateRef}; }
+function histRecord(){
+  const s=histState(); if(hist.cur && s.key===hist.cur.key && s.fp===hist.cur.fp) return;
+  if(hist.cur){ hist.past.push(hist.cur); if(hist.past.length>HIST_MAX) hist.past.shift(); }
+  hist.future=[]; hist.cur=s;
+}
+function histGo(from, to, what){
+  histRecord();   // a change still waiting for its pause is a step too
+  if(!from.length){ flash('Nothing to '+what.toLowerCase()+'.'); return; }
+  to.push(hist.cur); hist.cur=from.pop();
+  const j=JSON.parse(hist.cur.key), path=document.activeElement?.dataset?.path;
+  doc=normalise({...j.d, faceplate:hist.cur.fp, faceplateRef:hist.cur.fpRef}); design=mergeDesign(j.design);
+  if(j.font!==UI.font || j.fontUrl!==UI.fontUrl){ UI.font=j.font; UI.fontUrl=j.fontUrl; setLabelFont(UI.font); ensureFontLoaded(UI.font,UI.fontUrl).then(render); }
+  closeColour?.(); applyDesign(); applyChrome(); setFaceplate(doc.faceplate, doc.faceplateRef); buildForm(); render();
+  if(path) document.querySelector(`[data-path="${path}"]`)?.focus();
+  flash(what+(from.length? '' : ' · that was the last step'));
+}
+addEventListener('keydown',e=>{
+  if(!(e.ctrlKey||e.metaKey) || e.altKey || !ready) return;
+  const k=e.key.toLowerCase();
+  if(k==='z' && !e.shiftKey){ e.preventDefault(); histGo(hist.past, hist.future, 'Undo'); }
+  else if(k==='y' || (k==='z' && e.shiftKey)){ e.preventDefault(); histGo(hist.future, hist.past, 'Redo'); }
+});
 function flash(t){ const b=$('busy'); b.textContent=t; clearTimeout(flash.t); flash.t=setTimeout(()=>{ if(b.textContent===t) b.textContent=''; },4000); }
 
 /* ============================================================
@@ -221,6 +250,50 @@ function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
   if(slot) e.addEventListener('focus',()=>{ if(V.focusId!==slot){ V.focusId=slot; render(); } });
   return e;
 }
+/* Colour inputs: a swatch that opens a small picker with the colour it had when opened (click it to go back),
+   the colours used recently (this browser), a hex field and the system picker */
+const RECENT_KEY='simpleTouchManual.recentColours', RECENT_MAX=12, HEX=/^#[0-9a-f]{6}$/i;
+const recentColours=()=>{ try{ const a=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]'); return Array.isArray(a)? a.filter(c=>HEX.test(c)) : []; }catch(e){ return []; } };
+function rememberColour(c){ try{ localStorage.setItem(RECENT_KEY, JSON.stringify([c, ...recentColours().filter(x=>x.toLowerCase()!==c)].slice(0,RECENT_MAX))); }catch(e){} }
+let closeColour=null;
+function colorInput(value, label, onInput, onChange){
+  let cur= HEX.test(value)? value.toLowerCase() : '#000000';
+  const sw=el('button',{type:'button',className:'cswatch',title:label}); sw.setAttribute('aria-label',label); sw.style.setProperty('--c',cur);
+  const set=v=>{ cur=v.toLowerCase(); sw.style.setProperty('--c',cur); onInput(cur); };
+  sw.onclick=e=>{
+    e.stopPropagation();
+    const open=!!sw.dataset.open; closeColour?.(); if(open) return;   // a second click closes it
+    const before=cur;
+    const nat=el('input',{type:'color',value:cur,title:'More colours'}), hex=el('input',{value:cur,maxLength:7,spellcheck:false,className:'hex'}), now=el('span',{className:'cchip now'});
+    nat.setAttribute('aria-label',label+', any colour'); hex.setAttribute('aria-label',label+', hex');
+    const sync=()=>{ nat.value=cur; hex.value=cur; now.style.setProperty('--c',cur); };
+    const chip=(c,t)=>{ const b=el('button',{type:'button',className:'cchip',title:t||c}); b.style.setProperty('--c',c); b.onclick=()=>{ set(c); sync(); }; return b; };
+    nat.oninput=()=>{ set(nat.value); sync(); };
+    hex.oninput=()=>{ const v=hex.value.trim(), w=v.startsWith('#')? v : '#'+v; if(HEX.test(w)){ set(w); nat.value=cur; now.style.setProperty('--c',cur); } };
+    const rec=recentColours().filter(c=>c!==before);
+    const pop=el('div',{className:'cpop'},
+      el('div',{className:'crow'}, el('span',{className:'clab',textContent:'Before'}), chip(before,'Back to '+before), el('span',{className:'clab',textContent:'Now'}), now, hex, nat),
+      el('div',{className:'crow'}, el('span',{className:'clab',textContent:'Recent'}), ...(rec.length? rec.map(c=>chip(c)) : [el('span',{className:'hint',textContent:'Colours you pick show up here.'})])));
+    pop.setAttribute('role','dialog'); pop.setAttribute('aria-label',label);
+    sync(); document.body.append(pop); sw.dataset.open='1';
+    const r=sw.getBoundingClientRect(), w=pop.offsetWidth;
+    pop.style.left=Math.max(8, Math.min(r.left, innerWidth-w-8))+scrollX+'px'; pop.style.top=r.bottom+scrollY+6+'px';
+    const out=ev=>{ if(!pop.contains(ev.target) && ev.target!==sw) closeColour?.(); }, esc=ev=>{ if(ev.key==='Escape') closeColour?.(); };
+    closeColour=()=>{ closeColour=null; pop.remove(); delete sw.dataset.open; removeEventListener('pointerdown',out,true); removeEventListener('keydown',esc);
+      if(cur!==before){ rememberColour(cur); onChange?.(cur); } };
+    addEventListener('pointerdown',out,true); addEventListener('keydown',esc);
+  };
+  return sw;
+}
+/* The MIDI column: free text, read by midiMap (core.js). What it can't read is marked, not refused. */
+function midiInput(s, example){
+  const ph= !example? '' : ['pad','mod'].includes(s.kind)? 'e.g. note 36 ch 10' : ['knob','fader','switch'].includes(s.kind)? 'e.g. CC 20' : '';
+  const e=mkInput(['labels',s.id,'midi'],LIMITS.midi,{cls:'midi',ph,aria:`${lab(s)} MIDI`,slot:s.id});
+  const check=()=>{ const bad=!!e.value.trim() && !midiMap(e.value).length;
+    e.classList.toggle('bad',bad); e.title= bad? 'Not read as MIDI. Write e.g. "CC 20", "note 36 ch 10" or "CC 30 ≥ 64"; separate several with · or a comma.' : ''; };
+  e.addEventListener('input',check); check();
+  return e;
+}
 function section(title,hint){ form.append(el('h2',{textContent:title})); if(hint) form.append(el('p',{className:'hint',textContent:hint})); }
 function buildForm(){
   const keepScroll=form.scrollTop; form.innerHTML='';
@@ -271,8 +344,9 @@ function buildForm(){
     section(g.title,g.hint);
     const cols=[{k:'main',t:'Line 1',max:LIMITS.line},{k:'main_2',t:'Line 2 (smaller)',max:LIMITS.line2,cls:'l2'}];
     if(g.mods) for(const m of mods()) cols.push({k:'m_'+m,t:(isToggle(m)?'in ':'+ ')+lab(SLOT[m]),mod:m,max:LIMITS.line2});
+    cols.push({k:'midi',t:'MIDI',max:LIMITS.midi,cls:'midi'});
     const grid=el('div',{className:'lgrid'});
-    grid.style.gridTemplateColumns=`64px ${g.mods?'30px ':''}repeat(${cols.length},minmax(0,1fr))`;
+    grid.style.gridTemplateColumns=`64px ${g.mods?'30px ':''}repeat(${cols.length-1},minmax(0,1fr)) minmax(0,1.4fr)`;   // the last is MIDI
     grid.append(el('div',{className:'colhead'}));
     if(g.mods) grid.append(el('div',{className:'colhead',textContent:'Mod',title:'Modifier'}));
     cols.forEach(c=>{ const d=el('div',{className:'colhead',textContent:c.t}); if(c.mod) d.style.color=`var(--m${modIndex(c.mod)+1})`; grid.append(d); });
@@ -297,6 +371,7 @@ function buildForm(){
         const cell=el('div',{className:'cell'});
         if(c.mod) cell.style.setProperty('--mcol',`var(--m${modIndex(c.mod)+1})`);
         const skip=(c.k==='main_2'&&NO_LINE2.includes(s.id)) || c.mod===s.id;
+        if(c.k==='midi'){ cell.append(midiInput(s, !grid.querySelector('input.midi'))); row.append(cell); continue; }
         if(!skip) cell.append(mkInput(['labels',s.id,c.k],c.max,{cls:(c.cls||'')+(c.mod?' modin':''),ph:c.k==='main'&&r?r[0]:c.k==='main_2'&&r&&r[1]?r[1]:'',aria:`${lab(s)} ${c.t}`,slot:s.id}));
         row.append(cell);
       }
@@ -364,19 +439,28 @@ function buildStyle(){
   const changed=()=>{ applyDesign(); applyChrome(); render(); };
   const theme=design.themes[V.theme], themeName=THEME_NAMES.find(t=>t[0]===V.theme)[1];
 
-  section('Faceplate','Your own faceplate artwork, drawn over the blank panel. Jacks, knobs and faders always stay on top of it.');
-  const fpFile=el('input',{type:'file',accept:FP_TYPES,hidden:true});
+  section('Faceplate','Your own faceplate artwork, drawn over the blank panel. Jacks, knobs and faders always stay on top of it, and it is left out inside them.');
+  const fpInput=el('input',{type:'file',accept:FP_TYPES,hidden:true});
   const fpStatus=el('span',{className:'hint',textContent: doc.faceplate? (doc.faceplateRef? `From the ${EXAMPLES[doc.faceplateRef]?.label||doc.faceplateRef} example.` : fpMsg||'Custom faceplate.') : 'Blank Simple Touch faceplate.'});
-  fpFile.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  fpInput.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
     try{
       if(/^image\/(png|jpeg|webp)$/.test(f.type)){ const r=await imageFaceplate(f); setFaceplate(sanitizeFaceplate(r.svg),'',{ratio:r.ratio}); fpMsg=r.msg; }
       else setFaceplate(sanitizeFaceplate(await f.text()),'',{});
       buildForm(); render();
     }catch(err){ fpStatus.textContent='This faceplate could not be used: '+err.message; } };
   form.append(el('div',{className:'fprow'},
-    el('button',{type:'button',className:'tight',textContent:'Upload SVG or image',onclick:()=>fpFile.click()}),
+    el('button',{type:'button',className:'tight',textContent:'Upload SVG or image',onclick:()=>fpInput.click()}),
     el('button',{type:'button',className:'tight',textContent:'Remove',hidden:!doc.faceplate,onclick:()=>{ setFaceplate(''); buildForm(); render(); }}),
-    fpFile, fpStatus));
+    fpInput, fpStatus));
+  if(doc.faceplate && !doc.faceplateRef){
+    // the label file names the faceplate; the faceplate itself is a file next to it in the repository
+    const path=el('input',{value:fpFile(),maxLength:120,spellcheck:false,className:'code'}); path.setAttribute('aria-label','Faceplate file in your repository');
+    const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
+    path.addEventListener('input',ok);
+    form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate as an SVG (an image is wrapped in one). Put it at that path in your repository, e.g. <code>img/faceplate.svg</code> or <code>docs/img/faceplate.svg</code>; the Repository kit has it in place. The library reads it from there.`}),
+      el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download faceplate.svg',onclick:downloadFaceplate})));
+  }
   if(doc.faceplate){
     const f=fpStyle(), setF=patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); };
     const g=el('div',{className:'dgrid'});
@@ -403,23 +487,24 @@ function buildStyle(){
   section('Modifier colours',`Modifier 1 to 4 in the ${themeName} theme, phone and desktop.`);
   const mrow=el('div',{className:'mcolors'});
   for(let i=1;i<=MOD_MAX;i++){
-    const inp=el('input',{type:'color',value:palOf('phone')['m'+i]}); inp.setAttribute('aria-label',`Modifier ${i} colour`);
-    inp.oninput=()=>{ for(const mode of ['phone','desktop']) theme[mode]['m'+i]=inp.value; changed(); };
-    inp.onchange=()=>buildForm();
+    const inp=colorInput(palOf('phone')['m'+i], `Modifier ${i} colour`, v=>{ for(const mode of ['phone','desktop']) theme[mode]['m'+i]=v; changed(); }, ()=>buildForm());
     mrow.append(el('label',{},el('span',{textContent:`Modifier ${i}`}),inp));
   }
   form.append(mrow);
 
   section('Label boxes',`Sizes and effect for every theme; colours for the ${themeName} theme.`);
   const box=el('div',{className:'dgrid'});
-  for(const [k,label,min,max,step] of DCTRL) box.append(slider(label,min,max,step,()=>design[k],v=>{ design[k]=v; changed(); }));
+  for(const [k,label,min,max,step] of DCTRL){
+    box.append(slider(label,min,max,step,()=>design[k],v=>{ design[k]=v; changed(); }));
+    if(k==='size2') box.append(slider('Reference caption size',8,40,1,()=>design.size3||Math.round(design.size2*0.72),v=>{ design.size3=v; changed(); }));
+  }
   const wsel=el('select',{innerHTML:[400,500,600,700].map(w=>`<option value="${w}">${w}</option>`).join('')}); wsel.value=design.weight;
   wsel.onchange=()=>{ design.weight=+wsel.value; changed(); };
   box.append(el('div',{className:'dc'},el('span',{textContent:'Font weight'}),stepper(wsel),el('span')));
   box.append(slider('Box fill (0 = text only)',0,100,1,()=>Math.round((design.boxOpacity??1)*100),v=>{ design.boxOpacity=v/100; changed(); },v=>v+'%'));
   const fsel=el('select',{innerHTML:'<option value="none">None</option><option value="shadow">Drop shadow</option><option value="glow">Glow</option>'}); fsel.value=design.fx||'none';
-  const fcol=el('input',{type:'color',value:design.fxColor||'#000000'}); fcol.setAttribute('aria-label','Effect colour');
-  fsel.onchange=()=>{ design.fx=fsel.value; changed(); }; fcol.oninput=()=>{ design.fxColor=fcol.value; changed(); };
+  const fcol=colorInput(design.fxColor||'#000000', 'Effect colour', v=>{ design.fxColor=v; changed(); });
+  fsel.onchange=()=>{ design.fx=fsel.value; changed(); };
   box.append(el('div',{className:'dc'},el('span',{textContent:'Effect'}),stepper(fsel),fcol));
   box.append(slider('Effect size',1,24,1,()=>design.fxSize||6,v=>{ design.fxSize=v; changed(); }));
   box.append(el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'}));
@@ -432,8 +517,7 @@ function buildStyle(){
   const padOwn=!!theme.phone.padBox, rows=[...CCTRL, ...(padOwn?[['padBox','Pad box colour'],['padText','Pad text colour']]:[])];
   for(const [k,label] of rows){
     const row=el('div',{className:'dcol'},el('span',{textContent:label}));
-    for(const mode of ['phone','desktop']){ const inp=el('input',{type:'color',value:palOf(mode)[k]}); inp.setAttribute('aria-label',`${label}, ${mode}`);
-      inp.oninput=()=>{ palOf(mode)[k]=inp.value; changed(); }; row.append(inp); }
+    for(const mode of ['phone','desktop']) row.append(colorInput(palOf(mode)[k], `${label}, ${mode}`, v=>{ palOf(mode)[k]=v; changed(); }));
     box.append(row);
   }
   const pc=el('input',{type:'checkbox',checked:padOwn});
@@ -447,8 +531,7 @@ function buildStyle(){
   pbox.append(el('div',{className:'dc'},el('span',{textContent:'Drawing'}),dseg,el('span')));
   for(const [k,label,fb] of PCTRL[simple?'simple':'synthux']){
     const v=P[k]||(fb? P[fb] : '#000000');
-    const inp=el('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(v)? v : '#000000'}); inp.setAttribute('aria-label',label);
-    inp.oninput=()=>{ P[k]=inp.value; changed(); };
+    const inp=colorInput(v, label, c=>{ P[k]=c; changed(); });
     pbox.append(el('label',{className:'dc'},el('span',{textContent:label}),inp,el('span')));
   }
   pbox.append(slider('Leader line thickness',0.5,10,0.5,()=>design.leaderW??2.5,v=>{ design.leaderW=v; changed(); }));
@@ -594,8 +677,15 @@ $('htmlBtn').onclick=()=>{
   render();
 };
 /* labels, design and font: the saved file, and the repository's simple-touch-labels.json */
-const labelFileText=()=>{ const out=cleanData(); out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
-$('saveBtn').onclick=()=>downloadText(slug()+'.json', labelFileText(), 'application/json');
+const customFp=()=>doc.faceplate && !doc.faceplateRef;
+const fpName=()=>fpFile().split('/').pop();
+function downloadFaceplate(){ downloadText(fpName(), doc.faceplate, 'image/svg+xml'); }
+const labelFileText=()=>{ const out=cleanData(); if(customFp()){ out.faceplate=fpFile(); delete out.faceplateFile; } out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
+$('saveBtn').onclick=()=>{
+  downloadText(slug()+'.json', labelFileText(), 'application/json');
+  if(customFp()){ setTimeout(downloadFaceplate, 400); flash(`Saved, with ${fpName()}: put it at ${fpFile()} in your repository, beside ${LABEL_FILE} in the root.`); }
+};
+$('previewBtn').onclick=()=>{ saveNow(); window.open(`index.html?preview&theme=creator&layout=${V.layout}`, 'stPreview'); };
 $('openBtn').onclick=()=>$('openFile').click();
 $('openFile').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
@@ -605,7 +695,16 @@ $('openFile').onchange=async e=>{
     if(dz){ design=mergeDesign(dz); applyDesign(); }
     if(d.font&&d.font.family) useFont(d.font.family,d.font.url);
     if(d.view) Object.assign(V,{theme:d.view.theme||V.theme, ref:d.view.ref??V.ref, refMode:d.view.refMode||V.refMode});
-    if(hasData){ doc=await resolveFaceplate(normalise(d)); if(doc.faceplate) doc.faceplate=sanitizeFaceplate(doc.faceplate); setFaceplate(doc.faceplate, doc.faceplateRef); UI.start=''; }
+    if(hasData){
+      const had=customFp()? {fp:doc.faceplate, file:fpFile()} : null;
+      doc=await resolveFaceplate(normalise(d));
+      if(!doc.faceplate && doc.faceplateFile){   // the faceplate is a file: the one open here, or the repository's
+        if(had && had.file===doc.faceplateFile) doc.faceplate=had.fp;
+        else { const r=await repoFile(doc.firmware.repo, doc.faceplateFile, MAX_FACEPLATE); if(r) doc.faceplate=r.text;
+          else flash(`This file names its faceplate ${doc.faceplateFile}, which is not in the repository yet. Upload it again under Style.`); }
+      }
+      if(doc.faceplate) doc.faceplate=sanitizeFaceplate(doc.faceplate); setFaceplate(doc.faceplate, doc.faceplateRef); UI.start='';
+    }
     applyChrome(); buildBars(); buildForm(); render();
   }catch(err){ alert('This file could not be opened: '+err.message); }
 };
@@ -684,11 +783,12 @@ const kitOpts=()=>({build: V.ref==='pd'? 'pd' : 'libdaisy', flash:'both', theme:
 const kitParts=()=>hasSecondary()? ['main','second'] : ['main'];
 const mdCell=t=>String(t||'').replace(/\|/g,'\\|').replace(/\s+/g,' ').trim();
 function controlsMD(){
-  const ms=mods().filter(usesMod), head=['Control','Function',...ms.map(m=>(isToggle(m)?'after ':'+ ')+slotName(m))];
+  const ms=mods().filter(usesMod), midi=TABLE_ORDER.some(id=>val(id,'midi').trim());
+  const head=['Control','Function',...ms.map(m=>(isToggle(m)?'after ':'+ ')+slotName(m)),...(midi?['MIDI']:[])];
   const rows=TABLE_ORDER.map(id=>{
     const s=SLOT[id], fn=[val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
-    const mc=ms.map(m=>m===id? '*modifier*' : val(id,'m_'+m));
-    return fn||mc.some(x=>x.trim()&&x!=='*modifier*')? [`**${lab(s)}** ${KIND_NAME[s.kind]}`, fn, ...mc] : null;
+    const mc=ms.map(m=>m===id? '*modifier*' : val(id,'m_'+m)), mi=midi? [val(id,'midi').trim()] : [];
+    return fn||mc.some(x=>x.trim()&&x!=='*modifier*')||mi[0]? [`**${lab(s)}** ${KIND_NAME[s.kind]}`, fn, ...mc, ...mi] : null;
   }).filter(Boolean);
   if(!rows.length) return '<!-- TODO: no labels yet. Fill them in in the designer and make the kit again. -->';
   const line=r=>'| '+r.map(mdCell).join(' | ')+' |';
@@ -806,7 +906,7 @@ $('kitZip').onclick=async()=>{
   $('kitBusy').textContent='Making the .zip…';
   try{
     const png=new Uint8Array(await (await fetch(await kitImage(k.o))).arrayBuffer()), base=`${k.id}-repository-kit/`;
-    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}];
+    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...(customFp()? [{name:base+fpFile(),data:doc.faceplate}] : [])];
     if(!k.probs.length) files.push({name:`${base}community-entry/${k.id}.json`,data:dirJSON(k.entry)});
     download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
     $('kitBusy').textContent='';

@@ -1,8 +1,9 @@
 /* ============================================================
    COMMUNITY: the Synthux community directory and the firmware repositories it lists.
    Everything read here is other people's text. It only reaches the page escaped
-   (labels, notes and excerpts), and repository faceplates are left out for now.
-   Needs core.js (SLOT, LIMITS, NO_LINE2, emptyDoc, normalise, REPO_RE, safeHttps).
+   (labels, notes and excerpts); a creator's faceplate SVG is cleaned (sanitizeFaceplate) and their look
+   passes as plain values only (lookOf, safeFpStyle).
+   Needs core.js (SLOT, LIMITS, NO_LINE2, emptyDoc, normalise, REPO_RE, safeHttps, lookOf, sanitizeFaceplate).
    ============================================================ */
 const COMMUNITY = {
   list: 'https://synthux-academy.github.io/community-instruments/projects.json',
@@ -34,16 +35,16 @@ function communityDoc(p){
 /* ============================================================
    FILES IN A REPOSITORY: default branch, GitHub (raw) or Codeberg (API, which sends CORS)
    ============================================================ */
-const MAX_FILE = 400000;
+const MAX_FILE = 400000, MAX_FACEPLATE = 8000000;   // a faceplate SVG can hold an image
 const repoParts = url => { const m=String(url).match(/^https:\/\/(github\.com|codeberg\.org)\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/); return m && {host:m[1], owner:m[2], name:m[3]}; };
-async function repoFile(repo, path){
+async function repoFile(repo, path, max=MAX_FILE){
   const r=repoParts(repo); if(!r) return null;
   const p=path.split('/').filter(s=>s && s!=='.' && s!=='..').map(encodeURIComponent).join('/');
   const gh=r.host==='github.com';
   const raw= gh? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${p}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${p}`;
   try{
     const res=await fetch(raw); if(!res.ok) return null;
-    const text=await res.text(); if(text.length>MAX_FILE) return null;
+    const text=await res.text(); if(text.length>max) return null;
     return {path:decodeURIComponent(p), text, url: gh? `${repo}/blob/HEAD/${p}` : `${repo}/src/branch/HEAD/${p}`};
   }catch(e){ return null; }
 }
@@ -71,7 +72,7 @@ function labelFileDoc(d, repo){
   const labels={};
   for(const [id,o] of Object.entries(s.labels||{})){
     if(!SLOT[id] || !o || typeof o!=='object') continue;
-    const c={}; for(const [k,v] of Object.entries(o)) if(/^(main|main_2|m_[PS]\d\d)$/.test(k)) c[k]=str(v, k==='main'? LIMITS.line : LIMITS.line2);
+    const c={}; for(const [k,v] of Object.entries(o)) if(/^(main|main_2|m_[PS]\d\d|midi)$/.test(k)) c[k]=str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2);
     labels[id]=c;
   }
   const fw={}; for(const [k,n] of Object.entries({name:LIMITS.name,author:LIMITS.author,version:LIMITS.version,description:LIMITS.desc,notes:LIMITS.notes,repo:200,authorUrl:200})) fw[k]=str(s.firmware[k],n);
@@ -80,7 +81,10 @@ function labelFileDoc(d, repo){
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
     modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y)})),
-    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo)};
+    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo),
+    // the creator's look, and their faceplate: a file in the repository (read by readRepoNow) or, in older files, the SVG itself
+    look:lookOf(d), faceplateFile:s.faceplateFile, faceplate: typeof s.faceplate==='string' && s.faceplate.trim().startsWith('<')? s.faceplate : '',
+    fpStyle:safeFpStyle(d.fpStyle)};
 }
 
 /* What the library and designer show for a directory entry, in this order:
@@ -93,10 +97,12 @@ async function readRepoNow(p){
   const base=communityDoc(p);
   const lf=await repoFile(p.repo, LABEL_FILE);
   if(lf){
-    let d=null, faceplate=false; try{ const j=JSON.parse(lf.text); faceplate=!!(j&&j.faceplate); d=labelFileDoc(j, p.repo); }catch(e){}
+    let d=null; try{ d=labelFileDoc(JSON.parse(lf.text), p.repo); }catch(e){}
     if(d){
+      if(d.faceplateFile){ const fp=await repoFile(p.repo, d.faceplateFile, MAX_FACEPLATE); d.faceplate= fp? fp.text : ''; }
+      try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
       for(const k of ['name','author','description','repo','authorUrl']) if(!d.firmware[k].trim()) d.firmware[k]=base.firmware[k];
-      return {doc:d, source:'file', files:[lf], faceplate};
+      return {doc:d, source:'file', files:[lf]};
     }
   }
   const rd=await repoReadme(p.repo);

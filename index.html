@@ -96,7 +96,7 @@ const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null};
-const UI={src:'sx', proj:null, read:null, arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, exWhat:'panel', exLook:'color'};
+const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, exWhat:'panel', exLook:'color'};
 const $=id=>document.getElementById(id);
 let ready=false;
 
@@ -108,7 +108,8 @@ function buildBars(){
   seg($('setSeg'), Object.entries(REF_SETS).map(([k,r])=>[k,r.label]), v=>UI.src===v, pick);
   seg($('fwSeg'), FIRMWARE.map(k=>[k,EXAMPLES[k].label]), v=>UI.src===v, pick);
   $('commSel').value= UI.proj? UI.proj.id : '';
-  seg($('themeSeg'), THEME_NAMES, v=>V.theme===v, v=>{ V.theme=v; update(); });
+  seg($('themeSeg'), [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
+    v=>{ UI.theme=v; if(v!=='creator') UI.libTheme=v; update(); });
   seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; update(); });
   seg($('partSeg'), [['main','Main'],['second','Secondary']], v=>UI.partsOn[v], v=>{
     const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
@@ -126,10 +127,34 @@ function buildCommunity(list){
   s.onchange=()=>{ const p=list.find(x=>x.id===s.value); if(p) pick('community',p); };
   $('commGrp').hidden=!list.length;
 }
-async function pick(src, proj=null){
+/* The Creator theme: the label file's own colours, sizes, font and drawing (doc.look); the other themes are the library's */
+const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
+function syncLook(){
+  const L= UI.theme==='creator' && doc.look;
+  design= L? L.design : LIB_DESIGN;
+  V.theme= L? L.theme : UI.libTheme;
+  setLabelFont(L? L.font : 'Archivo'); applyDesign();
+  // the font once; the boxes are measured again when it is in
+  if(L && L.font!=='Archivo' && !lookFonts.has(L.font)){ lookFonts.add(L.font); ensureFontLoaded(L.font).then(()=>{ if(doc.look===L) update(); }); }
+}
+/* Preview: the designer's current state in this browser, as the library shows a label file */
+const DESIGNER_KEY='simpleTouchManual.v1';
+async function previewDoc(){
+  let s=null; try{ s=JSON.parse(localStorage.getItem(DESIGNER_KEY)||'null'); }catch(e){}
+  if(!s || !s.doc) return null;
+  const d=await resolveFaceplate(normalise(s.doc)), u=s.UI||{};
+  d.look=lookOf({design:s.design, view:s.V, font:{family:u.font, url:u.fontUrl}});
+  try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
+  return {doc:d, ref:(s.V||{}).ref||'', refMode:(s.V||{}).refMode||'both'};
+}
+async function pick(src, proj=null, keepTheme=false){
   Play.reset();
-  UI.src=src; UI.proj=proj; UI.read=null;
+  UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
+  else if(src==='preview'){
+    const p=await previewDoc();
+    if(p){ doc=p.doc; V.ref=p.ref; V.refMode=p.refMode; } else doc=emptyDoc();
+  }
   else if(proj){
     doc=communityDoc(proj); V.ref='sx'; setFaceplate(''); update();   // the entry at once; its labels follow
     $('busy').textContent='Reading '+repoShort(proj.repo)+'…';
@@ -143,9 +168,16 @@ async function pick(src, proj=null){
     catch(e){ $('busy').textContent='Could not load '+EXAMPLES[src].label+': '+e.message; return; }
     V.ref='';
   }
+  if(doc.look && !keepTheme) UI.theme='creator';   // a creator's own look first
   setFaceplate(doc.faceplate, doc.faceplateRef);
   update();
 }
+addEventListener('storage', async e=>{   // the preview follows the designer
+  if(e.key!==DESIGNER_KEY || UI.src!=='preview') return;
+  const p=await previewDoc(); if(!p || UI.src!=='preview') return;
+  if(JSON.stringify(p.doc.emulator)!==JSON.stringify(doc.emulator)) Play.reset();
+  doc=p.doc; V.ref=p.ref; V.refMode=p.refMode; setFaceplate(doc.faceplate, doc.faceplateRef); update();
+});
 const isFw=()=>!REF_SETS[UI.src];
 function libTable(){
   const th=h=>h.map(x=>`<th>${esc(x)}</th>`).join('');
@@ -154,20 +186,25 @@ function libTable(){
     +'<p class="hint">Switch3::Read() returns the same 1 / 0 / 2 values that Pd receives: pin_a closed gives 1 (POS_UP / POS_LEFT), pin_b closed gives 2 (POS_DOWN / POS_RIGHT), neither gives 0 (POS_CENTER).</p>';
   return tableHTML(false);
 }
+function previewHTML(){
+  if(!(doc.firmware.name||'').trim() && !Object.keys(doc.labels).length) return '<p><b>Nothing to preview yet.</b> Open the <a href="editor.html">designer</a> in this browser and start a manual; this page then shows it.</p>';
+  const fp= doc.faceplate && !doc.faceplateRef? ` Your faceplate shows from <code>${esc(fpFile())}</code> once it is in the repository.` : '';
+  return `<p><b>Preview.</b> Your manual as the library shows it once <code>${LABEL_FILE}</code> is in your repository: <b>Creator</b> is your own look, and it changes as you edit in the <a href="editor.html">designer</a>.${fp}</p>`;
+}
 /* where a community entry's labels came from: its own label file, a README read by a script, or nowhere yet */
 function noticeHTML(editHref){
   const r=UI.read, how='<a href="about.html#labels">How this works</a>';
   if(!r) return '<p><b>Reading the repository…</b> Looking for a label file or a README with control names.</p>';
   const files=r.files.map(f=>`<a href="${escAttr(f.url)}" target="_blank">${esc(f.path)}</a>`).join(' and ');
   const creator=`<p><b>Made this firmware?</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
-  if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository.${r.faceplate?' Its faceplate is not shown here yet.':''} ${how}</p>`;
+  if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository${UI.read.doc.look?', in their own look (Creator)':''}. ${how}</p>`;
   if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
   const row=f=>`<tr><td><b>${esc(lab(SLOT[f.id]))}</b>${f.key==='main'?'':` <span class="k">+ ${esc(lab(SLOT[f.key.slice(2)]))}</span>`}</td><td>${esc(f.text)}</td><td class="k">${esc(f.line)}</td></tr>`;
   return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete, shortened or from another mode, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+creator
     +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th><th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
 }
 function update(){
-  buildBars(); if(!ready) return;
+  syncLook(); buildBars(); if(!ready) return;
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
   // while playing, one drawing: the one the controls are on
@@ -180,18 +217,20 @@ function update(){
   fig.innerHTML= both? `<div class="duo${stack?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
   curPart=part;
   Play.strip(); Play.attach(fig);
-  const P=UI.proj, view=`theme=${V.theme}&layout=${V.layout}`;
-  const editHref='editor.html?'+(P? 'community='+encodeURIComponent(P.id) : isFw()? 'start='+UI.src : 'start=blank&ref='+UI.src)+'&'+view;
-  $('title').textContent= P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';
+  const P=UI.proj, pv=UI.src==='preview', view=`theme=${UI.theme}&layout=${V.layout}`;
+  const editHref= pv? 'editor.html' : 'editor.html?'+(P? 'community='+encodeURIComponent(P.id) : isFw()? 'start='+UI.src : 'start=blank&ref='+UI.src)+`&theme=${V.theme}&layout=${V.layout}`;
+  $('title').textContent= pv? 'Preview · '+(fw.name||'your manual') : P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';
   $('intro').textContent= isFw()? [fw.description, fw.author&&'By '+fw.author+'.'].filter(Boolean).join(' ')||'Firmware for the Simple Touch.' : INTRO[UI.src];
-  const repo= P? P.repo : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
+  const repo= P? P.repo : pv? (REPO_RE.test(fw.repo||'')? fw.repo : '') : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
-  const nt=$('notice'); nt.hidden=!P; nt.innerHTML= P? noticeHTML(editHref) : '';
+  const nt=$('notice'); nt.hidden=!P&&!pv;
+  nt.innerHTML= P? noticeHTML(editHref) : pv? previewHTML() : '';
   $('side').innerHTML= libTable()+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
+  Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
   $('editLink').href=editHref;
-  const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
+  const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : pv? `?preview&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
 }
 $('pngBtn').onclick=()=>{
   const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
@@ -215,14 +254,15 @@ $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(fig
 (async()=>{
   const q=new URLSearchParams(location.search);
   const src=q.get('src'); if(REF_SETS[src]||FIRMWARE.includes(src)) UI.src=src;
-  if(THEME_NAMES.some(t=>t[0]===q.get('theme'))) V.theme=q.get('theme');
+  if(q.has('preview')) UI.src='preview';
+  const th=q.get('theme'); if(THEME_NAMES.some(t=>t[0]===th)){ UI.theme=UI.libTheme=V.theme=th; } else if(th==='creator') UI.theme='creator';
   if(['phone','desktop'].includes(q.get('layout'))) V.layout=q.get('layout');
   buildBars();
   try{ await loadPanelArt(); }catch(e){ $('fig').innerHTML='<p class="hint">The panel drawing could not be loaded. Open this page from a web server (GitHub Pages or a local server), not as a file.</p>'; return; }
   ready=true; onFontsLoaded=update;
   const community=loadCommunity().then(list=>{ buildCommunity(list); return list; }).catch(()=>[]);
   const P= q.get('community') && (await community).find(p=>p.id===q.get('community'));
-  await (P? pick('community',P) : pick(UI.src));
+  await (P? pick('community',P,q.has('theme')) : pick(UI.src,null,q.has('theme')));
   document.fonts.ready.then(update);
 })();
 </script>
