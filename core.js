@@ -205,10 +205,27 @@ function normalise(d){
   }
   return s;
 }
-/* A faceplate kept as a file in the firmware's repository: an SVG at a plain relative path */
-const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.svg$/;
+/* A faceplate kept as a file in the firmware's repository, at a plain relative path: an SVG, or the image itself
+   when the faceplate is an uploaded image (it is wrapped in an SVG here; its placement is in fpStyle either way) */
+const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.(svg|png|jpe?g|webp)$/i;
 const FP_DEFAULT_FILE='img/faceplate.svg';
-const fpFile=()=>FP_PATH.test(doc.faceplateFile||'')? doc.faceplateFile : FP_DEFAULT_FILE;
+const FP_IMAGE_EXT={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
+function fpImage(svg=doc.faceplate){   // the image inside an uploaded image's wrapper: {mime, ext, b64}, else null
+  if(!svg || svg.length<100 || !/<image\b/.test(svg)) return null;
+  const root=new DOMParser().parseFromString(svg,'image/svg+xml').documentElement, kids=[...root.children];
+  if(kids.length!==1 || kids[0].localName!=='image') return null;
+  const m=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(kids[0].getAttribute('href')||kids[0].getAttribute('xlink:href')||'');
+  return m && {mime:m[1], ext:FP_IMAGE_EXT[m[1]], b64:m[2].replace(/\s+/g,'')};
+}
+const fpFile=()=>{ const base=FP_PATH.test(doc.faceplateFile||'')? doc.faceplateFile : FP_DEFAULT_FILE, im=fpImage();
+  return base.replace(/\.[a-z]+$/i, '.'+(im? im.ext : 'svg')); };
+/* the faceplate as the file it is saved as: {name, data (text or bytes), type} */
+function fpFileData(){
+  const im=fpImage(), name=fpFile().split('/').pop();
+  if(!im) return {name, data:doc.faceplate, type:'image/svg+xml'};
+  const bin=atob(im.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return {name, data:u8, type:im.mime};
+}
 /* A creator's look from a label file (design, font, theme), for the library's Creator theme. Files come from anywhere,
    so only plain values pass: numbers, colours, known words. The font is a Google Fonts family name. */
 const SAFE_COLOUR=/^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?\s*(,\s*[\d.]+%?\s*){2,3}\)|transparent|none|[a-z]{3,20})$/i;

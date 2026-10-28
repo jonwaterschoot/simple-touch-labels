@@ -160,6 +160,19 @@ pre.kitmd { margin:0; }
 /* Play: a firmware's approved browser build (play.js), and its controls on the drawing */
 .play { border:2px solid var(--active); border-left-width:8px; padding:10px 16px; max-width:1100px; font-size:14px; line-height:1.5; }
 .play[hidden] { display:none; }
+/* while playing: no tap highlight, selection or long-press menu on the drawing; with the lock, touching it never scrolls the page */
+#fig svg { -webkit-tap-highlight-color:transparent; }
+body.playing #fig { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+body.play-lock #fig { touch-action:none; overscroll-behavior:contain; }
+/* full screen: the drawing alone; the sound controls in a sheet above the bar */
+body.play-stage { overflow:hidden; }
+body.play-stage .lib figure#fig { position:fixed; inset:0; z-index:900; width:auto !important; max-width:none; margin:0; padding:8px 8px 60px; background:var(--page); display:flex; align-items:center; justify-content:center; touch-action:none; }
+body.play-stage #fig > svg { width:100%; height:100%; }
+body.play-stage #play { display:none; position:fixed; left:8px; right:8px; bottom:60px; z-index:902; max-height:70vh; overflow:auto; background:var(--page); box-shadow:0 -8px 24px rgba(0,0,0,.4); }
+body.play-stage.stage-sound #play { display:block; }
+body.play-stage.stage-nopadlabels #fig .padlabel { display:none; }
+.stagebar { position:fixed; left:0; right:0; bottom:0; z-index:903; display:flex; gap:8px; justify-content:center; padding:8px; background:var(--page); border-top:1px solid var(--hair); }
+.stagebar button { min-width:0; padding:8px 12px; }
 .play p { margin:0; }
 .play a { font-weight:700; }
 .play code { font:13px ui-monospace,Consolas,monospace; }

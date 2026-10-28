@@ -21,7 +21,7 @@ const PLAY_LAYOUTS = {
   azerty: {label:'AZERTY', names:{Digit3:'"', Digit4:"'", KeyW:'Z', KeyA:'Q'}},
 };
 const PLAY_KEY_ROWS = [[10,11],[0,1,2],[3,4,5,6,7],[8,9]];
-const PLAY_KEYS_PREF = 'stManualLib.playKeys';
+const PLAY_KEYS_PREF = 'stManualLib.playKeys', PLAY_LOCK_PREF = 'stManualLib.playLock';
 /* the levers on the drawing: centre, angle, and the contact at each end of their long side */
 const PLAY_LEVERS = {
   S09_S10: {w:98, h:37, rot:-4, ends:['left','right']},
@@ -44,8 +44,10 @@ const Play = (()=>{
     layout:'qwerty', layoutSet:false,
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
     hot:new Set(), cool:{},   // table rows of the controls in use
+    lock:matchMedia('(pointer: coarse)').matches, stage:false, sound:false, padLabels:true,   // touch: scroll lock; full screen, its sound sheet and pad labels
   };
   try{ const k=localStorage.getItem(PLAY_KEYS_PREF); if(PLAY_LAYOUTS[k]){ S.layout=k; S.layoutSet=true; } }catch(e){}
+  try{ const l=localStorage.getItem(PLAY_LOCK_PREF); if(l) S.lock= l==='1'; }catch(e){}
   const keyName=i=>{ const c=PLAY_CODES[i]; return PLAY_LAYOUTS[S.layout].names[c] || c.replace(/^(Key|Digit)/,''); };
   const reset0 = ()=>{
     for(const s of SLOTS) if(s.kind==='knob'||s.kind==='fader') S.controls[s.id]=0.5;
@@ -78,7 +80,7 @@ const Play = (()=>{
     $p('playMsg').textContent=S.msg; $p('playMsg').classList.toggle('err',S.err);
     seg($p('playKeys'), Object.entries(PLAY_LAYOUTS).map(([k,l])=>[k,l.label]), k=>S.layout===k, k=>{
       S.layout=k; S.layoutSet=true; try{ localStorage.setItem(PLAY_KEYS_PREF,k); }catch(err){} refresh(); });
-    fillMidi();
+    fillMidi(); body();
     $p('playCredit').innerHTML=`Browser build <code>${esc(e.sha256.slice(0,12))}</code>, approved by ${esc(fw.author||'its author')}. It runs in this page: the sound is the firmware's own.`
       +` Drag a knob up or down, click or drag a fader, click a lever's end. Press a pad higher up to press it harder; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`;
   }
@@ -96,7 +98,11 @@ const Play = (()=>{
       <label class="midi"><span class="cap">MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
       <label class="midi"><span class="cap">MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
       <span class="keys"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
+      <button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button>
+      <button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>
     </div><p class="hint" id="playCredit"></p>`;
+    $p('playLock').onclick=()=>{ S.lock=!S.lock; try{ localStorage.setItem(PLAY_LOCK_PREF, S.lock?'1':'0'); }catch(err){} body(); };
+    $p('playStage').onclick=()=>stage(!S.stage);
     $p('playGo').onclick=()=> S.state==='idle'? start() : stop();
     $p('playVol').value=S.volume; $p('playVol').oninput=e=>{ S.volume=+e.target.value; if(S.out) S.out.gain.value=S.volume; };
     $p('playInLevel').value=S.inLevel; $p('playInLevel').oninput=e=>{ S.inLevel=+e.target.value; if(S.inGain) S.inGain.gain.value=S.inLevel; };
@@ -110,6 +116,43 @@ const Play = (()=>{
     // the keyboard's own layout, where the browser tells (Chrome), until one is picked
     if(!S.layoutSet) navigator.keyboard?.getLayoutMap?.().then(m=>{ if(!S.layoutSet && (m.get('KeyQ')==='a' || m.get('KeyW')==='z')){ S.layout='azerty'; refresh(); } }).catch(()=>{});
   }
+  /* ---------------------------------------------------------- the page around the drawing: no tap highlight or selection while
+     playing, the scroll lock, and full screen (the real one where there is one, else the drawing over the page, as on iPhone) */
+  function body(){
+    const b=document.body, on=S.state!=='idle';
+    b.classList.toggle('playing', on);
+    b.classList.toggle('play-lock', on && S.lock);
+    b.classList.toggle('play-stage', S.stage);
+    b.classList.toggle('stage-sound', S.stage && S.sound);
+    b.classList.toggle('stage-nopadlabels', S.stage && !S.padLabels);
+    $p('playLock')?.setAttribute('aria-pressed', String(S.lock));
+    $p('playStage')?.setAttribute('aria-pressed', String(S.stage));
+    const bar=$p('stageBar'); if(!bar) return;
+    bar.querySelector('[data-a="go"]').textContent= on? '■ Stop' : '▶ Play';
+    bar.querySelector('[data-a="sound"]').setAttribute('aria-pressed', String(S.sound));
+    bar.querySelector('[data-a="labels"]').setAttribute('aria-pressed', String(S.padLabels));
+  }
+  function stage(on){
+    S.stage=on; S.sound=false;
+    let bar=$p('stageBar');
+    if(on && !bar){
+      bar=document.createElement('div'); bar.className='stagebar'; bar.id='stageBar';
+      bar.innerHTML=`<button type="button" data-a="go"></button><button type="button" data-a="sound">Sound</button><button type="button" data-a="labels" title="The labels on the pads and levers">Pad labels</button><button type="button" data-a="exit">Exit</button>`;
+      bar.onclick=e=>{ const a=e.target.closest('button')?.dataset.a;
+        if(a==='go') S.state==='idle'? start() : stop();
+        else if(a==='sound'){ S.sound=!S.sound; body(); }
+        else if(a==='labels'){ S.padLabels=!S.padLabels; body(); }
+        else if(a==='exit') stage(false); };
+      document.body.append(bar);
+    }
+    if(!on) bar?.remove();
+    const fs=document.fullscreenElement;
+    if(on && !fs) document.documentElement.requestFullscreen?.().catch(()=>{});
+    if(!on && fs) document.exitFullscreen?.().catch(()=>{});
+    body();
+  }
+  document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement && S.stage) stage(false); });   // Esc or back left it
+  addEventListener('keydown',e=>{ if(e.key==='Escape' && S.stage && !document.fullscreenElement) stage(false); });
   async function loops(){
     if(S.inputs) return S.inputs;
     const local=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
@@ -303,6 +346,7 @@ const Play = (()=>{
     }
     document.querySelectorAll('#side tr.hot').forEach(r=>r.classList.remove('hot'));
     for(const id of S.hot) paintRow(id);
+    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     midiRefs=null;   // the labels may have changed
     for(const id in S.mval) paintMv(id);
     const side=document.getElementById('side');

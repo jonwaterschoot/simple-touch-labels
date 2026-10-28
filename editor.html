@@ -458,8 +458,8 @@ function buildStyle(){
     const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
     path.addEventListener('input',ok);
     form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate as an SVG (an image is wrapped in one). Put it at that path in your repository, e.g. <code>img/faceplate.svg</code> or <code>docs/img/faceplate.svg</code>; the Repository kit has it in place. The library reads it from there.`}),
-      el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download faceplate.svg',onclick:downloadFaceplate})));
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place. The library reads it from there.`}),
+      el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpName(),onclick:downloadFaceplate})));
   }
   if(doc.faceplate){
     const f=fpStyle(), setF=patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); };
@@ -679,7 +679,7 @@ $('htmlBtn').onclick=()=>{
 /* labels, design and font: the saved file, and the repository's simple-touch-labels.json */
 const customFp=()=>doc.faceplate && !doc.faceplateRef;
 const fpName=()=>fpFile().split('/').pop();
-function downloadFaceplate(){ downloadText(fpName(), doc.faceplate, 'image/svg+xml'); }
+function downloadFaceplate(){ const f=fpFileData(); download(f.name, URL.createObjectURL(new Blob([f.data],{type:f.type}))); }
 const labelFileText=()=>{ const out=cleanData(); if(customFp()){ out.faceplate=fpFile(); delete out.faceplateFile; } out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
 $('saveBtn').onclick=()=>{
   downloadText(slug()+'.json', labelFileText(), 'application/json');
@@ -700,7 +700,7 @@ $('openFile').onchange=async e=>{
       doc=await resolveFaceplate(normalise(d));
       if(!doc.faceplate && doc.faceplateFile){   // the faceplate is a file: the one open here, or the repository's
         if(had && had.file===doc.faceplateFile) doc.faceplate=had.fp;
-        else { const r=await repoFile(doc.firmware.repo, doc.faceplateFile, MAX_FACEPLATE); if(r) doc.faceplate=r.text;
+        else { const svg=await repoFaceplate(doc.firmware.repo, doc.faceplateFile); if(svg) doc.faceplate=svg;
           else flash(`This file names its faceplate ${doc.faceplateFile}, which is not in the repository yet. Upload it again under Style.`); }
       }
       if(doc.faceplate) doc.faceplate=sanitizeFaceplate(doc.faceplate); setFaceplate(doc.faceplate, doc.faceplateRef); UI.start='';
@@ -853,7 +853,8 @@ function howTo(k){
     '  Already have a README? Copy the parts you want into it.','',
     k.img, '  The control map the README shows. Keep it at this path.','',
     LABEL_FILE, '  Your labels, for the root of the repository. The Simple Touch library',
-    '  shows them, and the designer opens them again (Open file...).','',
+    '  shows them in your look, and the designer opens them again (Open file...).','',
+    ...(customFp()? [fpFile(), `  Your faceplate. ${LABEL_FILE} names it at this path, so keep it here.`,''] : []),
     ...(k.probs.length? ['Community directory entry: not included yet.', `  ${k.probs[0]}`]
       : [`community-entry/${k.id}.json`, k.listed? `  Already listed as projects/${k.id}.json. Only needed if the entry changed.`
         : `  Lists the firmware in the Synthux community directory: add it as projects/${k.id}.json`,
@@ -906,7 +907,7 @@ $('kitZip').onclick=async()=>{
   $('kitBusy').textContent='Making the .zip…';
   try{
     const png=new Uint8Array(await (await fetch(await kitImage(k.o))).arrayBuffer()), base=`${k.id}-repository-kit/`;
-    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...(customFp()? [{name:base+fpFile(),data:doc.faceplate}] : [])];
+    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...(customFp()? [{name:base+fpFile(),data:fpFileData().data}] : [])];
     if(!k.probs.length) files.push({name:`${base}community-entry/${k.id}.json`,data:dirJSON(k.entry)});
     download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
     $('kitBusy').textContent='';

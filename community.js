@@ -48,6 +48,20 @@ async function repoFile(repo, path, max=MAX_FILE){
     return {path:decodeURIComponent(p), text, url: gh? `${repo}/blob/HEAD/${p}` : `${repo}/src/branch/HEAD/${p}`};
   }catch(e){ return null; }
 }
+/* A faceplate file named by a label file: an SVG as it is, an image wrapped as an upload is (imageFaceplate) */
+async function repoFaceplate(repo, path){
+  if(!FP_PATH.test(path||'')) return null;
+  if(/\.svg$/i.test(path)){ const f=await repoFile(repo, path, MAX_FACEPLATE); return f && f.text; }
+  const r=repoParts(repo); if(!r) return null;
+  const p=path.split('/').map(encodeURIComponent).join('/');
+  const url= r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${p}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${p}`;
+  try{
+    const res=await fetch(url); if(!res.ok) return null;
+    const blob=await res.blob(); if(blob.size>MAX_FACEPLATE) return null;
+    const ext=path.split('.').pop().toLowerCase(), type={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'}[ext];
+    return (await imageFaceplate(new Blob([blob],{type}))).svg;
+  }catch(e){ return null; }
+}
 async function repoReadme(repo){
   for(const n of ['README.md','readme.md','Readme.md']){ const f=await repoFile(repo,n); if(f) return f; }
   return null;
@@ -99,7 +113,7 @@ async function readRepoNow(p){
   if(lf){
     let d=null; try{ d=labelFileDoc(JSON.parse(lf.text), p.repo); }catch(e){}
     if(d){
-      if(d.faceplateFile){ const fp=await repoFile(p.repo, d.faceplateFile, MAX_FACEPLATE); d.faceplate= fp? fp.text : ''; }
+      if(d.faceplateFile) d.faceplate=await repoFaceplate(p.repo, d.faceplateFile) || '';
       try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
       for(const k of ['name','author','description','repo','authorUrl']) if(!d.firmware[k].trim()) d.firmware[k]=base.firmware[k];
       return {doc:d, source:'file', files:[lf]};
