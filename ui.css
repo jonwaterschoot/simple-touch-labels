@@ -485,4 +485,25 @@ button.cswatch[data-open] { outline:2px solid var(--active); outline-offset:1px;
 .xsl { display:flex; align-items:center; gap:6px; font-size:13px; }
 .xsl input[type=range] { width:110px; accent-color:var(--active); padding:0; border:0; background:none; }
 .xsl output { min-width:3.2em; font-variant-numeric:tabular-nums; color:var(--muted); }
-@media (max-width:700px) { .xbar { flex-wrap:wrap; } }
+.xacts { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+/* phones: the whole screen, the minimap beside the look / paper choices, actions and sliders full width
+   below, so the bar stays short and the sheet gets the room */
+@media (max-width:700px) {
+  dialog.xprev { width:100vw; height:100dvh; margin:0; border-width:0; }
+  .xbar { display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 12px; padding:10px 12px; max-height:55dvh; overflow:auto; }
+  .xopts, .xopts > .xrow:first-child { display:contents; }
+  .xbar > [data-mm] { grid-column:1; grid-row:1 / span 4; }
+  .xrow:first-child > :is(.cap, .sp) { display:none; }
+  .xrow:first-child > :is([data-look], [data-paper], [data-orient], .xchk) { grid-column:2; }
+  .xacts, .xopts > .xrow:not(:first-child) { grid-column:1 / -1; }
+  .xacts { gap:5px; }
+  .xbar button { padding:5px 7px; font-size:12px; }
+  .xchk { font-size:12px; }
+  .xrow[data-sliders] { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+  .xsl { display:grid; grid-template-columns:1fr auto; gap:0 6px; font-size:12px; }
+  .xsl input[type=range] { grid-row:2; grid-column:1 / -1; width:100%; }
+  .xsl output { grid-row:1; grid-column:2; min-width:0; }
+  [data-slreset] { grid-column:1 / -1; justify-self:start; }
+  .xrow .hint { font-size:12px; }
+  .xscroll { padding:12px; }
+}

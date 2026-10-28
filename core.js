@@ -1299,8 +1299,8 @@ function openExportPreview(cfg){
         <div class="xrow"><span class="cap">Export preview</span><div class="seg" data-look></div>
           <div class="seg" data-paper></div><div class="seg" data-orient></div>
           <label class="xchk"><input type="checkbox" data-stamp> Date and version</label>
-          <span class="sp"></span><span class="status" data-busy></span>
-          <button type="button" class="primary" data-png>Download PNG</button><button type="button" data-pdf>Download PDF</button><button type="button" data-print>Print…</button><button type="button" data-close>Close</button></div>
+          <span class="sp"></span><div class="xacts"><span class="status" data-busy></span>
+          <button type="button" class="primary" data-png>Download PNG</button><button type="button" data-pdf>Download PDF</button><button type="button" data-print>Print…</button><button type="button" data-close>Close</button></div></div>
         <div class="xrow" data-sliders>${XSLIDERS.map(([k,l,min,max,step])=>`<label class="xsl"><span>${l}</span><input type="range" data-sl="${k}" min="${min}" max="${max}" step="${step}"><output></output></label>`).join('')}
           <button type="button" data-slreset>Reset sizes</button></div>
         <div class="xrow"><span class="hint" data-size></span></div>
