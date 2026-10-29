@@ -54,7 +54,6 @@
     <div class="grp"><span class="cap">Start from</span><div class="seg" id="startSeg"></div></div>
     <div class="grp"><span class="cap">Reference names</span><div class="seg" id="refSeg"></div><div class="seg" id="refModeSeg" data-why="Pick a reference set first"></div></div>
     <div class="grp"><span class="cap">Table</span><div class="seg" id="tableSeg"></div></div>
-    <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
   <div class="bar">
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
@@ -230,13 +229,20 @@ function buildBars(){
   fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
   if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
   fs.value=UI.font;
-  // modes (doc.modes, core.js): the print set, or one mode, drawn and edited
-  const ml=modeList(); $('modeGrp').hidden=!ml.length;
-  if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; buildBars(); buildForm(); render(); });
-    $('modeSeg').querySelectorAll('button').forEach((b,i)=>b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}: this mode's labels` : 'The print set: the labels on a printed panel, as wide as fits every mode'); }
   syncBars();
 }
 /* the switch whose positions are modes; another switch keeps the modes, position for position */
+/* modes (doc.modes, core.js): the print set or one mode, drawn and edited. A bar that stays at the top of the
+   Labels tab while it scrolls, next to the fields it changes */
+function drawModeBar(){
+  const bar=$('modeBar'), ml=modeList(); if(!bar) return;
+  const cm=curMode(), sw=doc.modes? lab(SLOT[doc.modes.switch]) : '', sg=el('div',{className:'seg'});
+  seg(sg, [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(cm?.pos||'')===v, v=>{ V.mode=v; buildForm(); render(); });
+  sg.querySelectorAll('button').forEach((b,i)=>b.title= i? `${sw} ${ml[i-1].pos}: this mode's labels` : 'The print set: the labels on a printed panel, as wide as fits every mode');
+  const hint=el('span',{className:'hint',innerHTML: cm? `<b>${esc(cm.name)}</b> (${esc(sw)} ${esc(cm.pos)}): grey is the print set; type this mode's own, or <code>-</code> for none. Modifiers, extra labels and notes are shared.`
+    : 'The print set: what a printed panel shows, as wide as fits every mode. Pick a mode for its own labels.'});
+  bar.replaceChildren(el('span',{className:'cap',textContent:'Mode'}), sg, hint);
+}
 function setModeSwitch(v){
   const old=doc.modes;
   if(!v){ if(modeList().some(m=>Object.keys(m.labels).length) && !confirm('Remove the modes and their own labels? Ctrl+Z brings them back.')){ buildForm(); return; }
@@ -355,6 +361,7 @@ function buildForm(){
   for(const [k,l] of [['labels','Labels'],['style','Style']]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
   form.append(tabs);
   if(UI.tab==='style'){ buildStyle(); form.scrollTop=keepScroll; return; }
+  if(modeList().length){ form.append(el('div',{id:'modeBar',className:'modebar'})); drawModeBar(); }
   section('Firmware');
   const meta=el('div',{className:'meta'});
   for(const [k,t,max,cls] of [['name','Name',LIMITS.name,''],['author','Author',LIMITS.author,''],['version','Version',LIMITS.version,''],['description','Short description',LIMITS.desc,'full']]){
@@ -403,15 +410,14 @@ function buildForm(){
   if(doc.modes) for(const pos of MODE_POS[doc.modes.switch]){
     const inp=el('input',{maxLength:LIMITS.line,value:doc.modes.list.find(x=>x.pos===pos)?.name||'',placeholder:'not a mode'});
     inp.setAttribute('aria-label',`Mode at ${pos}`);
-    inp.oninput=()=>{ let x=doc.modes.list.find(x=>x.pos===pos); if(!x) doc.modes.list.push(x={pos,name:'',labels:{}}); x.name=inp.value; buildBars(); render(); };
+    inp.oninput=()=>{ let x=doc.modes.list.find(x=>x.pos===pos); if(!x) doc.modes.list.push(x={pos,name:'',labels:{}}); x.name=inp.value; drawModeBar(); render(); };
+    inp.onchange=()=>{ if(!$('modeBar') || !modeList().length) buildForm(); };
     mg.append(el('label',{},el('span',{textContent:pos.charAt(0).toUpperCase()+pos.slice(1)}),inp));
   }
   form.append(mg);
   if(REPO_RE.test(normRepo(doc.firmware.repo))) form.append(el('div',{className:'btns'},
     el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'A heading per switch position, such as ### Seq (SW2 Up), with that mode\'s controls under it',onclick:fillModes})));
 
-  const cm=curMode();
-  if(cm) form.append(el('p',{className:'hint modehint',innerHTML:`<b>Editing the ${esc(cm.name)} mode</b> (${esc(lab(SLOT[doc.modes.switch]))} ${esc(cm.pos)}). Grey text comes from the print set. Type to give this mode its own label, or a single <code>-</code> for none in this mode. Modifiers, extra labels and notes are shared by all modes.`}));
   for(const g of GROUPS){
     section(g.title,g.hint);
     const cols=[{k:'main',t:'Line 1',max:LIMITS.line},{k:'main_2',t:'Line 2 (smaller)',max:LIMITS.line2,cls:'l2'}];
