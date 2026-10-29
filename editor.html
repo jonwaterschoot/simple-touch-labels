@@ -107,7 +107,7 @@
 <dialog id="kitModal" class="kit">
   <form method="dialog" class="modal">
     <div class="mhead"><span>Repository kit</span><button value="cancel" class="tight">Close</button></div>
-    <p class="hint">Everything for your firmware's repository in one .zip: a README with the control map, your label file and the community directory entry. The install and build steps are suggestions; check them and fill in what is marked TODO. <a href="about.html#creators" target="_blank">How this works</a></p>
+    <p class="hint">Everything for your firmware's repository in one .zip: a README with the control map, your label file and the community directory entry. The install and build steps are suggestions; check them and fill in what is marked TODO. <code>HOW-TO.txt</code> in the .zip says where each file goes. Commit them to your <b>default branch</b> (usually <code>main</code>): the library reads nothing else. <a href="about.html#creators" target="_blank">How this works</a></p>
     <div class="kitopts">
       <div class="grp"><span class="cap">Built with</span><div class="seg" id="kitBuild"></div></div>
       <div class="grp"><span class="cap">Flashing</span><div class="seg" id="kitFlash"></div></div>
@@ -953,20 +953,29 @@ function kitState(){
   return {o, id, img, listed, entry, probs, readme:readmeMD(id,img,o)};
 }
 function howTo(k){
-  const name=oneLine(doc.firmware.name)||'Simple Touch firmware';
+  const name=oneLine(doc.firmware.name)||'Simple Touch firmware', fp=customFp()? fpFile() : '';
+  const files=[['README.md','the root (see step 1 if you have one)'], [k.img,'a new folder named docs at the root, even if you have one called doc'],
+    [LABEL_FILE,'the root'], ...(fp? [[fp,`this path: ${LABEL_FILE} names it`]] : []),
+    ...(k.probs.length? [] : [[`community-entry/${k.id}.json`,'not your repository: see step 4']])];
+  const w=Math.max(...files.map(f=>f[0].length));
   return [`${name}: repository kit from Simple Touch labels (${SITE})`,'',
-    'README.md',
-    '  A README for your repository: intro, control map, install and build.',
-    '  Check the install and build steps, and fill in what is marked TODO.',
-    '  Already have a README? Copy the parts you want into it.','',
-    k.img, '  The control map the README shows. Keep it at this path.','',
-    LABEL_FILE, '  Your labels, for the root of the repository. The Simple Touch library',
-    '  shows them in your look, and the designer opens them again (Open file...).','',
-    ...(customFp()? [fpFile(), `  Your faceplate. ${LABEL_FILE} names it at this path, so keep it here.`,''] : []),
-    ...(k.probs.length? ['Community directory entry: not included yet.', `  ${k.probs[0]}`]
-      : [`community-entry/${k.id}.json`, k.listed? `  Already listed as projects/${k.id}.json. Only needed if the entry changed.`
-        : `  Lists the firmware in the Synthux community directory: add it as projects/${k.id}.json`,
-        ...(k.listed? [] : [`  in a pull request to ${COMMUNITY.repo},`, '  or use Directory entry... in the designer.'])]),
+    'WHERE EVERYTHING GOES',
+    'Copy this folder\'s contents into your repository, keeping the folders as they are:','',
+    ...files.map(([f,t])=>`  ${f.padEnd(w)}  ->  ${t}`),'',
+    'STEPS','',
+    '1. README.md: a README for your repository (intro, control map, install and build).',
+    '   Check the install and build steps, and fill in what is marked TODO.',
+    '   Already have a README? Keep yours and copy in the parts you want, e.g. the control map:',
+    `     ![${name}: what each control does](${k.img})`,
+    '   That path counts from the root of the repository, so the README showing it has to be at the root too.','',
+    '2. Commit and push to your default branch (usually main). The library and the designer read the',
+    '   default branch only: files on another branch are not seen until that branch is merged.','',
+    `3. Check it: ${k.listed? `${SITE}?community=${k.id}` : 'Preview in library, in the designer,'} shows your labels in your look.`,
+    '   GitHub caches the raw files for a few minutes, so a fresh push can take that long to show.','',
+    ...(k.probs.length? ['4. Community directory entry: not included yet.', `   ${k.probs[0]}`]
+      : k.listed? [`4. Already listed in the community directory as projects/${k.id}.json. community-entry/${k.id}.json is only`, '   needed if the entry changed.']
+      : [`4. List the firmware in the Synthux community directory: add community-entry/${k.id}.json as projects/${k.id}.json`,
+         `   in a pull request to ${COMMUNITY.repo}, or use Directory entry... in the designer.`]),
     '', `More: ${SITE}about.html#creators`,''].join('\n');
 }
 let kitImg={key:'', url:''}, kitImgReq=0;
@@ -1053,7 +1062,7 @@ function pagesMD(k){
     `This folder is your manual as a page of its own: the drawing in your look, the control table, your notes and README, and Play when your label file approves a browser build. Made with [Simple Touch labels](${SITE}).`,'',
     '## On GitHub Pages','',
     `1. Check that \`${LABEL_FILE}\`${fp} is at the root of ${repo}, on its default branch. Online the page reads its labels from there, so later changes (a newly approved browser build, say) show up without exporting again.`,
-    '2. Make a folder `docs` at the root of the repository and copy everything in this folder into it: `docs/index.html`, `docs/core.js` and the rest, `.nojekyll` too. Commit and push.',
+    '2. Make a folder `docs` at the root of the repository (a new one: not a `doc` folder you may have) and copy everything in this folder into it: `docs/index.html`, `docs/core.js` and the rest, `.nojekyll` too. Commit and push to your default branch, the one Pages deploys from in step 3.',
     '3. On GitHub, open the repository\'s **Settings › Pages**. Under **Build and deployment**, set **Source** to **Deploy from a branch**, pick your default branch (usually `main`) and the folder **/docs**, and click **Save**.',
     `4. After a minute or two the page is live at ${link}. The **Actions** tab shows it being published (pages build and deployment).`,
     '5. Link to it from your README, so people find it.','',
