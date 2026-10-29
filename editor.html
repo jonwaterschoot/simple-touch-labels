@@ -231,6 +231,32 @@ function buildBars(){
   fs.value=UI.font;
   syncBars();
 }
+/* Browser builds on the repository's simple-touch-web branch, as simple-touch-web's workflow publishes them:
+   README.md lists them newest first, and each has a <name>.json with its file, abi and sha256. use(block) fills
+   in the emulator block. GitHub only: raw.githubusercontent.com sends the CORS header the page needs. */
+async function findBuilds(box, use){
+  const r=repoParts(normRepo(doc.firmware.repo));
+  if(!r || r.host!=='github.com'){ box.innerHTML='<p class="hint">Fill in <b>Repository</b> above with the firmware\'s GitHub repository first.</p>'; return; }
+  const raw=`https://raw.githubusercontent.com/${r.owner}/${r.name}/simple-touch-web/`, get=f=>fetch(raw+f,{cache:'no-store'}).then(x=>{ if(!x.ok) throw new Error(x.status); return x; });
+  box.innerHTML='<p class="hint">Looking…</p>';
+  let names=[];
+  try{ names=[...(await (await get('README.md')).text()).matchAll(/\[([A-Za-z0-9._-]+)\.wasm\]/g)].map(m=>m[1]); }catch(e){}
+  if(!names.length) try{ names=[(await (await get('latest.json')).json()).file.replace(/\.wasm$/,'')]; }catch(e){}
+  const builds=(await Promise.all([...new Set(names)].slice(0,8).map(n=>get(n+'.json').then(x=>x.json()).catch(()=>null))))
+    .filter(b=>b && typeof b.file==='string' && /^[0-9a-f]{64}$/.test(b.sha256||'') && b.abi===EMULATOR_ABI);
+  if(!builds.length){ box.innerHTML=`<p class="hint">No browser builds on the <code>simple-touch-web</code> branch of ${esc(r.owner+'/'+r.name)} yet. Add the workflow from the <a href="https://github.com/jonwaterschoot/simple-touch-web#publishing-a-build" target="_blank">simple-touch-web README</a> and push; when its run on the <a href="https://github.com/${escAttr(r.owner+'/'+r.name)}/actions" target="_blank">Actions tab</a> is green, try again.</p>`; return; }
+  const oled=el('input',{type:'checkbox',checked:!!doc.emulator?.oled});
+  box.replaceChildren(el('p',{className:'hint',innerHTML:'Newest first. Listen on the test bench, then <b>Use this build</b> to approve it: the block above is filled in, and Save file puts it in your label file.'}),
+    el('label',{className:'xchk'},oled,' The firmware drives the optional OLED'));
+  for(const b of builds){
+    const url=raw+b.file, on=doc.emulator?.sha256===b.sha256, when=String(b.built||'').replace('T',' ').slice(0,16);
+    box.append(el('div',{className:'build'+(on?' on':'')},
+      el('code',{textContent:b.file}),
+      el('span',{className:'hint',textContent:[when&&when+' UTC', b.source?.commit&&'from '+String(b.source.commit).slice(0,7)].filter(Boolean).join(' · ')}),
+      el('a',{href:'https://jonwaterschoot.github.io/simple-touch-web/demo/?wasm='+encodeURIComponent(url),target:'_blank',textContent:'Test bench ↗'}),
+      on? el('b',{textContent:'Approved'}) : el('button',{type:'button',className:'tight',textContent:'Use this build',onclick:()=>{ use({wasm:url, abi:b.abi, sha256:b.sha256, embed:'allowed', ...(oled.checked?{oled:true}:{})}); findBuilds(box,use); }})));
+  }
+}
 /* the switch whose positions are modes; another switch keeps the modes, position for position */
 /* modes (doc.modes, core.js): the print set or one mode, drawn and edited. A bar that stays at the top of the
    Labels tab while it scrolls, next to the fields it changes */
@@ -399,7 +425,10 @@ function buildForm(){
   links.querySelector('input').addEventListener('input',readEmu);   // the repository decides where a build may come from
   emu.append(el('label',{className:'full'},el('span',{textContent:'Browser build'}),ea));
   emuState();
-  form.append(emu, es);
+  // the builds the workflow published on the repository's simple-touch-web branch, to pick one instead of copying its block
+  const blist=el('div',{className:'builds'});
+  form.append(emu, es, el('div',{className:'fprow'},
+    el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })})), blist);
 
   // modes: a switch whose positions change what the other controls do
   section('Modes','When a switch changes what the other controls do, such as a playmode switch, name its positions: each becomes a mode in the Mode row. The labels without a mode are the print set, what goes on a printed panel, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
