@@ -62,7 +62,9 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [ ] Write the spec for `simple-touch-labels.json`: the `simple-touch-manual/3` fields, the library's extras (`emulator`, `midi`, creator look, faceplate path), what the library accepts and drops. A JSON Schema next to it, like the directory's `schema/`.
 - [ ] One page, "what a firmware repo carries": README, `simple-touch-labels.json`, faceplate (`img/faceplate.svg` or `.png`), `.bin` in releases, `.wasm` on the `simple-touch-web` branch, the two workflows.
 - [x] Import per mode: a README heading that names a switch position (`### Seq (SW2 Up)`) starts a mode section; the import fills from one mode, with a button per mode in the designer and the library (2026-10-28).
-- [ ] Modes in the format: per-mode labels tied to a switch position (TouchPlaited's SW2: Basic Pitch / Arp-Mel / Seq), printed as one set (the default mode plus line 2), and in the player relabelled live as the emulated switch moves. Modifiers as tapped mode switches work today. Decide after the TouchPlaited labels are done.
+- [x] Modes in the format (2026-10-29): `modes` next to `labels`, one switch, a name per position, each mode keeping only the labels that differ from the print set. Designer (Mode row, Modes section, fill from the README), library and web app (Mode row; labels follow the lever while playing), downloaded manual (a button and a printed page per mode).
+- [ ] Live labels from hardware: one small shared SysEx (`F0 7D 53 54 01 <SW1> <SW2> <pads lo> <pads hi> [page] F7`), sent by the firmware (TouchPlaited first, next to its telemetry) and so by its browser build too; the library reads it from Web MIDI input. Spec in simple-touch-web's README.
+- [ ] Modes not tied to a switch (a tapped pad such as FM BleepBloop's P1, TouchPlaited's Recording): tapped modifiers cover them as columns today; see whether `modes` should take a pad, or a `page` from the firmware.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 
 ## Library

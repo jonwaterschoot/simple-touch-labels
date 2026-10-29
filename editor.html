@@ -54,7 +54,7 @@
     <div class="grp"><span class="cap">Start from</span><div class="seg" id="startSeg"></div></div>
     <div class="grp"><span class="cap">Reference names</span><div class="seg" id="refSeg"></div><div class="seg" id="refModeSeg" data-why="Pick a reference set first"></div></div>
     <div class="grp"><span class="cap">Table</span><div class="seg" id="tableSeg"></div></div>
-    <div class="grp" id="modeGrp" hidden><span class="cap">Labels from mode</span><div class="seg" id="modeSeg"></div></div>
+    <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
   <div class="bar">
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
@@ -142,8 +142,8 @@
    ============================================================ */
 const KEY='simpleTouchManual.v1';
 let doc=emptyDoc();
-const V={theme:'panel', layout:'phone', ref:'sx', refMode:'both', focusId:null};
-const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main:true,second:true}, bwPreview:false, font:'Archivo', fontUrl:null, tableMode:'off', exWhat:'panel', exLook:'color', kit:null, imported:null};
+const V={theme:'panel', layout:'phone', ref:'sx', refMode:'both', focusId:null, mode:''};
+const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main:true,second:true}, bwPreview:false, font:'Archivo', fontUrl:null, tableMode:'off', exWhat:'panel', exLook:'color', kit:null};
 const $=id=>document.getElementById(id);
 const stage=$('stage'), form=$('formCol');
 let ready=false;
@@ -152,8 +152,8 @@ function snapshot(forShare){
   const d=cleanData();
   if(d.faceplateRef) delete d.faceplate;                 // example faceplates are fetched again
   else if(forShare) delete d.faceplate;                  // a custom faceplate is too big for a link
-  return {doc:d, V:{theme:V.theme,layout:V.layout,ref:V.ref,refMode:V.refMode},
-    UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit,imported:UI.imported},
+  return {doc:d, V:{theme:V.theme,layout:V.layout,ref:V.ref,refMode:V.refMode,mode:V.mode},
+    UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit},
     design};
 }
 async function restore(s){
@@ -230,24 +230,32 @@ function buildBars(){
   fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
   if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
   fs.value=UI.font;
-  // a README with a section per switch position: refill the labels from another mode
-  const im=UI.imported, modes= im && im.repo===doc.firmware.repo && im.modes.length>1;
-  $('modeGrp').hidden=!modes;
-  if(modes){ seg($('modeSeg'), im.modes.map(m=>[m.key,m.name]), v=>im.mode===v, pickMode);
-    $('modeSeg').querySelectorAll('button').forEach((b,i)=>b.title=`${lab(SLOT[im.modes[i].id])} ${im.modes[i].pos}: fill the labels from this mode's sections in the README`); }
+  // modes (doc.modes, core.js): the print set, or one mode, drawn and edited
+  const ml=modeList(); $('modeGrp').hidden=!ml.length;
+  if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; buildBars(); buildForm(); render(); });
+    $('modeSeg').querySelectorAll('button').forEach((b,i)=>b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}: this mode's labels` : 'The print set: the labels on a printed panel, as wide as fits every mode'); }
   syncBars();
 }
-/* the labels a script read for one mode (labelsOf, community.js), over the current ones; Ctrl+Z brings them back */
-const importedOf = (p, r) => r.source==='readme' && r.modes?.length>1? {id:p.id, repo:p.repo, modes:r.modes.map(({key,id,pos,name})=>({key,id,pos,name})), mode:null} : null;
-async function pickMode(key){
-  const im=UI.imported, m=im.modes.find(m=>m.key===key);
-  $('busy').textContent='Reading '+repoShort(im.repo)+'…';
-  const p=(await loadCommunity().catch(()=>[])).find(p=>p.id===im.id), r=p && await readRepo(p);
-  if(!r?.modes?.some(x=>x.key===key)){ flash('Could not read the modes from '+repoShort(im.repo)+' again.'); return; }
-  histRecord();
-  const l=labelsOf(r, key); doc.labels=l.labels; doc.modifiers=l.modifiers; im.mode=key;
+/* the switch whose positions are modes; another switch keeps the modes, position for position */
+function setModeSwitch(v){
+  const old=doc.modes;
+  if(!v){ if(modeList().some(m=>Object.keys(m.labels).length) && !confirm('Remove the modes and their own labels? Ctrl+Z brings them back.')){ buildForm(); return; }
+    histRecord(); doc.modes=null; V.mode=''; }
+  else if(old){ histRecord(); for(const m of old.list) m.pos=MODE_POS[v][MODE_POS[old.switch].indexOf(m.pos)]; old.switch=v; V.mode=''; }
+  else doc.modes={switch:v, list:[]};
   buildBars(); buildForm(); render();
-  flash(`Labels from ${m.name} (${lab(SLOT[m.id])} ${m.pos}). Ctrl+Z undoes.`);
+}
+/* the modes a script reads from the README (readmeLabels, modesFrom: community.js); the print set stays */
+async function fillModes(){
+  const repo=normRepo(doc.firmware.repo);
+  $('busy').textContent='Reading '+repoShort(repo)+'…';
+  const r=await readmeLabels(repo).catch(()=>null), md=r && modesFrom(r.ex);
+  $('busy').textContent='';
+  if(!md){ flash(r? 'The README has no section per switch position, such as ### Seq (SW2 Up).' : 'Could not read the README of '+repoShort(repo)+'.'); return; }
+  if(modeList().some(m=>Object.keys(m.labels).length) && !confirm('Replace the modes and their labels with the README\'s? Ctrl+Z brings them back.')) return;
+  histRecord(); doc.modes=md; V.mode='';
+  buildBars(); buildForm(); render();
+  flash(`Modes from the README: ${md.list.map(m=>m.name).join(', ')}. The print set is unchanged.`);
 }
 function applyChrome(){
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
@@ -278,13 +286,21 @@ const GROUPS = [
   {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
   {title:'Jacks and LED', kinds:['jack','led'], mods:false},
 ];
-function setPath(path,v){ if(path[0]==='firmware') doc.firmware[path[1]]=v; else (doc.labels[path[1]]||={})[path[2]]=v; }
-function getPath(path){ return path[0]==='firmware'?(doc.firmware[path[1]]||''):val(path[1],path[2]); }
+/* in a mode, a label field holds the mode's own text; empty, the print set's shows through */
+function setPath(path,v){
+  if(path[0]==='firmware'){ doc.firmware[path[1]]=v; return; }
+  const m=curMode(); if(!m){ (doc.labels[path[1]]||={})[path[2]]=v; return; }
+  const o=m.labels[path[1]] ||= {};
+  if(v.trim()) o[path[2]]=v; else { delete o[path[2]]; if(!Object.keys(o).length) delete m.labels[path[1]]; }
+}
+function getPath(path){ if(path[0]==='firmware') return doc.firmware[path[1]]||''; const m=curMode(); return m? ((m.labels[path[1]]||{})[path[2]]||'') : val(path[1],path[2]); }
 function el(tag,props={},...kids){ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; }
 function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
-  const e=el('input',{maxLength:max,className:cls,placeholder:ph}); e.dataset.path=path.join('.'); e.setAttribute('aria-label',aria||ph);
+  const m=path[0]==='labels' && curMode(), base=m? ((doc.labels[path[1]]||{})[path[2]]||'') : '';
+  const e=el('input',{maxLength:max,className:cls,placeholder:base||ph}); e.dataset.path=path.join('.'); e.setAttribute('aria-label',aria||ph);
   e.value=getPath(path);
-  e.addEventListener('input',()=>{ setPath(path,e.value); render(); });
+  const own=()=>e.classList.toggle('own', !!m && !!e.value.trim()); own();
+  e.addEventListener('input',()=>{ setPath(path,e.value); own(); render(); });
   if(slot) e.addEventListener('focus',()=>{ if(V.focusId!==slot){ V.focusId=slot; render(); } });
   return e;
 }
@@ -378,6 +394,24 @@ function buildForm(){
   emuState();
   form.append(emu, es);
 
+  // modes: a switch whose positions change what the other controls do
+  section('Modes','When a switch changes what the other controls do, such as a playmode switch, name its positions: each becomes a mode in the Mode row. The labels without a mode are the print set, what goes on a printed panel, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
+  const mg=el('div',{className:'meta modes'});
+  const msw=el('select',{innerHTML:'<option value="">No modes</option>'+Object.entries(MODE_POS).map(([id,ps])=>`<option value="${id}">${lab(SLOT[id])}: ${ps.join(', ')}</option>`).join('')});
+  msw.value=doc.modes?.switch||''; msw.setAttribute('aria-label','Mode switch'); msw.onchange=()=>setModeSwitch(msw.value);
+  mg.append(el('label',{},el('span',{textContent:'Switch'}),msw));
+  if(doc.modes) for(const pos of MODE_POS[doc.modes.switch]){
+    const inp=el('input',{maxLength:LIMITS.line,value:doc.modes.list.find(x=>x.pos===pos)?.name||'',placeholder:'not a mode'});
+    inp.setAttribute('aria-label',`Mode at ${pos}`);
+    inp.oninput=()=>{ let x=doc.modes.list.find(x=>x.pos===pos); if(!x) doc.modes.list.push(x={pos,name:'',labels:{}}); x.name=inp.value; buildBars(); render(); };
+    mg.append(el('label',{},el('span',{textContent:pos.charAt(0).toUpperCase()+pos.slice(1)}),inp));
+  }
+  form.append(mg);
+  if(REPO_RE.test(normRepo(doc.firmware.repo))) form.append(el('div',{className:'btns'},
+    el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'A heading per switch position, such as ### Seq (SW2 Up), with that mode\'s controls under it',onclick:fillModes})));
+
+  const cm=curMode();
+  if(cm) form.append(el('p',{className:'hint modehint',innerHTML:`<b>Editing the ${esc(cm.name)} mode</b> (${esc(lab(SLOT[doc.modes.switch]))} ${esc(cm.pos)}). Grey text comes from the print set. Type to give this mode its own label, or a single <code>-</code> for none in this mode. Modifiers, extra labels and notes are shared by all modes.`}));
   for(const g of GROUPS){
     section(g.title,g.hint);
     const cols=[{k:'main',t:'Line 1',max:LIMITS.line},{k:'main_2',t:'Line 2 (smaller)',max:LIMITS.line2,cls:'l2'}];
@@ -695,14 +729,15 @@ $('fontModal').addEventListener('close',()=>{ if($('fontModal').returnValue!=='o
 /* ============================================================
    EXPORT / FILES / SHARE
    ============================================================ */
-const fileBase=()=>slug()+'-'+(UI.exLook==='print'?'print':V.theme)+'-'+V.layout;
+const modeSlug=()=>{ const m=curMode(); return m? '-'+m.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') : ''; };
+const fileBase=()=>slug()+modeSlug()+'-'+(UI.exLook==='print'?'print':V.theme)+'-'+V.layout;
 $('pngBtn').onclick=()=>{
   const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
   const W=UI.exWhat;
   openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(),
     include:{table:['table','all'].includes(W), notes:['notes','all'].includes(W)},
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? tableHTML(UI.tableMode==='blank') : '', withNotes:inc.notes,
-      fileBase:slug()+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+      fileBase:slug()+modeSlug()+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.table&&inc.notes? 'all' : inc.table? 'table' : inc.notes? 'notes' : 'panel'; UI.exLook=look; autosave(); }});
 };
 $('htmlBtn').onclick=()=>{
@@ -1045,13 +1080,11 @@ $('appZip').onclick=async()=>{
       $('busy').textContent='Reading '+repoShort(p.repo)+'…';
       const r=await readRepo(p);
       doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx';
-      UI.imported=importedOf(p, r); if(UI.imported) UI.imported.mode=r.mode;
-      const m=UI.imported?.modes.find(m=>m.key===r.mode);
-      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}${m? `, from the ${m.name} mode (pick another under Labels from mode)` : ''}. Check every one.`
+      V.mode='';
+      const ml=modeList();
+      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}${ml.length? `, with ${ml.length} modes; the print set is the ${r.modes[0].name} mode's, so widen it where the modes differ` : ''}. Check every one.`
         : r.source==='file'? `Opened ${LABEL_FILE} from the repository.` : '';
     }
-    // imported before the script knew modes: offer them, without touching the labels
-    else if(p && doc.firmware.repo===p.repo && !UI.imported){ const r=await readRepo(p); UI.imported=importedOf(p, r); }
   }
   if(q.has('ref')) V.ref= REF_SETS[q.get('ref')]? q.get('ref') : '';
   if(THEME_NAMES.some(t=>t[0]===q.get('theme'))) V.theme=q.get('theme');

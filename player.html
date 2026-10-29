@@ -37,6 +37,7 @@
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
     <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
+    <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
   <section class="play" id="play" hidden></section>
@@ -60,7 +61,7 @@
 <script>
 const LIBRARY='https://jonwaterschoot.github.io/simple-touch-labels/';
 let doc=emptyDoc();
-const V={theme:'panel', layout:'phone', ref:'', refMode:'empty', focusId:null};
+const V={theme:'panel', layout:'phone', ref:'', refMode:'empty', focusId:null, mode:''};
 const UI={theme:'panel', libTheme:'panel', arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, repo:'', from:''};
 const $=id=>document.getElementById(id);
 let ready=false;
@@ -77,10 +78,16 @@ function buildBars(){
     const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
+  // modes (doc.modes, core.js): all of them (the print set) or one; while playing, the lever picks
+  const ml=modeList(); $('modeGrp').hidden=!ml.length;
+  if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; update(); });
+    $('modeSeg').querySelectorAll('button').forEach((b,i)=>{ b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}` : 'The labels for every mode, as printed'; b.disabled=Play.on; }); }
   const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
   $('partGrp').hidden=!sec;
   for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
 }
+/* the mode switch moved while playing (play.js): the labels on the drawing are drawn again there; the toolbar and table here */
+function onModeChange(){ buildBars(); const t=$('sideTable'); if(t){ t.innerHTML=tableHTML(false); Play.table(); } }
 /* The Creator theme: the label file's own colours, sizes, font and drawing (doc.look); the other themes are the library's */
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
 function syncLook(){
@@ -136,7 +143,7 @@ function update(){
   $('intro').textContent=[fw.description, fw.author&&'By '+fw.author+(fw.version?' · v'+fw.version:'')+'.'].filter(Boolean).join(' ')||'Firmware for the Synthux Simple Touch.';
   $('nav').innerHTML=(repo? `<a href="${escAttr(repo)}" target="_blank">Repository ↗</a>` : '')+`<a href="${LIBRARY}" target="_blank">Simple Touch library ↗</a>`;
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
-  $('side').innerHTML= tableHTML(false)+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`;
+  $('side').innerHTML= `<div id="sideTable">${tableHTML(false)}</div>`+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`;
   Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
   readmeSection(repo);

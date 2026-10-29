@@ -100,7 +100,7 @@ function labelFileDoc(d, repo){
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
     modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y)})),
-    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo),
+    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo), modes:s.modes,
     // the creator's look, and their faceplate: a file in the repository (read by readRepoNow) or, in older files, the SVG itself
     look:lookOf(d), faceplateFile:s.faceplateFile, faceplate: typeof s.faceplate==='string' && s.faceplate.trim().startsWith('<')? s.faceplate : '',
     fpStyle:safeFpStyle(d.fpStyle)};
@@ -130,14 +130,20 @@ async function readRepoNow(p){
       return {doc:d, source:'file', files:[lf]};
     }
   }
-  const rd=await repoReadme(p.repo);
+  const rd=await readmeLabels(p.repo);
   if(!rd) return {doc:base, source:'none', files:[]};
-  const files=[rd];
-  for(const path of manualLinks(rd.text)){ const f=await repoFile(p.repo,path); if(f) files.push(f); }
-  const ex=extractLabels(files);
+  const {files, ex}=rd;
   if(!ex.found.length) return {doc:base, source:'none', files};
-  base.labels=ex.labels; base.modifiers=ex.modifiers;
-  return {doc:base, source:'readme', files, found:ex.found, modes:ex.modes, modSeen:ex.modSeen, mode:ex.mode};
+  base.labels=ex.labels; base.modifiers=ex.modifiers; base.modes=modesFrom(ex);
+  return {doc:base, source:'readme', files, found:ex.found, modes:ex.modes};
+}
+
+/* a repository's README and the manual it links to, and the labels a script reads from them; null without a README */
+async function readmeLabels(repo){
+  const rd=await repoReadme(repo); if(!rd) return null;
+  const files=[rd];
+  for(const path of manualLinks(rd.text)){ const f=await repoFile(repo,path); if(f) files.push(f); }
+  return {files, ex:extractLabels(files)};
 }
 
 /* ============================================================
@@ -251,6 +257,19 @@ function extractLabels(files){
   found.sort((x,y)=>order.indexOf(x.id)-order.indexOf(y.id) || (x.key==='main'? -1 : y.key==='main'? 1 : x.key.localeCompare(y.key)) || mi(x.mode)-mi(y.mode));
   const ex={found, modes:ms, modSeen, mode:ms[0]?.key||''};
   return {...ex, ...labelsOf(ex, ex.mode)};
+}
+/* the modes a script read, as a doc's modes (cleanModes, core.js): where the modes differ, each keeps its own
+   label; where they agree, the print set (the first mode's, from extractLabels) holds it alone */
+function modesFrom(ex){
+  if(ex.modes.length<2) return null;
+  const per=ex.modes.map(m=>labelsOf(ex,m.key).labels), keys=new Set();
+  for(const l of per) for(const [id,o] of Object.entries(l)) for(const k of Object.keys(o)) keys.add(id+'|'+k);
+  const list=ex.modes.map(m=>({pos:m.pos, name:m.name, labels:{}}));
+  for(const ik of keys){
+    const [id,k]=ik.split('|'), vs=per.map(l=>(l[id]||{})[k]||'');
+    if(!vs.every(v=>v===vs[0])) vs.forEach((v,i)=>{ if(v) (list[i].labels[id] ||= {})[k]=v; });
+  }
+  return cleanModes({switch:ex.modes[0].id, list});
 }
 /* the panel for one mode: its own labels first, then what's outside every mode; best tier, then first seen */
 function labelsOf(ex, mode){

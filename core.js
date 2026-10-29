@@ -186,7 +186,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -199,6 +199,7 @@ function normalise(d){
   s.modTypes = {...(d.modTypes||{})};
   s.fpStyle = {...(d.fpStyle||{})};
   s.emulator = emulatorOf(d.emulator, (d.firmware||{}).repo);
+  s.modes = cleanModes(d.modes);
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
     s.modifiers=['P10','P11'];
@@ -285,8 +286,35 @@ function cleanData(){
   const mt=Object.fromEntries(mods().filter(isToggle).map(m=>[m,'toggle'])); if(Object.keys(mt).length) out.modTypes=mt;
   if(Object.keys(doc.offsets.phone).length||Object.keys(doc.offsets.desktop).length) out.offsets=doc.offsets;
   if(doc.emulator) out.emulator=doc.emulator;
+  const md=cleanModes(doc.modes); if(md) out.modes=md;
   return out;
 }
+/* Modes: a switch whose positions change what the controls do, e.g. a playmode switch.
+   {switch:'S07_S08', list:[{pos:'up', name:'Seq', labels:{S31:{main:'Tempo'}}}, …]}
+   `labels` stays the print set: what goes on a printed panel, as wide as fits every mode, and all that
+   readers of simple-touch-manual/3 see. A mode keeps only what differs from it; "-" means nothing in that
+   mode. Positions without a name aren't modes. From any file, so only plain values pass. */
+const MODE_POS = {S07_S08:['up','centre','down'], S09_S10:['left','centre','right']};
+function cleanModes(m){
+  if(!m || typeof m!=='object' || !MODE_POS[m.switch] || !Array.isArray(m.list)) return null;
+  const str=(v,n)=>typeof v==='string'? v.slice(0,n).trim() : '', list=[];
+  for(const x of m.list){
+    if(!x || typeof x!=='object' || !MODE_POS[m.switch].includes(x.pos) || list.some(y=>y.pos===x.pos) || !str(x.name,LIMITS.line)) continue;
+    const labels={};
+    for(const [id,o] of Object.entries(x.labels||{})){
+      if(!SLOT[id] || !o || typeof o!=='object') continue;
+      const c={}; for(const [k,v] of Object.entries(o)){ const t=/^(main|main_2|m_[PS]\d\d|midi)$/.test(k) && str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2); if(t) c[k]=t; }
+      if(Object.keys(c).length) labels[id]=c;
+    }
+    list.push({pos:x.pos, name:str(x.name,LIMITS.line), labels});
+  }
+  list.sort((a,b)=>MODE_POS[m.switch].indexOf(a.pos)-MODE_POS[m.switch].indexOf(b.pos));
+  return list.length? {switch:m.switch, list} : null;
+}
+const modeList = () => (doc.modes && MODE_POS[doc.modes.switch]? doc.modes.list.filter(m=>m.name&&m.name.trim()) : []);
+const curMode = () => V.mode? modeList().find(m=>m.pos===V.mode)||null : null;
+/* draw or read with another mode for a moment ('' = the print set) */
+function withMode(pos, fn){ const keep=V.mode; V.mode=pos; try{ return fn(); } finally{ V.mode=keep; } }
 
 /* Starting points: labels checked against each firmware's repo (README and UI code).
    The Touch FX and Touch String faceplates are Synthux artwork, supplied via Fabio Bartali.
@@ -352,7 +380,8 @@ function buildHosted(wasm, repo){
 }
 const safeHttps = url => /^https:\/\/[^\s"'<>]+$/.test(url||'') ? url : '';
 
-const val = (id,k) => ((doc.labels[id]||{})[k]||'');
+/* a label as drawn: the mode's own (V.mode), else the print set's */
+const val = (id,k) => { const o=curMode()?.labels[id], v=o&&o[k]; if(v&&v.trim()) return v.trim()==='-'? '' : v; return (doc.labels[id]||{})[k]||''; };
 const has = (id,k) => val(id,k).trim()!=='';
 const slotName = id => has(id,'main')? val(id,'main').trim() : (SLOT[id]?lab(SLOT[id]):id);
 
@@ -1479,20 +1508,27 @@ async function panelPNG({th, layout, parts}){
 function manualHTML({font, fontUrl, withTable}){
   const d=cleanData(), fw=d.firmware, sec=hasSecondary(), parts= sec? ['main','second'] : ['main'];
   const screenTh= V.theme==='print'? 'panel' : V.theme, themes=[screenTh,'print'];
+  // with modes: the drawings and the table once per mode (md-0 is the print set), a button each; printing gives a page per mode
+  const ml=modeList(), modes=[{pos:'',name:'All modes'}, ...ml], cur=Math.max(0, modes.findIndex(m=>m.pos===(curMode()?.pos||'')));
+  const cap=m=> ml.length? `<figcaption class="mname">${esc(m.name)}${m.pos? ` · ${esc(slotName(doc.modes.switch))} ${esc(m.pos)}` : ''}</figcaption>` : '';
   const figs=[]; const keepBW=bw; bw=false;
-  for(const th of themes) for(const pt of parts){
-    const cls=th==='print'?'t-light':'t-dark';
-    figs.push(`<figure class="phone ${cls} v-${pt}">${svgOf(buildPhone(true,th,pt))}</figure>`);
-    figs.push(`<figure class="desktop ${cls} v-${pt}">${svgOf(buildDesktop(true,th,pt))}</figure>`);
-  }
+  modes.forEach((m,i)=>withMode(m.pos,()=>{
+    for(const th of themes) for(const pt of parts){
+      const cls=`${th==='print'?'t-light':'t-dark'} v-${pt} md-${i}`;
+      figs.push(`<figure class="phone ${cls}">${cap(m)}${svgOf(buildPhone(true,th,pt))}</figure>`);
+      figs.push(`<figure class="desktop ${cls}">${cap(m)}${svgOf(buildDesktop(true,th,pt))}</figure>`);
+    }
+  }));
   if(sec){ bw=true;   // black-and-white print version of the secondary view
-    figs.push(`<figure class="desktop t-light v-second bw">${svgOf(buildDesktop(true,'print','second'))}</figure>`);
+    figs.push(`<figure class="desktop t-light v-second bw md-0">${svgOf(withMode('',()=>buildDesktop(true,'print','second')))}</figure>`);
   }
   bw=keepBW;
+  const tables= withTable? modes.map((m,i)=>`<section class="md-${i}">${withMode(m.pos,()=>tableHTML(false))}</section>`).join('\n') : '';
+  const modeCss= ml.length? modes.map((m,i)=>`html:not(.md-${i}) .md-${i}`).join(',')+'{display:none!important}' : '';
   const dk=pageInk(screenTh), lt=pageInk('print'), fHref=labelFontHref(font,fontUrl);
   const modVars=[1,2,3,4].map(i=>`--m${i}:${palOf('phone',screenTh)['m'+i]}`).join(';');
   const html=`<!DOCTYPE html>
-<html lang="en" class="${V.theme==='print'?'light':''}"><head><meta charset="utf-8">
+<html lang="en" class="${V.theme==='print'?'light':''} md-${cur}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Simple Touch Manual Designer (build ${BUILD}), after Fabio Bartali's Manual Designer">
 <title>${esc(fw.name||'Simple Touch')} manual</title>
@@ -1516,6 +1552,8 @@ figure{margin:0 auto;padding:8px 0 24px}
 figure > svg{display:block;width:100%;height:auto;max-height:calc(100vh - 40px)}
 .phone{max-width:560px}.desktop{display:none;max-width:1500px}
 html:not(.light) .t-light, html.light .t-dark, html:not(.sec) .v-second, html.sec .v-main, figure.bw{display:none!important}
+${modeCss}
+.mname{display:block;font:700 14px Archivo,sans-serif;color:var(--muted);margin:0 0 6px}
 @media (min-width:880px){.phone{display:none}.desktop{display:block}}
 section{max-width:760px;margin:0 auto 32px}
 ${DOC_CSS}
@@ -1533,9 +1571,9 @@ footer a{color:inherit}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${panelDefs()}</defs></svg>
 <main>
 <header><h1>${esc(fw.name||'Simple Touch')}</h1>${fw.author||fw.version?`<p class="by">${esc([fw.author,fw.version&&'v'+fw.version].filter(Boolean).join(' · '))}</p>`:''}${fw.description?`<p>${esc(fw.description)}</p>`:''}${REPO_RE.test(normRepo(fw.repo))?`<p><a href="${escAttr(normRepo(fw.repo))}">${esc(repoShort(normRepo(fw.repo)))}</a></p>`:''}</header>
-<div class="tools">${sec?'<div class="seg" role="group" aria-label="Functions"><button type="button" data-part="main" aria-pressed="true">Main functions</button><button type="button" data-part="second" aria-pressed="false">Secondary functions</button></div>':''}<span class="sp"></span><button type="button" id="themeBtn"></button><button type="button" onclick="print()">Print</button></div>
+<div class="tools">${ml.length?`<div class="seg" role="group" aria-label="Mode">${modes.map((m,i)=>`<button type="button" data-mode="${i}" aria-pressed="${i===cur}">${esc(m.name)}</button>`).join('')}</div>`:''}${sec?'<div class="seg" role="group" aria-label="Functions"><button type="button" data-part="main" aria-pressed="true">Main functions</button><button type="button" data-part="second" aria-pressed="false">Secondary functions</button></div>':''}<span class="sp"></span><button type="button" id="themeBtn"></button><button type="button" onclick="print()">Print</button></div>
 ${figs.join('\n')}
-${withTable?`<section>${tableHTML(false)}</section>`:''}
+${tables}
 ${(fw.notes||'').trim()?`<section class="md">${md2html(fw.notes)}</section>`:''}
 <footer>Simple Touch panel drawing © Roey Tsemah (<a href="https://synthux.academy">Synthux Academy</a>), adapted via Fabio Bartali's <a href="https://bartali.nl/touch-fx-manual.html">Touch FX manual</a>. Made with the <a href="https://jonwaterschoot.github.io/simple-touch-labels/editor.html">Simple Touch manual designer</a>.<br>${esc(exportStamp())}</footer>
 </main>
@@ -1548,6 +1586,9 @@ ${(fw.notes||'').trim()?`<section class="md">${md2html(fw.notes)}</section>`:''}
   var parts=document.querySelectorAll('[data-part]');
   parts.forEach(function(x){ x.onclick=function(){ var p=x.getAttribute('data-part'); h.classList.toggle('sec',p==='second');
     parts.forEach(function(y){ y.setAttribute('aria-pressed',String(y===x)); }); }; });
+  var modes=document.querySelectorAll('[data-mode]');
+  modes.forEach(function(x){ x.onclick=function(){ modes.forEach(function(y){ h.classList.remove('md-'+y.getAttribute('data-mode')); y.setAttribute('aria-pressed',String(y===x)); });
+    h.classList.add('md-'+x.getAttribute('data-mode')); }; });
 })();
 <\/script>
 <script type="application/json" id="manual-data">${JSON.stringify({...d,faceplate:undefined}).replace(/</g,'\\u003c')}<\/script>

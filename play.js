@@ -209,6 +209,7 @@ const Play = (()=>{
         ()=>{ S.stopBoot=null; if(S.live) showOled(S.live.ram, S.live.info); });
       if(S.input!=='off') selectInput(S.input);
       keys(true);
+      if(doc.modes) V.mode=leverMode();
       refresh();
     }catch(err){
       if(run!==S.run) return;
@@ -224,6 +225,7 @@ const Play = (()=>{
     S.st=S.ctx=S.out=S.inGain=S.live=null;
     S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
     S.mode=null; S.held=[]; soloMod=null;
+    if(doc.modes) V.mode='';
     keys(false);
     say('');
     refresh();
@@ -369,9 +371,9 @@ const Play = (()=>{
   }
   /* A modifier in use: the drawing's labels show what it does (soloMod, core.js). A hold modifier while held,
      else the toggle tapped last. Only the labels are drawn again, so the controls being held stay held. */
-  function relabel(){
+  function relabel(force){
     const want= S.state!=='idle' && part==='main' ? (S.held.at(-1) || S.mode) : null;
-    if(want===soloMod) return;
+    if(want===soloMod && !force) return;
     soloMod=want;
     const over=S.svg?.querySelector(':scope > g.over'); if(!over) return;
     over.innerHTML=buildFor(V.layout)(true,V.theme,part,null).over;
@@ -592,7 +594,14 @@ const Play = (()=>{
   const svgPoint=(el,e)=>{ const m=el.getScreenCTM(); if(!m) return {x:0,y:0}; return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse()); };
   const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
   function setControl(id,v){ v=clamp(v); if(v===S.controls[id]) return; S.controls[id]=v; drawControl(id); S.st?.setControl(id,v); }
-  function setLever(id,pos){ S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); }
+  function setLever(id,pos){ S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); follow(); }
+  /* the mode switch (doc.modes, core.js): the labels follow its lever while playing; a position that isn't a mode shows them all */
+  const leverMode=()=>{ const sw=doc.modes?.switch; return S.state!=='idle' && sw && modeList().some(m=>m.pos===S.levers[sw])? S.levers[sw] : ''; };
+  function follow(){
+    if(!doc.modes || leverMode()===V.mode) return;
+    V.mode=leverMode(); relabel(true);
+    if(typeof onModeChange==='function') onModeChange();
+  }
   function pad(i,down,force=0.5){ const was=S.pads[i]!==undefined;
     if(down) S.pads[i]=force; else { delete S.pads[i]; S.latched.delete(i); } drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force);
     if(down!==was) modPad(padId(i),down); }

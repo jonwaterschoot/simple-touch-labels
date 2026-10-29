@@ -46,6 +46,7 @@
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
     <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
+    <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
   <section class="play" id="play" hidden></section>
@@ -106,7 +107,7 @@ const PIN_SHEET = ['https://docs.google.com/spreadsheets/d/1xtg_s1tk8tm-6qNkBLFc
 const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 
 let doc=emptyDoc();
-const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null};
+const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null, mode:''};
 const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, exWhat:'panel', exLook:'color'};
 const $=id=>document.getElementById(id);
 let ready=false;
@@ -126,6 +127,10 @@ function buildBars(){
     const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
+  // modes (doc.modes, core.js): all of them (the print set) or one; while playing, the lever picks
+  const ml=modeList(); $('modeGrp').hidden=!ml.length;
+  if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; update(); });
+    $('modeSeg').querySelectorAll('button').forEach((b,i)=>{ b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}` : 'The labels for every mode, as printed'; b.disabled=Play.on; }); }
   // greyed out rather than hidden, so the toolbar never shifts
   const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
   for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
@@ -151,7 +156,7 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
-  Play.reset();
+  Play.reset(); V.mode='';
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
   else if(src==='preview'){
@@ -204,8 +209,7 @@ function noticeHTML(editHref){
   if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
   const ms=r.modes||[], modeName=k=>ms.find(m=>m.key===k)?.name||'';
   const row=f=>`<tr><td><b>${esc(lab(SLOT[f.id]))}</b>${f.key==='main'?'':` <span class="k">+ ${esc(lab(SLOT[f.key.slice(2)]))}</span>`}</td><td>${esc(f.text)}</td>${ms.length>1?`<td>${esc(modeName(f.mode))}</td>`:''}<td class="k">${esc(f.line)}</td></tr>`;
-  // a README with a section per switch position: one mode at a time on the drawing
-  const modes= ms.length>1? `<p><b>Modes.</b> The README describes ${ms.length} on ${esc(lab(SLOT[ms[0].id]))}. The drawing shows one: <span class="seg">${ms.map(m=>`<button type="button" data-mode="${escAttr(m.key)}" aria-pressed="${m.key===r.mode}" title="${escAttr(lab(SLOT[m.id])+' '+m.pos)}">${esc(m.name)}</button>`).join('')}</span></p>` : '';
+  const modes= ms.length>1? `<p><b>Modes.</b> The README describes ${ms.length} on ${esc(lab(SLOT[ms[0].id]))}: ${ms.map(m=>esc(m.name)).join(', ')}. Pick one under Mode; <b>All modes</b> shows the first mode's labels where they differ.</p>` : '';
   return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete or shortened, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+modes+creator
     +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th>${ms.length>1?'<th>Mode</th>':''}<th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
 }
@@ -231,9 +235,7 @@ function update(){
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
   const nt=$('notice'); nt.hidden=!P&&!pv;
   nt.innerHTML= P? noticeHTML(editHref) : pv? previewHTML() : '';
-  nt.onclick=e=>{ const b=e.target.closest('[data-mode]'), r=UI.read; if(!b || !r?.modes) return;
-    const l=labelsOf(r, b.dataset.mode); r.mode=b.dataset.mode; doc.labels=l.labels; doc.modifiers=l.modifiers; update(); };
-  $('side').innerHTML= libTable()+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
+  $('side').innerHTML= `<div id="sideTable">${libTable()}</div>`+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
   Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
@@ -241,12 +243,14 @@ function update(){
   $('editLink').href=editHref;
   const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : pv? `?preview&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
 }
+/* the mode switch moved while playing (play.js): the labels on the drawing are drawn again there; the toolbar and table here */
+function onModeChange(){ buildBars(); const t=$('sideTable'); if(t){ t.innerHTML=libTable(); Play.table(); } }
 $('pngBtn').onclick=()=>{
   const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
   openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(), tableNotesOnly:true,
     include:{table:['table','all'].includes(UI.exWhat), notes:UI.exWhat==='all'},
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? libTable() : '', withNotes:inc.notes,
-      fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+      fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+(curMode()? '-'+curMode().pos : '')+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.notes? 'all' : inc.table? 'table' : 'panel'; UI.exLook=look; }});
 };
 /* drag the divider between drawing and table to set the drawing's width (kept per layout); double-click resets */
