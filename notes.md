@@ -98,6 +98,24 @@ Still leaking from outside the mode sections: the Recording section (a sub-mode 
 - The visualizer (`visualizer/`, Vite) talks to the hardware over MIDI telemetry and has a mock transport. A transport backed by the wasm build would let it run without hardware: the firmware's own page and the library playing the same build.
 - Settings persistence through `localStorage` would make the browser build remember its sound between visits.
 
+## Study: FM BleepBloop (Plugdata, 2026-10-29)
+
+`Synthux-Simple-Touch-Plugdata/FX-Instruments/FM_bleepbloop_touch/readme.md`: not in its own repository yet, so not for the library; read as a second worst case next to TouchPlaited. The importer finds 8 labels of about 30.
+
+What it misses, and would be worth reading:
+- **The summary table runs backwards**: `| Type | Control | Label / Pad / Pot |` puts the function first and the control last. The importer only looks right of the control cell.
+- **`Pot 0`–`Pot 5`**, zero-based (Pot 0 = S30), isn't a name it knows. `Left Fader`, `Switch 1/2` are.
+- **Pairs with alternatives**: `P11 + P4 (−), P11 + P6 (+)`, `P2 + P4 (toggle), P2 + P6 (randomize)`, `P11 + P4 / P6` in headings. One function as a − / + pair of pads is a common pattern (TouchPlaited's P0 + P10/P11 too); labels like `Chance −` / `Chance +` would fit.
+- **Pads with a range and one name**: `Pads P3–P9` with "Internal Sequencer Steps" before it.
+- False hit: `- P5 - rest - P5 - …` (an example sequence) reads as P5 = "Rest".
+
+What the format can't say yet:
+- **P1 is tapped and held**: tap = Simple / Array mode, hold + P3 / P7 = an action. A modifier is hold or tap, not both.
+- **Modes on a pad, not a switch**: Simple / Array is a pad toggle. Tapped modifiers cover it as a column, but the knobs' meaning barely changes, so it hardly matters here.
+- **Combos that toggle a state** (recording on / off, sequencer on / off): a label can name the function but not show the state; live labels from the firmware could.
+
+The README contradicts itself in places, worth fixing when it moves to its own repository: audio-in tap tempo is `P10 + P5` in the details but `P11 + P5` in the table and the update notes; `P10 + P11` says "hold P11, tap P10"; Switch 2 says "each time the randomizer P3 is triggered", where the randomizer is P0.
+
 ## Trust rule while builds live in forks
 
 The library plays a build only from the firmware's own repository (raw files or its owner's Pages), pinned by sha256. Builds of the officials made in `jonwaterschoot/<official>` forks are not that. Either keep them local (localhost is allowed), or add an explicit, visible allowlist ("unofficial build") in `core.js`. Never relax the rule silently.
