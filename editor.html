@@ -743,7 +743,7 @@ $('pngBtn').onclick=()=>{
   openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(),
     include:{table:['table','all'].includes(W), notes:['notes','all'].includes(W)},
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? tableHTML(UI.tableMode==='blank') : '', withNotes:inc.notes,
-      fileBase:slug()+modeSlug()+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+      fileBase:slug()+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.table&&inc.notes? 'all' : inc.table? 'table' : inc.notes? 'notes' : 'panel'; UI.exLook=look; autosave(); }});
 };
 $('htmlBtn').onclick=()=>{

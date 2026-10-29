@@ -1166,6 +1166,19 @@ function tableHTML(blank){
   return `<table class="ctab"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
 
+/* Several modes side by side (the export sheet): a column per mode, the function and, smaller, what the modifiers do */
+function modesTableHTML(list){
+  const ms=mods().filter(usesMod), name=p=> p? modeList().find(m=>m.pos===p)?.name||p : 'All modes';
+  const cells=id=>list.map(p=>withMode(p,()=>{
+    const fn=[val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
+    const mm=ms.filter(m=>m!==id && val(id,'m_'+m).trim()).map(m=>`<span class="k" style="display:block;color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(slotName(m))}: ${esc(val(id,'m_'+m))}</span>`).join('');
+    return fn||mm? `${esc(fn)}${mm}` : '';
+  }));
+  const rows=TABLE_ORDER.map(id=>{ const c=cells(id); if(c.every(x=>!x)) return '';
+    return `<tr data-id="${id}"><td><b>${esc(lab(SLOT[id]))}</b> <span class="k">${KIND_NAME[SLOT[id].kind]}</span></td>${c.map(x=>`<td>${x}</td>`).join('')}</tr>`; }).join('');
+  return `<table class="ctab"><thead><tr><th>Control</th>${list.map(p=>`<th>${esc(name(p))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 /* ============================================================
    SHARE LINKS: deflate + base64url in ?s=
    ============================================================ */
@@ -1314,13 +1327,22 @@ function balanceNotes(el){
 /* cfg: layout, stacked, include {table, notes}, look 'color' | 'print', notesOk (false hides the notes option),
    tableNotesOnly (the library: notes only together with the table), content(include, look) → {parts, th, tableHtml,
    withNotes, fileBase}, onChange(include, look) to keep the choice on the page */
+let xModes=null;   // the export's modes: their order and which are on (kept while the page is open)
 function openExportPreview(cfg){
   if(!window.htmlToImage){ alert('html-to-image did not load, so PNG export is not available.'); return; }
   const layout=cfg.layout, stacked=!!cfg.stacked, inc={table:false, notes:false, ...(cfg.include||{})};
+  // modes (doc.modes): which go on the sheet and in which order, the current one to start with
+  const ML=modeList(), names={'':'All modes', ...Object.fromEntries(ML.map(m=>[m.pos,m.name]))};
+  if(ML.length){ const all=Object.keys(names), keep=(xModes?.order||[]).filter(p=>all.includes(p));
+    xModes={order:[...keep, ...all.filter(p=>!keep.includes(p))], on:new Set([...(xModes?.on||[])].filter(p=>all.includes(p)))};
+    if(!xModes.on.size) xModes.on.add(curMode()?.pos||''); }
+  const chosen=()=> ML.length? xModes.order.filter(p=>xModes.on.has(p)) : [null];
+  const inMode=(p,f)=> p===null? f() : withMode(p,f);
+  const slugOf=t=>t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   let look=cfg.look||'color';
   const KEY='stManual.exportW.'+layout, DEF= layout==='desktop'? 760 : 480, OPT_KEY='stManual.exportOpts';
   let figW=DEF; try{ figW=+localStorage.getItem(KEY)||DEF; }catch(e){}
-  const opt={paper:'free', orient:'portrait', stamp:true, pad:null, fgap:null, tgap:null, fs:null}; try{ Object.assign(opt, JSON.parse(localStorage.getItem(OPT_KEY))||{}); }catch(e){}
+  const opt={paper:'free', orient:'portrait', stamp:true, pad:null, fgap:null, tgap:null, fs:null, cols:'auto'}; try{ Object.assign(opt, JSON.parse(localStorage.getItem(OPT_KEY))||{}); }catch(e){}
   const fw=doc.firmware, dlg=document.createElement('dialog');
   dlg.className='xprev';
   dlg.innerHTML=`<div class="xbar"><div data-mm></div>
@@ -1332,96 +1354,140 @@ function openExportPreview(cfg){
           <button type="button" class="primary" data-png>Download PNG</button><button type="button" data-pdf>Download PDF</button><button type="button" data-print>Print…</button><button type="button" data-close>Close</button></div></div>
         <div class="xrow" data-sliders>${XSLIDERS.map(([k,l,min,max,step])=>`<label class="xsl"><span>${l}</span><input type="range" data-sl="${k}" min="${min}" max="${max}" step="${step}"><output></output></label>`).join('')}
           <button type="button" data-slreset>Reset sizes</button></div>
+        <div class="xrow" data-arr></div>
         <div class="xrow"><span class="hint" data-size></span></div>
       </div></div>
     <div class="xscroll"></div>`;
   const q=sel=>dlg.querySelector(sel);
-  let ink, th, figs, tableHtml, notes, fileBase, sheet, page2, body, figBox, grip, figEls;
-  // (re)build the sheet for the current include / look
+  let ink, th, notes, fileBase, page2, PG=[], perMode=1;
+  // the drawings' sheets: one, or a page per mode. Each: {sheet, body, figBox, grip, figEls, wrapEls, figs, tableHtml, notesEl, cols}
+  const split=()=> ML.length && opt.split==='each' && chosen().length>1;
+  // (re)build the sheets for the current include / look / modes: the drawings of each mode in turn, a caption on each
   function fill(){
-    const c=cfg.content({...inc}, look), keepBW=bw;
-    th=c.th; tableHtml=c.tableHtml||''; fileBase=c.fileBase; notes= c.withNotes && (fw.notes||'').trim();
+    const sel=chosen(), c=inMode(sel[0], ()=>cfg.content({...inc}, look)), keepBW=bw, each=split();
+    th=c.th; notes= c.withNotes && (fw.notes||'').trim(); perMode=c.parts.length;
+    fileBase=c.fileBase+(!ML.length? '' : sel.length>1? '-modes' : sel[0]? '-'+slugOf(names[sel[0]]) : '');
     ink=pageInk(th);
-    figs=c.parts.map(p=>{ const r=buildFor(layout)(true,th,p), [,, vw, vh]=r.vb.split(' ').map(Number); return {r, vw, vh, img:svgDataURL(artImageSVG(r))}; });
-    bw=keepBW;
-    q('.xscroll').innerHTML=`<div class="xsheet" style="background:${ink.bg};color:${ink.fg};--hair:${ink.hair};--rule:${ink.rule};--muted:${ink.muted}">
-      <h1 class="xh1">${esc(fw.name||'Simple Touch')}</h1>
-      ${fw.description?`<p class="xdesc">${esc(fw.description)}</p>`:''}
+    const groups= each? sel.map(p=>[p]) : [sel], caps= ML.length && !each && !(sel.length===1 && sel[0]==='');
+    const tableOf=g=> !inc.table? '' : g.length>1? modesTableHTML(g) : inMode(g[0], ()=>cfg.content({...inc}, look).tableHtml||'');
+    const figsOf=g=>g.flatMap(p=>inMode(p,()=>c.parts.map(pt=>{ const r=buildFor(layout)(true,th,pt), [,, vw, vh]=r.vb.split(' ').map(Number); return {r, vw, vh, img:svgDataURL(artImageSVG(r)), cap: caps? names[p] : ''}; })));
+    const style=`background:${ink.bg};color:${ink.fg};--hair:${ink.hair};--rule:${ink.rule};--muted:${ink.muted}`;
+    const built=groups.map((g,gi)=>{ const figs=figsOf(g), tableHtml=tableOf(g), last=gi===groups.length-1;
+      return {figs, tableHtml, html:`<div class="xsheet" style="${style}">
+      <h1 class="xh1">${esc(fw.name||'Simple Touch')}${each? ' · '+esc(names[g[0]]) : ''}</h1>
+      ${fw.description && gi===0?`<p class="xdesc">${esc(fw.description)}</p>`:''}
       <div class="xbody">
-        <div class="xfigs">${figs.map(f=>`<div data-fig style="position:relative;flex:none"><img src="${f.img}" alt="" style="position:absolute;inset:0;width:100%;height:100%;display:block"><svg xmlns="http://www.w3.org/2000/svg" viewBox="${f.r.vb}" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">${f.r.over}</svg></div>`).join('')}
+        <div class="xfigs">${figs.map(f=>`<div class="xfig">${f.cap?`<div class="xcap">${esc(f.cap)}</div>`:''}<div data-fig style="position:relative;flex:none"><img src="${f.img}" alt="" style="position:absolute;inset:0;width:100%;height:100%;display:block"><svg xmlns="http://www.w3.org/2000/svg" viewBox="${f.r.vb}" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">${f.r.over}</svg></div></div>`).join('')}
           <div class="xgrip" title="Drag to resize the drawing · double-click to reset"><span></span></div></div>
         ${tableHtml?`<div class="xtable">${tableHtml}</div>`:''}
       </div>
-      ${notes?`<div class="md xnotes" style="border-top:2px solid ${ink.rule}">${md2html(fw.notes)}</div>`:''}
-      <p class="xfoot" style="color:${ink.muted}">Simple Touch panel drawing © Roey Tsemah (Synthux Academy), adapted via Fabio Bartali.<span data-stampline></span></p>
-    </div>
-    ${notes?`<div class="xsheet paper xpage2" hidden style="background:${ink.bg};color:${ink.fg};--hair:${ink.hair};--rule:${ink.rule};--muted:${ink.muted}">
+      ${notes && last?`<div class="md xnotes" style="border-top:2px solid ${ink.rule}">${md2html(fw.notes)}</div>`:''}
+      <p class="xfoot" style="color:${ink.muted}">Simple Touch panel drawing © Roey Tsemah (Synthux Academy), adapted via Fabio Bartali.${groups.length>1? ` Page ${gi+1} of ${groups.length}.` : ''}<span data-stampline></span></p>
+    </div>`}; });
+    bw=keepBW;
+    q('.xscroll').innerHTML=built.map(x=>x.html).join('')+`
+    ${notes?`<div class="xsheet paper xpage2" hidden style="${style}">
       <h1 class="xh1">${esc(fw.name||'Simple Touch')} · notes</h1>
       <div class="md xnotes2">${md2html(fw.notes)}</div>
-      <p class="xfoot" style="color:${ink.muted}">Page 2<span data-stampline></span></p></div>`:''}`;
-    sheet=q('.xsheet'); page2=q('.xpage2'); body=q('.xbody'); figBox=q('.xfigs'); grip=q('.xgrip'); figEls=[...dlg.querySelectorAll('[data-fig]')];
-    for(let i=1;i<=4;i++) sheet.style.setProperty('--m'+i, palOf('phone',th)['m'+i]);
-    grip.addEventListener('pointerdown',e=>{ e.preventDefault(); const x0=e.clientX, w0=figW, n=stacked?1:figs.length;
-      const move=ev=>{ figW=w0+(ev.clientX-x0)/n; lay(); };
-      const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); save(); };
-      addEventListener('pointermove',move); addEventListener('pointerup',up); });
-    grip.addEventListener('dblclick',()=>{ figW=DEF; lay(); save(); });
+      <p class="xfoot" style="color:${ink.muted}">Notes<span data-stampline></span></p></div>`:''}`;
+    page2=q('.xpage2');
+    PG=[...dlg.querySelectorAll('.xsheet:not(.xpage2)')].map((sheet,i)=>({sheet, body:sheet.querySelector('.xbody'), figBox:sheet.querySelector('.xfigs'), grip:sheet.querySelector('.xgrip'),
+      figEls:[...sheet.querySelectorAll('[data-fig]')], wrapEls:[...sheet.querySelectorAll('.xfig')], notesEl:sheet.querySelector('.xnotes'), figs:built[i].figs, tableHtml:built[i].tableHtml, cols:1}));
+    for(const pg of PG){
+      for(let i=1;i<=4;i++) pg.sheet.style.setProperty('--m'+i, palOf('phone',th)['m'+i]);
+      pg.grip.addEventListener('pointerdown',e=>{ e.preventDefault(); const x0=e.clientX, w0=figW, n=pg.cols;
+        const move=ev=>{ figW=w0+(ev.clientX-x0)/n; lay(); };
+        const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); save(); };
+        addEventListener('pointermove',move); addEventListener('pointerup',up); });
+      pg.grip.addEventListener('dblclick',()=>{ figW=DEF; lay(); save(); });
+    }
   }
   // what goes on the sheet: the minimap (click the table or the notes) and colour / print
   function options(){
     const changed=()=>{ cfg.onChange && cfg.onChange({...inc}, look); options(); fill(); lay(); };
     const pairT=cfg.tableNotesOnly;   // notes only come with the table
     q('[data-mm]').replaceChildren(minimap({th: look==='print'?'print':(cfg.theme||V.theme), table:inc.table, notes:inc.notes, notesOk:cfg.notesOk,
-      parts:cfg.parts||1, stacked,
+      parts:(cfg.parts||1)*(split()? 1 : chosen().length), stacked,
       onPanel:()=>{ inc.table=false; inc.notes=false; changed(); },
       onTable:()=>{ inc.table=!inc.table; if(pairT && !inc.table) inc.notes=false; changed(); },
       onNotes:()=>{ inc.notes=!inc.notes; if(pairT && inc.notes) inc.table=true; changed(); }}));
     const L=q('[data-look]'); L.innerHTML='';
     for(const [v,l] of [['color','Colour'],['print','Print']]){ const b=document.createElement('button'); b.type='button'; b.textContent=l;
       b.setAttribute('aria-pressed',String(look===v)); b.onclick=()=>{ if(look!==v){ look=v; changed(); } }; L.append(b); }
+    // the modes on the sheet (on or off, ‹ › to move one), one sheet or a page each, and how many drawings per row
+    const A=q('[data-arr]'); A.innerHTML='';
+    const mk=(tag,props,...kids)=>{ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; };
+    const segOf=(items,on,pick)=>{ const S=mk('div',{className:'seg'});
+      for(const [v,l] of items){ const b=mk('button',{type:'button',textContent:l}); b.setAttribute('aria-pressed',String(on(v))); b.onclick=()=>pick(v); S.append(b); }
+      return S; };
+    if(ML.length){ A.append(mk('span',{className:'cap',textContent:'Modes'}));
+      xModes.order.forEach((p,i)=>{ const on=xModes.on.has(p), box=mk('span',{className:'xmode'+(on?' on':'')});
+        const cb=mk('input',{type:'checkbox',checked:on,title:on?'Leave out':'Add'});
+        cb.onchange=()=>{ if(cb.checked) xModes.on.add(p); else if(xModes.on.size>1) xModes.on.delete(p); changed(); };
+        const mv=d=>{ const o=xModes.order, j=i+d; if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; changed(); };
+        box.append(mk('label',{},cb,' '+names[p]), mk('button',{type:'button',textContent:'‹',title:'Earlier',disabled:i===0,onclick:()=>mv(-1)}), mk('button',{type:'button',textContent:'›',title:'Later',disabled:i===xModes.order.length-1,onclick:()=>mv(1)}));
+        A.append(box); });
+      A.append(mk('button',{type:'button',textContent:'All',title:'Every mode',onclick:()=>{ xModes.order.forEach(p=>xModes.on.add(p)); changed(); }}));
+      if(chosen().length>1) A.append(segOf([['one','One sheet'],['each','A page per mode']], v=>(opt.split||'one')===v, v=>{ opt.split=v; save(); changed(); }));
+    }
+    const n=(cfg.parts||1)*(split()? 1 : chosen().length);
+    if(n>1) A.append(mk('span',{className:'cap',textContent:'Per row'}),
+      segOf([['auto','Auto'],...[1,2,3,4].filter(k=>k<=n).map(k=>[k,String(k)])], v=>String(opt.cols)===String(v), v=>{ opt.cols=v; save(); options(); lay(); }));
+    A.hidden=!A.children.length;
   }
   const save=()=>{ try{ localStorage.setItem(OPT_KEY,JSON.stringify(opt)); localStorage.setItem(KEY,String(Math.round(figW))); }catch(e){} };
-  const setW=w=>{ figEls.forEach((el,i)=>{ el.style.width=w.toFixed(1)+'px'; el.style.height=(w*figs[i].vh/figs[i].vw).toFixed(1)+'px'; }); };
-  const arrange=(dir,tab)=>{ figBox.style.flexDirection=dir; figBox.classList.toggle('col',dir==='column'); body.dataset.table=tab; };
-  // the sliders' values as CSS variables on both sheets, and the sliders showing what the sheet uses
+  const setW=(pg,w)=>{ pg.figEls.forEach((el,i)=>{ el.style.width=w.toFixed(1)+'px'; el.style.height=(w*pg.figs[i].vh/pg.figs[i].vw).toFixed(1)+'px'; }); };
+  // the drawings in rows of k (a row is a flex row, so the panel gap can be negative)
+  const arrange=(pg,k,tab)=>{ pg.cols=Math.max(1,Math.min(k,pg.wrapEls.length));
+    const old=[...pg.figBox.querySelectorAll(':scope > .xfrow')], rows=[];
+    for(let i=0;i<pg.wrapEls.length;i+=pg.cols){ const r=document.createElement('div'); r.className='xfrow'; r.append(...pg.wrapEls.slice(i,i+pg.cols)); rows.push(r); }
+    old.forEach(r=>r.remove()); pg.figBox.prepend(...rows); pg.body.dataset.table=tab; };
+  const fixedCols=()=> opt.cols==='auto'? null : +opt.cols;
+  // the sliders' values as CSS variables on every sheet, and the sliders showing what the sheets use
   const sizes=()=>{ const D=XDEFAULTS[opt.paper==='free'?'free':'paper'];
-    for(const [k,,,,,v] of XSLIDERS){ for(const el of [sheet,page2]) if(el){ if(opt[k]==null) el.style.removeProperty(v); else el.style.setProperty(v,opt[k]+'px'); }
+    for(const [k,,,,,v] of XSLIDERS){ for(const el of [...PG.map(g=>g.sheet),page2]) if(el){ if(opt[k]==null) el.style.removeProperty(v); else el.style.setProperty(v,opt[k]+'px'); }
       const r=q(`[data-sl="${k}"]`), val=opt[k]??D[k]; r.value=val; r.nextElementSibling.textContent=val+' px'; } };
   const page=()=>{ const P=PAPER[opt.paper]; return opt.orient==='landscape'? {...P, w:P.h, h:P.w} : P; };
-  const fits=P=>sheet.scrollHeight<=P.h+0.5 && sheet.scrollWidth<=P.w+0.5 && body.scrollWidth<=body.clientWidth+0.5;
-  const sizeText=(w,extra='')=>`Drawing ${Math.round(w)} × ${Math.round(w*figs[0].vh/figs[0].vw)} px${extra}`;
+  const fits=(pg,P)=>pg.sheet.scrollHeight<=P.h+0.5 && pg.sheet.scrollWidth<=P.w+0.5 && pg.body.scrollWidth<=pg.body.clientWidth+0.5;
+  const sizeText=(pg,w,extra='')=>`Drawing ${Math.round(w)} × ${Math.round(w*pg.figs[0].vh/pg.figs[0].vw)} px${extra}`;
   function lay(){
     dlg.querySelectorAll('[data-stampline]').forEach(e=>{ e.textContent= opt.stamp? exportStamp() : ''; });
     sizes();
-    const free=opt.paper==='free', notesEl=q('.xnotes');
-    sheet.classList.toggle('paper',!free); grip.hidden=!free;
-    if(notesEl) notesEl.style.display=''; if(page2) page2.hidden=true;
+    const free=opt.paper==='free', many=PG.length>1? ` · ${PG.length} pages` : '';
+    if(page2) page2.hidden=true;
     if(free){
-      sheet.style.width=''; sheet.style.height='';
-      arrange(stacked?'column':'row','side');
-      figW=Math.round(Math.max(240,Math.min(1600,figW))); setW(figW); balanceNotes(notesEl);
-      q('[data-size]').textContent=sizeText(figW,' · drag the handle beside it, double-click to reset');
+      figW=Math.round(Math.max(240,Math.min(1600,figW)));
+      for(const pg of PG){ pg.sheet.classList.remove('paper'); pg.grip.hidden=false; if(pg.notesEl) pg.notesEl.style.display='';
+        pg.sheet.style.width=''; pg.sheet.style.height='';
+        arrange(pg, fixedCols() ?? (stacked? 1 : !split() && chosen().length>1? perMode : pg.figs.length), 'side');
+        setW(pg,figW); balanceNotes(pg.notesEl); }
+      q('[data-size]').textContent=sizeText(PG[0],figW,many+' · drag the handle beside it, double-click to reset');
       return;
     }
-    const P=page();
-    sheet.style.width=P.w+'px'; sheet.style.height='auto'; balanceNotes(notesEl);
-    const dirs= figs.length>1? ['row','column'] : ['row'], tabs= tableHtml? ['side','below'] : ['side'];
-    const search=()=>{ let best=null;
-      for(const d of dirs) for(const t of tabs){
-        arrange(d,t); let lo=60, hi=1600;
-        while(hi-lo>1){ const m=(lo+hi)/2; setW(m); if(fits(P)) lo=m; else hi=m; }
-        setW(lo); if(fits(P) && (!best || lo>best.w+2)) best={d,t,w:lo};
-      }
-      return best; };
-    // notes too long for the page: they move to page 2 and the drawings get the whole first page
-    let best=search(), moved=false, cut=false;
-    if(!best && notesEl){ notesEl.style.display='none'; moved=true; best=search(); }
-    if(!best){ best={d:dirs.at(-1), t:tabs.at(-1), w:60}; cut=true; }
-    arrange(best.d,best.t); setW(best.w); sheet.style.height=P.h+'px';
+    const P=page(); let moved=false, cut=false, first=null;
+    for(const pg of PG){
+      pg.sheet.classList.add('paper'); pg.grip.hidden=true; if(pg.notesEl) pg.notesEl.style.display='';
+      pg.sheet.style.width=P.w+'px'; pg.sheet.style.height='auto'; balanceNotes(pg.notesEl);
+      const dirs= fixedCols()? [fixedCols()] : pg.figs.map((_,i)=>i+1), tabs= pg.tableHtml? ['side','below'] : ['side'];
+      const search=()=>{ let best=null;
+        for(const d of dirs) for(const t of tabs){
+          arrange(pg,d,t); let lo=60, hi=1600;
+          while(hi-lo>1){ const m=(lo+hi)/2; setW(pg,m); if(fits(pg,P)) lo=m; else hi=m; }
+          setW(pg,lo); if(fits(pg,P) && (!best || lo>best.w+2)) best={d,t,w:lo};
+        }
+        return best; };
+      // notes too long for the page: they move to a page of their own and the drawings get the whole page
+      let best=search();
+      if(!best && pg.notesEl){ pg.notesEl.style.display='none'; moved=true; best=search(); }
+      if(!best){ best={d:dirs.at(-1), t:tabs.at(-1), w:60}; cut=true; }
+      arrange(pg,best.d,best.t); setW(pg,best.w); pg.sheet.style.height=P.h+'px';
+      first ||= {pg, best};
+    }
     if(moved){ page2.hidden=false; page2.style.width=P.w+'px'; page2.style.height=P.h+'px'; balanceNotes(q('.xnotes2'));
       cut= cut || page2.scrollHeight>P.h+0.5; }
-    const how=[figs.length>1&&(best.d==='row'?'panels side by side':'panels stacked'), tableHtml&&(best.t==='side'?'table beside':'table below')].filter(Boolean).join(', ');
-    q('[data-size]').textContent=sizeText(best.w,` · ${P.label} ${opt.orient}${how?' · '+how:''}${moved?' · notes on page 2':''}${cut?' · does not all fit':''}`);
+    const {pg, best}=first, n=pg.figs.length;
+    const how=[n>1&&(pg.cols===1?'panels stacked':pg.cols>=n?'panels side by side':`${pg.cols} per row`), pg.tableHtml&&(best.t==='side'?'table beside':'table below')].filter(Boolean).join(', ');
+    q('[data-size]').textContent=sizeText(pg,best.w,` · ${P.label} ${opt.orient}${how?' · '+how:''}${many}${moved?' · notes on a page of their own':''}${cut?' · does not all fit':''}`);
   }
   const seg=(el,items,key)=>{ el.innerHTML=''; for(const [v,l] of items){ const b=document.createElement('button'); b.type='button'; b.textContent=l;
     b.setAttribute('aria-pressed',String(opt[key]===v)); b.disabled= key==='orient' && opt.paper==='free'; b.onclick=()=>{ opt[key]=v; bars(); lay(); save(); }; el.append(b); } };
@@ -1433,19 +1499,19 @@ function openExportPreview(cfg){
   q('[data-close]').onclick=()=>dlg.close();
   dlg.addEventListener('close',()=>dlg.remove());
   const render=async(jpeg)=>{   // one image per page: [{url, w, h}] with w, h in CSS px
-    grip.hidden=true;
+    PG.forEach(g=>g.grip.hidden=true);
     try{
-      await Promise.all([...sheet.querySelectorAll('img')].map(i=>i.decode().catch(()=>{})));
+      await Promise.all([...dlg.querySelectorAll('.xsheet img')].map(i=>i.decode().catch(()=>{})));
       await document.fonts.ready;
       const paper=opt.paper!=='free', P=paper? page() : null, out=[];
-      for(const el of [sheet, ...(page2&&!page2.hidden? [page2] : [])]){
+      for(const el of [...PG.map(g=>g.sheet), ...(page2&&!page2.hidden? [page2] : [])]){
         const w=paper? P.w : el.scrollWidth, h=paper? P.h : el.scrollHeight;
         // margin reset: the sheet is centred in the dialog, and that computed margin would shift the image
         const o={pixelRatio:paper?3:2, width:w, height:h, backgroundColor:ink.bg, style:{margin:'0',boxShadow:'none'}};
         out.push({url: await (jpeg? window.htmlToImage.toJpeg(el,{...o, quality:0.95}) : window.htmlToImage.toPng(el,o)), w, h});
       }
       return out;
-    } finally { grip.hidden=opt.paper!=='free'; }
+    } finally { PG.forEach(g=>g.grip.hidden=opt.paper!=='free'); }
   };
   const busy=t=>{ q('[data-busy]').textContent=t; };
   const baseName=()=>fileBase+(opt.paper!=='free'?`-${opt.paper}-${opt.orient}`:'');

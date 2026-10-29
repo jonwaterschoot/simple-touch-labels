@@ -436,8 +436,16 @@ button.cswatch[data-open] { outline:2px solid var(--active); outline-offset:1px;
 .xbody[data-table="below"] { flex-direction:column; gap:var(--xtgap,24px); }
 .xfigs { position:relative; display:flex; align-items:flex-start; }
 /* panel gap as a margin, so it can go below zero and the drawings' empty edges overlap; labels stay above every drawing */
-.xfigs > [data-fig] + [data-fig] { margin-left:var(--xfgap,16px); }
-.xfigs.col > [data-fig] + [data-fig] { margin-left:0; margin-top:var(--xfgap,16px); }
+.xfigs { flex-direction:column; }
+.xfrow { display:flex; align-items:flex-start; }
+.xfrow + .xfrow { margin-top:var(--xfgap,16px); }
+.xfrow > .xfig + .xfig { margin-left:var(--xfgap,16px); }
+.xcap { font-weight:700; font-size:calc(var(--xfs,14px) * 1.15); margin:0 0 6px; }
+.xmode { display:inline-flex; align-items:center; gap:2px; border:2px solid var(--hair); padding:2px 2px 2px 8px; font-size:13px; }
+.xmode.on { border-color:var(--text); }
+.xmode label { display:flex; align-items:center; gap:4px; margin-right:4px; cursor:pointer; }
+.xmode button { padding:2px 7px; min-width:0; }
+.xrow[hidden] { display:none; }
 .xfigs [data-fig] > img { z-index:0; }
 .xfigs [data-fig] > svg { z-index:1; }
 .xtable { width:calc(var(--xfs,14px) * 40); flex:none; }

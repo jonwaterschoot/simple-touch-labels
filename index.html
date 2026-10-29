@@ -250,7 +250,7 @@ $('pngBtn').onclick=()=>{
   openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(), tableNotesOnly:true,
     include:{table:['table','all'].includes(UI.exWhat), notes:UI.exWhat==='all'},
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? libTable() : '', withNotes:inc.notes,
-      fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+(curMode()? '-'+curMode().pos : '')+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
+      fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.notes? 'all' : inc.table? 'table' : 'panel'; UI.exLook=look; }});
 };
 /* drag the divider between drawing and table to set the drawing's width (kept per layout); double-click resets */
