@@ -526,3 +526,17 @@ button.cswatch[data-open] { outline:2px solid var(--active); outline-offset:1px;
   .xrow .hint { font-size:12px; }
   .xscroll { padding:12px; }
 }
+
+/* guide.html: the start choices, and a check per line that remembers its tick */
+.gsetup { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 28px; margin:0 0 8px; padding:12px 0 14px; border-bottom:2px solid var(--rule); position:sticky; top:0; z-index:5; background:var(--page); }
+.gsetup .grp { display:flex; flex-direction:column; gap:4px; }
+.gsetup .grepo { flex:1 1 240px; }
+.gsetup .grepo input { width:100%; }
+.gsetup .hint { flex-basis:100%; margin:0; }
+.guide .chk { display:flex; align-items:flex-start; gap:8px; margin:6px 0 0; padding:6px 8px; border:1px solid var(--hair); cursor:pointer; }
+.guide .chk input { margin-top:3px; flex:none; }
+.guide .chk.done { border-color:var(--kicker); color:var(--muted); }
+.guide .chk + .hint, .guide .card > .hint { margin-top:8px; }
+.guide a:not([href]) { text-decoration:underline dotted; cursor:help; }
+.guide [hidden] { display:none !important; }
+@media (max-width:600px){ .gsetup { position:static; } }

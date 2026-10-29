@@ -89,7 +89,8 @@ If Lab turns out to have its own pipeline, offer the split PR alone, since any b
 
 - [ ] About page: the route for each way in. Code it yourself, Plugdata, or hand it to an LLM, without tying the guide to one model or tool.
 - [ ] Use TouchVink (new firmware) and TouchPlaited (existing firmware) as the two worked examples.
-- [ ] Step by step for a browser build, with a screenshot per screen: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build** (added 2026-10-29: no more copying the block from the run summary), Save file, commit `simple-touch-labels.json`, Play in the library.
+- [x] `guide.html` (2026-10-29): step by step with checks, from "I have a repository" or "from scratch", libDaisy or Plugdata: repository, release, the directory pull request early (the review runs while you work), labels, repository kit, browser build, own page, after the merge.
+- [ ] Screenshots in the guide, one per screen; the browser-build part: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build** (added 2026-10-29: no more copying the block from the run summary), Save file, commit `simple-touch-labels.json`, Play in the library.
 - [ ] The build branch's README (written by `build-firmware.yml`) still points only at the run summary; mention the designer's build finder in the next simple-touch-web release.
 
 ## Done when

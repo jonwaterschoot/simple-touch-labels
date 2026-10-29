@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Touch · Guide</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Simple Touch">
+<meta name="theme-color" content="#1a1918">
+<meta property="og:title" content="Simple Touch · Guide">
+<meta property="og:description" content="Step by step from a Simple Touch firmware to a labelled, playable entry in the library and the Synthux community directory.">
+<meta property="og:image" content="https://jonwaterschoot.github.io/simple-touch-labels/assets/social_preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ui.css">
+</head>
+<body class="ui-dark">
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <nav class="nav"><a href="index.html">Library</a><a href="editor.html">Designer</a><span class="on">Guide</span><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
+      <h1>Step by step</h1>
+      <p>From a firmware to the library: labelled, playable, and listed in the Synthux community directory. Every step ends with checks; tick them as you go. This browser remembers them.</p>
+    </div>
+  </header>
+
+  <main class="about guide">
+    <div class="gsetup">
+      <div class="grp"><span class="cap">Where do you start?</span><div class="seg" id="gPath"><button type="button" data-v="have">I already have a repository</button><button type="button" data-v="scratch">I'm starting from scratch</button></div></div>
+      <div class="grp"><span class="cap">Built with</span><div class="seg" id="gBuild"><button type="button" data-v="daisy">libDaisy (C++)</button><button type="button" data-v="pd">Plugdata</button></div></div>
+      <label class="grp grepo"><span class="cap">Your repository</span><input id="gRepo" type="url" placeholder="https://github.com/you/your-firmware" spellcheck="false"></label>
+      <p class="hint" id="gProgress"></p>
+    </div>
+
+    <h2 id="order">The order, and why</h2>
+    <p>Your repository first, because everything else points at it. Then the pull request to the community directory, as soon as the repository has a README and a release. A person reviews it, and that can take days. Everything after it works without it: the designer, your label file, the browser build and your own page don't wait for the review. When the entry is merged the library lists your firmware with whatever is in your repository by then, so the entry never needs changing for a new label or build.</p>
+
+    <h2 id="repo">1. Your repository</h2>
+    <ol class="route">
+      <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1a</span><div class="card">
+        <div class="head"><b>Set up</b><span class="tools"><span class="tool">Editor</span><span class="tool">Git</span><span class="tool">GitHub</span></span></div>
+        <p>An editor (VS Code, say), Git and a GitHub account. <span data-build="daisy">For libDaisy, the <a href="https://daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes.</span><span data-build="pd"> For Plugdata, <a href="https://plugdata.org" target="_blank">Plugdata</a> with its Daisy export, and the Simple Touch board file (a custom JSON).</span></p>
+        <label class="chk"><input type="checkbox" data-c="setup"> I can build something and flash it to my Simple Touch</label>
+      </div></li>
+      <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1b</span><div class="card">
+        <div class="head"><b>Make the firmware</b></div>
+        <p>Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing. Building on someone's code? Keep their licence and credit them in the README.</p>
+        <label class="chk"><input type="checkbox" data-c="runs"> It flashes and runs on the Simple Touch</label>
+      </div></li>
+      <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1c</span><div class="card">
+        <div class="head"><b>A public repository</b><span class="tools"><span class="tool">GitHub</span></span></div>
+        <p>On GitHub, <b>New repository</b>, set to <b>Public</b>, then push your code. The directory needs GitHub; the library also reads Codeberg.</p>
+        <label class="chk"><input type="checkbox" data-c="public"> The repository is public, and the code is on its default branch</label>
+      </div></li>
+      <li class="step" data-path="have"><span class="num" aria-hidden="true">1a</span><div class="card">
+        <div class="head"><b>Check the repository</b><span class="tools"><span class="tool">GitHub</span></span></div>
+        <p>Its default branch is where everything below goes: the library and the designer read nothing else. You see it on the repository's front page and under <a data-link="branches" target="_blank">Settings › Branches</a>, usually <code>main</code>. Work on another branch? Merge it before you check anything in the library.</p>
+        <label class="chk"><input type="checkbox" data-c="h-public"> The repository is public, on GitHub</label>
+        <label class="chk"><input type="checkbox" data-c="h-branch"> I know its default branch, and my work is on it</label>
+        <label class="chk"><input type="checkbox" data-c="h-clone"> A fresh clone builds and flashes<span data-build="daisy"> (with <code>git clone --recursive</code>, if it has submodules)</span></label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">1d</span><div class="card">
+        <div class="head"><b>A README</b></div>
+        <p>What the firmware does and how to install it. A short one is enough for now: the designer's Repository kit writes a full one with the control map in step 3, which you can merge into yours.</p>
+        <label class="chk"><input type="checkbox" data-c="readme"> <code>README.md</code> is at the root of the default branch</label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">1e</span><div class="card">
+        <div class="head"><b>A release with the .bin</b><span class="tools"><span class="tool">GitHub</span></span></div>
+        <p><a data-link="newrelease" target="_blank">Releases › Draft a new release</a>, a tag such as <code>v1.0.0</code>, and the firmware attached, named in lowercase with hyphens: <code>my-firmware-v1.0.0.bin</code>. People flash that file with the <a href="https://flash.daisy.audio/" target="_blank">Daisy Web Programmer</a>. The directory recommends it (it warns without one) and will need it for one-click flashing later.</p>
+        <label class="chk"><input type="checkbox" data-c="release"> <a data-link="releases" target="_blank">Releases</a> shows the .bin</label>
+      </div></li>
+    </ol>
+
+    <h2 id="directory">2. Get in the queue: the community directory</h2>
+    <ol class="route">
+      <li class="step"><span class="num" aria-hidden="true">2a</span><div class="card">
+        <div class="head"><b>Directory entry</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
+        <p>In the <a href="editor.html" target="_blank">designer</a>, fill in <b>Firmware</b>: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b>: it checks the entry the way the directory does, and opens a pull request on GitHub with the file filled in. GitHub asks you to fork the directory first; that's normal.</p>
+        <label class="chk"><input type="checkbox" data-c="entry"> Directory entry… shows no problems, and the pull request is open</label>
+        <label class="chk"><input type="checkbox" data-c="validate"> The <b>Validate</b> check on the pull request is green</label>
+        <p class="hint">Red? The pull request's <b>Files changed</b> tab marks what's wrong on your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork and push: the check runs again. A reviewer then looks at whether the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days: carry on below.</p>
+      </div></li>
+    </ol>
+
+    <h2 id="labels">3. Labels</h2>
+    <ol class="route">
+      <li class="step"><span class="num" aria-hidden="true">3a</span><div class="card">
+        <div class="head"><b>Label every control</b><span class="tools"><span class="tool t-des">Designer</span></span></div>
+        <p>Start from <b>Blank</b>, or from the official firmware you built on. <b>Reference names: Synthux</b> shows S30, P03 and so on under each label. Then, in the Labels tab:</p>
+        <ul>
+          <li>Line 1 for what a control does, line 2 for detail (a switch's positions: "off / on / latch").</li>
+          <li>Pads held for a second function: tick <b>Mod</b>, and fill their column for what the other controls do while it's held (or after it's tapped: click <b>hold</b> for <b>tap</b>).</li>
+          <li>A switch that changes what everything does, such as a playmode switch: <b>Modes</b>. The labels without a mode are the print set, as wide as fits every mode.</li>
+          <li>The <b>MIDI</b> column if it sends or listens to MIDI, and <b>Notes</b> for what doesn't fit on a label.</li>
+        </ul>
+        <label class="chk"><input type="checkbox" data-c="labelled"> Every control the firmware uses has a label</label>
+        <label class="chk"><input type="checkbox" data-c="preview"> <b>Preview in library</b> looks right, on phone and desktop layouts</label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">3b</span><div class="card">
+        <div class="head"><b>Your look</b> <span class="hint">optional</span><span class="tools"><span class="tool t-des">Designer</span></span></div>
+        <p>The Style tab: a faceplate of your own (download the template there), colours, label boxes; the font in the toolbar. The library shows it as the <b>Creator</b> theme.</p>
+        <label class="chk"><input type="checkbox" data-c="look"> The preview's Creator theme is how I want it</label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">3c</span><div class="card">
+        <div class="head"><b>Into the repository</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
+        <p><b>Repository kit…</b> downloads a .zip; its <code>HOW-TO.txt</code> says where each file goes. In short: <code>simple-touch-labels.json</code> at the root, the control map at <code>docs/</code> (a new folder, even if you have a <code>doc/</code>), your faceplate at the path the label file names. Have a README? Keep it at the root and copy in the parts you want. Then commit to the default branch.</p>
+        <label class="chk"><input type="checkbox" data-c="committed"> The files are on the default branch: <a data-link="raw" target="_blank">the label file</a> opens</label>
+        <label class="chk"><input type="checkbox" data-c="readmemap"> The README shows the control map on GitHub</label>
+        <p class="hint">Just pushed and the file isn't there yet? GitHub caches raw files for a few minutes.</p>
+      </div></li>
+    </ol>
+
+    <h2 id="play">4. Make it playable <span class="hint" data-build="pd">(libDaisy only, for now)</span></h2>
+    <p data-build="pd" class="hint">simple-touch-web runs libDaisy firmware. A Plugdata patch can't be played in the browser yet; skip to step 5.</p>
+    <ol class="route" data-build="daisy">
+      <li class="step"><span class="num" aria-hidden="true">4a</span><div class="card">
+        <div class="head"><b>Setup and loop</b><span class="tools"><span class="tool t-web">simple-touch-web</span></span></div>
+        <p>Split <code>main()</code> into <code>Setup()</code> and a <code>Loop()</code> that runs one pass, as the <a href="https://github.com/jonwaterschoot/simple-touch-web#the-one-change-in-the-firmware" target="_blank">simple-touch-web README</a> shows. Leave out what a browser can't do (flash writes, bootloader jumps) with <code>#ifdef SIMPLE_TOUCH_WEB</code>.</p>
+        <label class="chk"><input type="checkbox" data-c="split"> The hardware build still works (<code>make clean &amp;&amp; make</code>, flash, play)</label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">4b</span><div class="card">
+        <div class="head"><b>The workflow</b><span class="tools"><span class="tool">GitHub Actions</span></span></div>
+        <p>Add <code>.github/workflows/browser-build.yml</code> from the <a href="https://github.com/jonwaterschoot/simple-touch-web#publishing-a-build" target="_blank">simple-touch-web README</a> and push. Every push then builds the firmware for the browser, checks that it boots, and adds the build to a <code>simple-touch-web</code> branch.</p>
+        <label class="chk"><input type="checkbox" data-c="actions"> <a data-link="actions" target="_blank">Actions</a>: the Browser build run is green</label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">4c</span><div class="card">
+        <div class="head"><b>Listen, then approve</b><span class="tools"><span class="tool t-web">Test bench</span><span class="tool t-des">Designer</span></span></div>
+        <p>In the designer, under Browser build, <b>Find builds in the repository</b> lists the builds with a <b>Test bench</b> link. Only you can say whether it sounds like your firmware. If it does, tick "drives the OLED" if it has one, then <b>Use this build</b>, <b>Save file</b>, and commit the label file again.</p>
+        <label class="chk"><input type="checkbox" data-c="bench"> On the test bench it plays like the hardware: knobs, pads, LED<span data-build="daisy">, OLED</span></label>
+        <label class="chk"><input type="checkbox" data-c="approved"> The new label file is on the default branch, and Preview in library shows Play</label>
+      </div></li>
+    </ol>
+
+    <h2 id="page">5. A page of your own <span class="hint">optional</span></h2>
+    <ol class="route">
+      <li class="step"><span class="num" aria-hidden="true">5a</span><div class="card">
+        <div class="head"><b>Web app</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub Pages</span></span></div>
+        <p><b>Web app…</b> packs your manual as a site: copy the folder into <code>docs/</code> on the default branch, then <a data-link="pages" target="_blank">Settings › Pages</a>: Deploy from a branch, your default branch, <code>/docs</code>. It's yours from day one, listed or not; link it from your README.</p>
+        <label class="chk"><input type="checkbox" data-c="pages"> The page is live at <a data-link="site" target="_blank">your Pages address</a></label>
+      </div></li>
+    </ol>
+
+    <h2 id="merged">6. When the entry is merged</h2>
+    <ol class="route">
+      <li class="step"><span class="num" aria-hidden="true">6a</span><div class="card">
+        <div class="head"><b>In the library</b><span class="tools"><span class="tool t-lib">Library</span></span></div>
+        <p>The directory publishes on every merge, and the <a href="index.html" target="_blank">library</a> lists your firmware under <b>Community</b>. It reads your repository each time, so labels and builds you add later show up by themselves.</p>
+        <label class="chk"><input type="checkbox" data-c="listed"> The library's Community list has it, and its notice says <b>Labels by the creator</b></label>
+        <p class="hint">Changes requested on the pull request? Edit the file in your fork, on the same branch: the pull request updates and the check runs again.</p>
+      </div></li>
+    </ol>
+
+    <h2 id="later">Later: keeping it up to date</h2>
+    <ul>
+      <li><b>Labels:</b> designer › <b>Open file…</b> your <code>simple-touch-labels.json</code>, edit, <b>Save file</b>, commit.</li>
+      <li><b>A new firmware version:</b> a new release with its .bin; with a browser build, approve the new build (Find builds › Use this build) once you've listened to it. Until then the library keeps playing the approved one.</li>
+      <li><b>The directory entry</b> only changes when the name, description or repository does.</li>
+    </ul>
+    <p><button type="button" id="gReset">Clear my ticks</button></p>
+  </main>
+</div>
+<script>
+/* The guide's choices and ticks, in this browser only. Steps for the other start (data-path) or the other
+   build (data-build) are hidden; links (data-link) point into the repository typed at the top. */
+(()=>{
+  const KEY='stGuide.v1', $=id=>document.getElementById(id);
+  let S={path:'have', build:'daisy', repo:'', done:{}};
+  try{ Object.assign(S, JSON.parse(localStorage.getItem(KEY))||{}); }catch(e){}
+  const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+  const links=()=>{
+    const m=String(S.repo).trim().replace(/\/+$/,'').replace(/\.git$/,'').match(/^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+    const gh= m? `https://github.com/${m[1]}/${m[2]}` : '';
+    const L= m? {branches:gh+'/settings/branches', newrelease:gh+'/releases/new', releases:gh+'/releases', actions:gh+'/actions', pages:gh+'/settings/pages',
+      raw:`https://raw.githubusercontent.com/${m[1]}/${m[2]}/HEAD/simple-touch-labels.json`, site:`https://${m[1].toLowerCase()}.github.io/${m[2]}/`} : {};
+    document.querySelectorAll('[data-link]').forEach(a=>{ const u=L[a.dataset.link]; if(u) a.href=u; else a.removeAttribute('href'); a.title= u? '' : 'Fill in your repository at the top'; });
+  };
+  function draw(){
+    for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S[k])));
+    document.querySelectorAll('[data-path]').forEach(e=>e.hidden= e.dataset.path!==S.path);
+    document.querySelectorAll('[data-build]').forEach(e=>e.hidden= e.dataset.build!==S.build);
+    const all=[...document.querySelectorAll('[data-c]')].filter(c=>c.offsetParent!==null);
+    all.forEach(c=>{ c.checked=!!S.done[c.dataset.c]; c.closest('.chk').classList.toggle('done',c.checked); });
+    const n=all.filter(c=>c.checked).length;
+    $('gProgress').textContent=`${n} of ${all.length} checks done`+(n===all.length? '. All done: well played.' : '');
+    links();
+  }
+  for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S[k]=b.dataset.v; save(); draw(); };
+  $('gRepo').value=S.repo; $('gRepo').oninput=e=>{ S.repo=e.target.value; save(); links(); };
+  document.addEventListener('change',e=>{ const c=e.target.closest('[data-c]'); if(!c) return; S.done[c.dataset.c]=c.checked; save(); draw(); });
+  $('gReset').onclick=()=>{ if(confirm('Clear all your ticks?')){ S.done={}; save(); draw(); } };
+  draw();
+})();
+</script>
+</body>
+</html>
