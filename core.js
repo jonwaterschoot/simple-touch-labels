@@ -186,7 +186,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -200,6 +200,7 @@ function normalise(d){
   s.fpStyle = {...(d.fpStyle||{})};
   s.emulator = emulatorOf(d.emulator, (d.firmware||{}).repo);
   s.modes = cleanModes(d.modes);
+  s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
     s.modifiers=['P10','P11'];
@@ -286,6 +287,7 @@ function cleanData(){
   const mt=Object.fromEntries(mods().filter(isToggle).map(m=>[m,'toggle'])); if(Object.keys(mt).length) out.modTypes=mt;
   if(Object.keys(doc.offsets.phone).length||Object.keys(doc.offsets.desktop).length) out.offsets=doc.offsets;
   if(doc.emulator) out.emulator=doc.emulator;
+  if(doc.device) out.device=doc.device;
   const md=cleanModes(doc.modes); if(md) out.modes=md;
   return out;
 }
