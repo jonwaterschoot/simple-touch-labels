@@ -78,7 +78,7 @@ const Play = (()=>{
     syncDevice();
     box.classList.toggle('src-device', S.source==='device');
     $p('playSrcRow').hidden=!(playable() && linkable());
-    seg($p('playSrc'), [['browser','Browser build'],['device','Device']], k=>S.source===k, setSource);
+    seg($p('playSrc'), [['browser','Play in browser'],['device','Connect to Simple Touch']], k=>S.source===k, setSource);
     if(!playable()){ $p('playCredit').textContent=''; fillMidi(); body(); return; }
     const on=S.state!=='idle';
     const go=$p('playGo');
@@ -98,7 +98,7 @@ const Play = (()=>{
   }
   function build(box){
     box.innerHTML=`<div class="pctl" id="playSrcRow" hidden>
-      <span class="cap">Source</span><span class="seg" id="playSrc"></span>
+      <span class="cap">Mode</span><span class="seg" id="playSrc"></span>
     </div><div class="pctl b-only">
       <button type="button" id="playGo" class="primary">▶ Play</button>
       <label><span class="cap">Input</span><select id="playIn" aria-label="Audio input"></select></label>
@@ -269,7 +269,7 @@ const Play = (()=>{
     // one device as both MIDI in and MIDI out would loop through the browser build; 'All inputs' just leaves it out (bindMidi)
     const other=S.midi && (dir==='in'? S.midi.outputs.get(S.midiOut) : S.midi.inputs.get(S.midiIn));
     const port=S.midi && (dir==='in'? S.midi.inputs.get(v) : S.midi.outputs.get(v));
-    if(linkMod?.sameDevice(port, other)){ say(`${port.name} is already the MIDI ${dir==='in'?'out':'in'}. To control the board, switch Source to Device.`, true); v=''; }
+    if(linkMod?.sameDevice(port, other)){ say(`${port.name} is already the MIDI ${dir==='in'?'out':'in'}. To control the board, choose Connect to Simple Touch.`, true); v=''; }
     if(dir==='in') S.midiIn=v; else S.midiOut=v;
     fillMidi(); bindMidi();
   }
@@ -302,7 +302,7 @@ const Play = (()=>{
     if(key!==deviceFor) return;   // another firmware came while this loaded
     const device=deviceMod.parseDevice(doc.device); if(!device) return;
     S.panel=deviceMod.mountDevicePanel(box, device, {send:deviceSend,
-      idle:()=> S.source==='device'? 'Not sent: connect the board and choose it under Device.' : 'Not sent: press Play first, or switch Source to Device.'});
+      idle:()=> S.source==='device'? 'Not sent: plug in the Simple Touch and choose its MIDI port.' : 'Not sent: press Play first, or choose Connect to Simple Touch.'});
     S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }});
     box.hidden=false;
   }
