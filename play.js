@@ -43,6 +43,7 @@ const Play = (()=>{
     mod:null, svg:null, keys:false,
     layout:'qwerty', layoutSet:false,
     panel:null,     // settings and presets from the label file's device block (device-panel.js)
+    glow:{},        // pads that just played on the board, fading (0..1)
     source:'browser', link:null, follows:false,   // browser | device: the firmware in this page or a real board, never both, so MIDI cannot loop. follows: the drawing shows the board
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
     hot:new Set(), cool:{},   // table rows of the controls in use
@@ -297,7 +298,7 @@ const Play = (()=>{
   /* what the drawing showed of the board */
   function clearLive(){
     for(const i in S.midiPads){ delete S.midiPads[i]; drawPad(i); hot(padId(+i),false); }
-    S.pads={}; S.latched.clear(); S.held=[]; S.mode=null; soloMod=null; S.oled=null; S.oledUrl='';
+    S.pads={}; S.glow={}; S.latched.clear(); S.held=[]; S.mode=null; soloMod=null; S.oled=null; S.oledUrl='';
   }
   const LIVE_HANDLERS={
     pads(mask){ for(let i=0;i<12;i++){ const on=!!(mask&(1<<i)), was=S.midiPads[i]!==undefined; if(on===was) continue;
@@ -305,6 +306,7 @@ const Play = (()=>{
       drawPad(i); hot(padId(i),on); modPad(padId(i),on); } },
     levers(pos){ for(const [id,p] of Object.entries(pos)){ if(S.levers[id]===p) continue; S.levers[id]=p; drawLever(id); flash(id); } follow(); },
     knob(id,v){ S.controls[id]=v; drawControl(id); },
+    glow(i,v,hit){ if(v>0) S.glow[i]=v; else delete S.glow[i]; drawPad(i); if(hit) flash(padId(i)); },
     oled(ram,info){ showOled(ram,info); },
   };
   async function syncDevice(){
@@ -478,7 +480,7 @@ const Play = (()=>{
       svg.querySelectorAll(`g[data-for].${cls}`).forEach(g=>{ if(g.dataset.for===id) g.remove(); });
       svg.querySelectorAll(`g[data-key="${id}"]`).forEach(g=>g.classList.toggle(cls, on));
       // a pressed pad shows itself already
-      if(!on || !SLOT[id] || (cls==='hl-use' && /^P\d\d$/.test(id) && (S.pads[+id.slice(1)]!==undefined || S.midiPads[+id.slice(1)]!==undefined))) continue;
+      if(!on || !SLOT[id] || (cls==='hl-use' && /^P\d\d$/.test(id) && (S.pads[+id.slice(1)]!==undefined || S.midiPads[+id.slice(1)]!==undefined || S.glow[+id.slice(1)]!==undefined))) continue;
       const html=`<g class="${cls}" data-for="${id}">${shape(id)}</g>`, at=svg.querySelector(':scope > g[clip-path]');
       if(at) at.insertAdjacentHTML('afterend', html); else svg.insertAdjacentHTML('beforeend', html);
     }
@@ -641,7 +643,7 @@ const Play = (()=>{
   /* pressed: the outline, a fill and (on the Synthux drawing) the pad's own lines, stronger the harder it is pressed */
   function drawPad(i){
     const el=S.mod?.querySelector(`[data-pad="${i}"]`), v=S.mod?.querySelector(`[data-padv="${i}"]`); if(!el || !v) return;
-    const f=S.pads[i]??S.midiPads[i], on=f!==undefined, art=v.querySelector('.padart');
+    const held=S.pads[i]??S.midiPads[i], f= held===undefined? S.glow[i] : Math.max(held, S.glow[i]??0), on=f!==undefined, art=v.querySelector('.padart');
     el.classList.toggle('on', on);
     v.querySelector('.padfill').style.fillOpacity= on? ((art? 0.12 : 0.25)+(art? 0.25 : 0.5)*f).toFixed(2) : '';
     if(art) art.style.opacity= on? (0.5+0.5*f).toFixed(2) : '';
