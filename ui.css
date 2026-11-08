@@ -236,6 +236,9 @@ body.play-stage.stage-nopadlabels #fig .padlabel { display:none; }
 .play .pctl .seg button { min-width:0; }
 .play .device { margin-top:10px; }
 .play .device[hidden] { display:none; }
+.play .pctl[hidden] { display:none; }
+.play.src-device .b-only { display:none; }
+.play:not(.src-device) .d-only { display:none; }
 .device-row { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-bottom:8px; }
 .device-label { flex:0 0 100%; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 .device-choices { display:flex; flex-wrap:wrap; gap:4px; }
