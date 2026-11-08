@@ -43,6 +43,7 @@ const Play = (()=>{
     mod:null, svg:null, keys:false,
     layout:'qwerty', layoutSet:false,
     panel:null,     // settings and presets from the label file's device block (device-panel.js)
+    source:'browser', link:null,   // browser | device: the firmware in this page or a real board, never both, so MIDI cannot loop
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
     hot:new Set(), cool:{},   // table rows of the controls in use
     mode:null, held:[],       // the toggle modifier tapped last, the hold modifiers held: the labels follow them
@@ -58,21 +59,27 @@ const Play = (()=>{
   reset0();
   const em = ()=> doc.emulator;
   const playable = ()=> !!(em() && em().embed==='allowed');
+  const linkable = ()=> !!(doc.device && navigator.requestMIDIAccess);   // no Web MIDI in Safari
   const $p = id => document.getElementById(id);
 
   /* ---------------------------------------------------------- the strip above the drawing */
   function strip(){
     const box=$p('play'); if(!box) return;
     const e=em();
-    box.hidden=!e;
-    if(!e){ box.innerHTML=''; return; }
+    box.hidden=!e && !linkable();
+    if(!e && !linkable()){ dropDevice(); box.innerHTML=''; return; }
     const fw=doc.firmware, name=fw.name||'this firmware';
-    if(!playable()){
+    if(!playable() && !linkable()){
+      dropDevice();
       box.innerHTML=`<p><b>Play</b> ${esc(fw.author||'The author')} plays ${esc(name)} in the browser on their own page. <a href="${escAttr(e.url)}" target="_blank" rel="noopener">Open it ↗</a></p>`;
       return;
     }
     if(!box.querySelector('.pctl')) build(box);
     syncDevice();
+    box.classList.toggle('src-device', S.source==='device');
+    $p('playSrcRow').hidden=!(playable() && linkable());
+    seg($p('playSrc'), [['browser','Browser build'],['device','Device']], k=>S.source===k, setSource);
+    if(!playable()){ $p('playCredit').textContent=''; fillMidi(); body(); return; }
     const on=S.state!=='idle';
     const go=$p('playGo');
     go.textContent= on? '■ Stop' : '▶ Play';
@@ -90,7 +97,9 @@ const Play = (()=>{
       +(navigator.standalone===false? ' On iPhone, Share › Add to Home Screen opens it full screen, without the browser\'s bars.' : '');   // iOS Safari only
   }
   function build(box){
-    box.innerHTML=`<div class="pctl">
+    box.innerHTML=`<div class="pctl" id="playSrcRow" hidden>
+      <span class="cap">Source</span><span class="seg" id="playSrc"></span>
+    </div><div class="pctl b-only">
       <button type="button" id="playGo" class="primary">▶ Play</button>
       <label><span class="cap">Input</span><select id="playIn" aria-label="Audio input"></select></label>
       <input type="file" id="playFile" accept="audio/*" hidden>
@@ -99,13 +108,13 @@ const Play = (()=>{
       <span class="pmeter" title="Output level"><i id="playMeter"></i></span>
       <label class="chk"><input type="checkbox" id="playOled"> OLED</label>
       <span class="status" id="playMsg" role="status"></span>
-    </div><div class="pctl">
+    </div><div class="pctl b-only">
       <label class="midi"><span class="cap">MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
       <label class="midi"><span class="cap">MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
       <span class="keys"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
       <button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button>
       <button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>
-    </div><div class="device" id="playDevice" hidden></div><p class="hint" id="playCredit"></p>`;
+    </div><div class="device d-only" id="playLink"></div><div class="device" id="playDevice" hidden></div><p class="hint b-only" id="playCredit"></p>`;
     $p('playLock').onclick=()=>{ S.lock=!S.lock; try{ localStorage.setItem(PLAY_LOCK_PREF, S.lock?'1':'0'); }catch(err){} body(); };
     $p('playStage').onclick=()=>stage(!S.stage);
     $p('playGo').onclick=()=> S.state==='idle'? start() : stop();
@@ -180,7 +189,7 @@ const Play = (()=>{
   /* ---------------------------------------------------------- start and stop */
   function say(msg, err=false){ S.msg=msg; S.err=err; const m=$p('playMsg'); if(m){ m.textContent=msg; m.classList.toggle('err',err); } }
   async function start(){
-    const e=em(); if(!e || e.embed!=='allowed' || S.state!=='idle') return;
+    const e=em(); if(!e || e.embed!=='allowed' || S.state!=='idle' || S.source!=='browser') return;
     const run=++S.run;
     // made and resumed inside the click, so the browser lets it play
     const ctx=new AudioContext({sampleRate:48000, latencyHint:'interactive'});
@@ -251,43 +260,60 @@ const Play = (()=>{
   async function pickMidi(dir, v){
     if(v==='connect'){
       try{
-        S.midi=await navigator.requestMIDIAccess({sysex:!!doc.device});   // a device block may ask for its values by SysEx
+        S.midi=await navigator.requestMIDIAccess();
         S.midi.onstatechange=()=>{ fillMidi(); bindMidi(); };
         v= dir==='in'? '*' : ([...S.midi.outputs.keys()][0]||'');
       }catch(err){ v=''; say('MIDI: '+(err.message||'not allowed'), true); }
     }
+    linkMod??=await import('./'+PLAY_RUNTIME+'device-link.js').catch(()=>null);
+    // one device as both MIDI in and MIDI out would loop through the browser build; 'All inputs' just leaves it out (bindMidi)
+    const other=S.midi && (dir==='in'? S.midi.outputs.get(S.midiOut) : S.midi.inputs.get(S.midiIn));
+    const port=S.midi && (dir==='in'? S.midi.inputs.get(v) : S.midi.outputs.get(v));
+    if(linkMod?.sameDevice(port, other)){ say(`${port.name} is already the MIDI ${dir==='in'?'out':'in'}. To control the board, switch Source to Device.`, true); v=''; }
     if(dir==='in') S.midiIn=v; else S.midiOut=v;
     fillMidi(); bindMidi();
-    S.panel?.ask();
   }
-  /* ---------------------------------------------------------- settings and presets: the browser build and the MIDI out port both get them */
-  let deviceFor='null', deviceMod=null;
+  /* ---------------------------------------------------------- settings and presets: the source gets them, the browser build or the board */
+  let deviceFor='null', deviceMod=null, linkMod=null;
   function deviceSend(bytes){
-    const out=S.midi && S.midiOut ? S.midi.outputs.get(S.midiOut) : null;
-    let sent=false;
-    if(S.st){ S.st.sendMidi(bytes); sent=true; }
-    try{ if(out){ out.send(bytes); sent=true; } }catch(e){}
-    return sent;
+    if(S.source==='device') return !!S.link?.send(bytes);
+    if(!S.st) return false;
+    S.st.sendMidi(bytes);
+    return true;
+  }
+  /* the strip is about to lose its controls */
+  function dropDevice(){ deviceFor='null'; S.panel?.reset(); S.panel=null; S.link?.close(); S.link=null; S.source='browser'; }
+  function setSource(next){
+    if(next===S.source) return;
+    S.source=next;
+    S.panel?.reset();
+    if(next==='device'){ if(S.state!=='idle') stop(); say(''); S.link?.connect(); }
+    else S.link?.close();
+    bindMidi();
+    refresh();
   }
   async function syncDevice(){
     const box=$p('playDevice'); if(!box) return;
     const key=JSON.stringify(doc.device||null); if(key===deviceFor) return;
-    deviceFor=key; S.panel=null; box.replaceChildren(); box.hidden=true;
+    deviceFor=key; S.panel?.reset(); S.panel=null; S.link?.close(); S.link=null; S.source= playable()? 'browser' : 'device';
+    box.replaceChildren(); box.hidden=true; $p('playLink').replaceChildren();
     if(!doc.device) return;
-    try{ deviceMod??=await import('./'+PLAY_RUNTIME+'device-panel.js'); }catch(e){ return; }
+    try{ [deviceMod, linkMod]=await Promise.all([import('./'+PLAY_RUNTIME+'device-panel.js'), import('./'+PLAY_RUNTIME+'device-link.js')]); }catch(e){ return; }
     if(key!==deviceFor) return;   // another firmware came while this loaded
     const device=deviceMod.parseDevice(doc.device); if(!device) return;
-    S.panel=deviceMod.mountDevicePanel(box, device, {send:deviceSend, idle:'Not sent: press Play or pick a MIDI out port.'});
+    S.panel=deviceMod.mountDevicePanel(box, device, {send:deviceSend,
+      idle:()=> S.source==='device'? 'Not sent: connect the board and choose it under Device.' : 'Not sent: press Play first, or switch Source to Device.'});
+    S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }});
     box.hidden=false;
-    S.panel.ask();
   }
   function bindMidi(){
     if(!S.midi) return;
-    for(const p of S.midi.inputs.values()) p.onmidimessage= S.midiIn==='*' || S.midiIn===p.id ? midiFromPort : null;
+    const out=S.midi.outputs.get(S.midiOut);
+    for(const p of S.midi.inputs.values())
+      p.onmidimessage= S.source==='browser' && (S.midiIn==='*' || S.midiIn===p.id) && !linkMod?.sameDevice(p, out) ? midiFromPort : null;
   }
   function midiFromPort(e){
     const d=e.data; if(!d.length || d[0]===0xFE) return;   // active sensing: not worth the firmware's time
-    S.panel?.midi(d);
     if(!S.st) return;
     S.st.sendMidi(d);
     if(d[0]<0xF8) showMidi('MIDI_IN', d);   // clock and other real-time bytes would flash the row non-stop
