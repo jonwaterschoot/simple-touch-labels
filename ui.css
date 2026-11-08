@@ -234,6 +234,12 @@ body.play-stage.stage-nopadlabels #fig .padlabel { display:none; }
 .play .pctl button { min-width:92px; }
 .play .pctl + .pctl { margin-top:8px; }
 .play .pctl .seg button { min-width:0; }
+.play .device { margin-top:10px; }
+.play .device[hidden] { display:none; }
+.device-row { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-bottom:8px; }
+.device-label { flex:0 0 100%; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.device-choices { display:flex; flex-wrap:wrap; gap:4px; }
+.device-note { color:#c0392b; font-size:12px; margin:0; }
 .play .keys { display:flex; align-items:center; gap:8px; }
 .ctab tr td { transition:background-color .25s; }
 .ctab tr.hov td { background:color-mix(in srgb, var(--active) 9%, transparent); transition:none; }
