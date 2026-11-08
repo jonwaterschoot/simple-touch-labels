@@ -43,7 +43,7 @@ const Play = (()=>{
     mod:null, svg:null, keys:false,
     layout:'qwerty', layoutSet:false,
     panel:null,     // settings and presets from the label file's device block (device-panel.js)
-    source:'browser', link:null,   // browser | device: the firmware in this page or a real board, never both, so MIDI cannot loop
+    source:'browser', link:null, follows:false,   // browser | device: the firmware in this page or a real board, never both, so MIDI cannot loop. follows: the drawing shows the board
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
     hot:new Set(), cool:{},   // table rows of the controls in use
     mode:null, held:[],       // the toggle modifier tapped last, the hold modifiers held: the labels follow them
@@ -61,6 +61,7 @@ const Play = (()=>{
   const playable = ()=> !!(em() && em().embed==='allowed');
   const linkable = ()=> !!(doc.device && navigator.requestMIDIAccess);   // no Web MIDI in Safari
   const $p = id => document.getElementById(id);
+  const showing = ()=> S.state!=='idle' || (S.source==='device' && S.follows);   // the drawing is live
 
   /* ---------------------------------------------------------- the strip above the drawing */
   function strip(){
@@ -133,7 +134,7 @@ const Play = (()=>{
   /* ---------------------------------------------------------- the page around the drawing: no tap highlight or selection while
      playing, the scroll lock, and full screen (the real one where there is one, else the drawing over the page, as on iPhone) */
   function body(){
-    const b=document.body, on=S.state!=='idle';
+    const b=document.body, on=showing();
     b.classList.toggle('playing', on);
     b.classList.toggle('play-lock', on && S.lock);
     b.classList.toggle('play-stage', S.stage);
@@ -287,24 +288,40 @@ const Play = (()=>{
     if(next===S.source) return;
     S.source=next;
     S.panel?.reset();
-    if(next==='device'){ if(S.state!=='idle') stop(); say(''); S.link?.connect(); }
-    else S.link?.close();
+    clearLive();
+    if(next==='device'){ if(S.state!=='idle') stop(); say(''); S.link?.connect(); keys(S.follows); }
+    else { S.link?.close(); keys(false); }
     bindMidi();
     refresh();
   }
+  /* what the drawing showed of the board */
+  function clearLive(){
+    for(const i in S.midiPads){ delete S.midiPads[i]; drawPad(i); hot(padId(+i),false); }
+    S.pads={}; S.latched.clear(); S.held=[]; S.mode=null; soloMod=null; S.oled=null; S.oledUrl='';
+  }
+  const LIVE_HANDLERS={
+    pads(mask){ for(let i=0;i<12;i++){ const on=!!(mask&(1<<i)), was=S.midiPads[i]!==undefined; if(on===was) continue;
+      if(on) S.midiPads[i]=0.7; else delete S.midiPads[i];
+      drawPad(i); hot(padId(i),on); modPad(padId(i),on); } },
+    levers(pos){ for(const [id,p] of Object.entries(pos)){ if(S.levers[id]===p) continue; S.levers[id]=p; drawLever(id); flash(id); } follow(); },
+    knob(id,v){ S.controls[id]=v; drawControl(id); },
+    oled(ram,info){ showOled(ram,info); },
+  };
   async function syncDevice(){
     const box=$p('playDevice'); if(!box) return;
     const key=JSON.stringify(doc.device||null); if(key===deviceFor) return;
-    deviceFor=key; S.panel?.reset(); S.panel=null; S.link?.close(); S.link=null; S.source= playable()? 'browser' : 'device';
+    deviceFor=key; S.panel?.reset(); S.panel=null; S.link?.close(); S.link=null; S.follows=false; S.source= playable()? 'browser' : 'device';
     box.replaceChildren(); box.hidden=true; $p('playLink').replaceChildren();
     if(!doc.device) return;
-    try{ [deviceMod, linkMod]=await Promise.all([import('./'+PLAY_RUNTIME+'device-panel.js'), import('./'+PLAY_RUNTIME+'device-link.js')]); }catch(e){ return; }
+    try{ [deviceMod, linkMod, S.oledLib]=await Promise.all([import('./'+PLAY_RUNTIME+'device-panel.js'), import('./'+PLAY_RUNTIME+'device-link.js'), import('./'+PLAY_RUNTIME+'oled.js')]); }catch(e){ return; }
     if(key!==deviceFor) return;   // another firmware came while this loaded
     const device=deviceMod.parseDevice(doc.device); if(!device) return;
     S.panel=deviceMod.mountDevicePanel(box, device, {send:deviceSend,
       idle:()=> S.source==='device'? 'Not sent: plug in the Simple Touch and choose its MIDI port.' : 'Not sent: press Play first, or choose Connect to Simple Touch.'});
-    S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }});
+    S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }, live:LIVE_HANDLERS});
+    S.follows=S.link.follows; S.oledRows=device.live?.oled?.rows||0;
     box.hidden=false;
+    if(S.source==='device') refresh();
   }
   function bindMidi(){
     if(!S.midi) return;
@@ -426,7 +443,7 @@ const Play = (()=>{
   /* A modifier in use: the drawing's labels show what it does (soloMod, core.js). A hold modifier while held,
      else the toggle tapped last. Only the labels are drawn again, so the controls being held stay held. */
   function relabel(force){
-    const want= S.state!=='idle' && part==='main' ? (S.held.at(-1) || S.mode) : null;
+    const want= showing() && part==='main' ? (S.held.at(-1) || S.mode) : null;
     if(want===soloMod && !force) return;
     soloMod=want;
     const over=S.svg?.querySelector(':scope > g.over'); if(!over) return;
@@ -566,7 +583,7 @@ const Play = (()=>{
 
   function attach(fig){
     S.svg=null; S.mod=null;
-    if(!playable() || S.state==='idle') return;
+    if(!showing()) return;
     const svg=fig.querySelector('svg'); if(!svg) return;
     const art= design.themes[V.theme].panel.drawing!=='simple' && tagPadArt();
     S.polys= PAD_POLY[art? 'synthux' : 'simple'];
@@ -575,7 +592,7 @@ const Play = (()=>{
     let u='<g class="playov under"><defs><radialGradient id="playGlow"><stop offset="0" stop-color="#ff4a2f" stop-opacity=".85"/><stop offset="1" stop-color="#ff4a2f" stop-opacity="0"/></radialGradient></defs>';
     for(const i of PAD_ORDER) u+=`<g data-padv="${i}"><polygon class="padfill" points="${pts(i)}"/>${art? `<use class="padart" href="#padArt-${padId(i)}"/>` : ''}</g>`;
     { const l=SLOT.LED; u+=`<g data-led><circle class="glow" cx="${l.x}" cy="${l.y}" r="26"/><rect class="lit" x="${l.x-11}" y="${l.y-7}" width="22" height="14" rx="2"/></g>`; }
-    if(em().oled && S.oledOn){ const o=OLED_BOX;
+    if(S.source==='device'? S.oledRows : em()?.oled && S.oledOn){ const o=OLED_BOX;
       u+=`<g class="oled"><rect class="bezel" x="${o.x-10}" y="${o.y-10}" width="${o.w+20}" height="${o.h+20}" rx="8"/><image data-oled x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" preserveAspectRatio="xMidYMid meet"/></g>`; }
     u+='</g>';
     // On top of everything: the controls' positions and the hit areas
@@ -647,10 +664,11 @@ const Play = (()=>{
   /* ---------------------------------------------------------- input */
   const svgPoint=(el,e)=>{ const m=el.getScreenCTM(); if(!m) return {x:0,y:0}; return new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse()); };
   const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
-  function setControl(id,v){ v=clamp(v); if(v===S.controls[id]) return; S.controls[id]=v; drawControl(id); S.st?.setControl(id,v); }
-  function setLever(id,pos){ S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); follow(); }
+  function setControl(id,v){ v=clamp(v); if(v===S.controls[id]) return; S.controls[id]=v; drawControl(id); S.st?.setControl(id,v); if(S.source==='device') S.link?.knob(id,v); }
+  function setLever(id,pos){ if(S.source==='device') return;   // a real lever only moves by hand
+    S.levers[id]=pos; drawLever(id); flash(id); S.st?.setSwitch(id,pos); follow(); }
   /* the mode switch (doc.modes, core.js): the labels follow its lever while playing; a position that isn't a mode shows them all */
-  const leverMode=()=>{ const sw=doc.modes?.switch; return S.state!=='idle' && sw && modeList().some(m=>m.pos===S.levers[sw])? S.levers[sw] : ''; };
+  const leverMode=()=>{ const sw=doc.modes?.switch; return showing() && sw && modeList().some(m=>m.pos===S.levers[sw])? S.levers[sw] : ''; };
   function follow(){
     if(!doc.modes || leverMode()===V.mode) return;
     V.mode=leverMode(); relabel(true);
@@ -658,7 +676,8 @@ const Play = (()=>{
   }
   function pad(i,down,force=0.5){ const was=S.pads[i]!==undefined;
     if(down) S.pads[i]=force; else { delete S.pads[i]; S.latched.delete(i); } drawPad(i); hot(padId(i),down); S.st?.setPad(i,down,force);
-    if(down!==was) modPad(padId(i),down); }
+    if(S.source==='device') S.link?.pad(i,down,force);   // its modifier labels follow the board's own report
+    else if(down!==was) modPad(padId(i),down); }
   /* Touch: a buzz the moment a control is taken, a light tick as its value runs (a firmer one at the ends),
      a clear click per lever position. Android vibrates for the time asked. iPhone has no vibrate, but Safari 18
      ticks when a switch is toggled from a touch, so a hidden one is toggled: one tick, whatever the length. */
@@ -737,7 +756,7 @@ const Play = (()=>{
 
   return {
     strip, attach, table, reset, stop,
-    get on(){ return S.state!=='idle'; },
+    get on(){ return showing(); },
     get stage(){ return S.stage; },
   };
 })();
