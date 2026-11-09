@@ -613,17 +613,34 @@ function buildStyle(){
     el('button',{type:'button',className:'tight',textContent:'Download SVG template (layered)',onclick:downloadTemplateSVG}),
     el('button',{type:'button',className:'tight',textContent:'Download PNG template (2160 × 3196)',onclick:()=>downloadTemplatePNG().catch(err=>alert('The PNG template could not be made: '+err.message))})));
 
-  section('OLED','Where the OLED sits on the drawing while the firmware plays or the board is connected. Drag it on the preview, and its orange corner to resize. It stays out of the manual and the images.');
+  const inColumns=()=>el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'});
+  const perLayout=(label,cell)=>el('div',{className:'dcol'},el('span',{textContent:label}),...LAYOUTS.map(cell));
+  const range=(aria,min,max,get,set,off)=>{ const i=el('input',{type:'range',min,max,step:1,value:get(),title:String(get()),disabled:!!off}); i.setAttribute('aria-label',aria); i.oninput=()=>{ set(+i.value); i.title=i.value; }; return i; };
+
+  section('OLED','Where the OLED sits on the drawing while the firmware plays or the board is connected, per layout. A layout you have not placed it in follows the other. Drag it on the preview, and its orange corner to resize; that changes the layout on show. It stays out of the manual and the images.');
   if(!oledUsed()) form.append(el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Show the OLED on the preview',onclick:()=>{ setOled({}); buildForm(); }})));
   else {
     const g=el('div',{className:'dgrid'}), dev=oledRowsOf(doc.device), size=el('div',{className:'seg'});
-    seg(size,[[32,'128 × 32'],[64,'128 × 64']],v=>oledEditRows()===v,v=>{ const b=oledBox(v); doc.oled=oledOf({x:b.x,y:b.y,w:b.w,rows:v}); buildForm(); render(); });
+    seg(size,[[32,'128 × 32'],[64,'128 × 64']],v=>oledEditRows()===v,v=>{ setOled({},V.layout,v); buildForm(); });
     g.append(el('div',{className:'dc'},el('span',{textContent:'Display'}),dev? el('span',{textContent:`128 × ${dev}, from the label file's device block`}) : size,el('span')));
-    g.append(slider('Move left / right',0,ARTBOARD.w,1,()=>oledPlace().x,v=>setOled({x:v})));
-    g.append(slider('Move up / down',0,Math.floor(ARTBOARD.h),1,()=>oledPlace().y,v=>setOled({y:v})));
-    g.append(slider('Width',60,800,1,()=>oledPlace().w,v=>setOled({w:v})));
+    g.append(inColumns());
+    for(const [k,label,min,max] of [['x','Move left / right',0,ARTBOARD.w],['y','Move up / down',0,Math.floor(ARTBOARD.h)],['w','Width',60,800]])
+      g.append(perLayout(label,m=>range(`OLED ${label}, ${m}`,min,max,()=>oledPlace(m)[k],v=>setOled({[k]:v},m))));
     form.append(g, el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset OLED',onclick:()=>{ doc.oled=null; buildForm(); render(); }})));
     if(!dev) form.append(el('p',{className:'hint',textContent:'While playing, the display the firmware reports decides the height, around the same middle.'}));
+  }
+
+  const nameSet=REF_SETS[V.ref];
+  section('Control names', nameSet? `The small ${nameSet.label} names of the controls, per layout: in the text labels, or on the drawing (a knob's name inside the knob). On the drawing, drag a name on the preview to place it by itself; Reset positions puts it back. The library shows the names that are on the drawing, in your look.` : 'Pick a set under Reference names at the top to show the small names of the controls.');
+  if(nameSet){
+    const N=m=>design.names[m], g=el('div',{className:'dgrid'});
+    g.append(inColumns());
+    g.append(perLayout('Where',m=>{ const s=el('select',{innerHTML:'<option value="label">In the text labels</option><option value="drawing">On the drawing</option>'}); s.value=N(m).place; s.setAttribute('aria-label',`Control names, ${m}`);
+      s.onchange=()=>{ N(m).place=s.value; buildForm(); changed(); }; return s; }));
+    g.append(perLayout('Size',m=>range(`Control name size, ${m}`,8,40,()=>N(m).size||design.size3||Math.round(design.size2*0.72),v=>{ N(m).size=v; changed(); })));
+    for(const [k,label] of [['x','Move all left / right'],['y','Move all up / down']])
+      g.append(perLayout(label,m=>range(`${label}, ${m}`,-80,80,()=>N(m)[k],v=>{ N(m)[k]=v; changed(); },N(m).place!=='drawing')));
+    form.append(g);
   }
 
   section('Modifier colours',`Modifier 1 to 4 in the ${themeName} theme, phone and desktop.`);
@@ -638,7 +655,6 @@ function buildStyle(){
   const box=el('div',{className:'dgrid'});
   for(const [k,label,min,max,step] of DCTRL){
     box.append(slider(label,min,max,step,()=>design[k],v=>{ design[k]=v; changed(); }));
-    if(k==='size2') box.append(slider('Reference caption size',8,40,1,()=>design.size3||Math.round(design.size2*0.72),v=>{ design.size3=v; changed(); }));
   }
   const wsel=el('select',{innerHTML:[400,500,600,700].map(w=>`<option value="${w}">${w}</option>`).join('')}); wsel.value=design.weight;
   wsel.onchange=()=>{ design.weight=+wsel.value; changed(); };
@@ -722,8 +738,12 @@ function render(){
 /* The OLED on the preview only, never in an export (doc.oled, core.js). Under the labels, as while playing. */
 const oledUsed=()=>!!(doc.oled || doc.emulator?.oled || oledRowsOf(doc.device));
 const oledEditRows=()=>oledRowsOf(doc.device)||doc.oled?.rows||64;
-const oledPlace=()=>{ const rows=oledEditRows(), b=oledBox(rows); return {x:b.x, y:b.y, w:b.w, rows}; };
-function setOled(patch){ doc.oled=oledOf({...oledPlace(),...patch}); render(); }
+const oledPlace=(layout=V.layout, rows=oledEditRows())=>{ const b=oledBox(rows,layout); return {x:b.x, y:b.y, w:b.w}; };
+function setOled(patch, layout=V.layout, rows=oledEditRows()){
+  const q={rows}; for(const l of LAYOUTS) if(doc.oled?.[l]) q[l]=oledPlace(l,rows);
+  q[layout]={...oledPlace(layout,rows),...patch};
+  doc.oled=oledOf(q); render();
+}
 function drawOledFrame(){
   if(!oledUsed()) return;
   const rows=oledEditRows(), o=oledBox(rows), size=Math.min(o.h*0.42,o.w/8).toFixed(1), grip=32;
@@ -771,7 +791,7 @@ stage.addEventListener('pointerdown',e=>{
     if(custom){ custom.x=p.x; custom.y=p.y; } else offs[key]=p;
     render();
   };
-  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); stage.classList.remove('dragging'); if(!moved) focusRow(key); };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); stage.classList.remove('dragging'); if(!moved) focusRow(key.replace(/^n:/,'')); };
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 });
 $('resetPos').onclick=()=>{ doc.offsets[V.layout]={}; render(); };

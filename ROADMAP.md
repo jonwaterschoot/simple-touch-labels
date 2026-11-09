@@ -68,6 +68,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [x] Held-together modifiers (2026-11-09): `combos` next to `modifiers` (`"P10+P11"`, up to three controls), labels as `m_P10+P11`. A combo shares the four modifier colours. Designer, drawing, legend, control table, README reader and Play.
 - [x] OLED place and shape (2026-11-09): `oled` in the label file (`{x, y, w, rows}`), moved and resized in the designer. The box follows the display's real rows, so a 128 × 32 is 4:1. A firmware's label file needs saving again and pushing to carry a placement; web apps exported earlier keep the old 2:1 box until they are exported again.
 - [x] Full screen in Connect to Simple Touch (2026-11-09), with Settings in place of Sound.
+- [x] More per layout (2026-11-09), in Phone and Desktop columns under Style: `oled` now `{rows, phone, desktop}` (an older `{x, y, w, rows}` goes for both), and `design.names` for where the control names go, their size and position. Names on the drawing are dragged as `offsets` key `n:<id>`. Still shared by both layouts: line sizes, padding, corner radius, gap, font and effect.
 - [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs the `page` above to keep the labels up. Tapped combos have no editor control yet.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 
