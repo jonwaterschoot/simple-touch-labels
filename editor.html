@@ -312,7 +312,7 @@ async function startFrom(key){
    FORM
    ============================================================ */
 const GROUPS = [
-  {title:'P10 and P11', hint:'The round button marks a control as a modifier (max 4). Modifier 1 is red, 2 blue, 3 olive, 4 yellow; each gets its own column for what the other controls do with it. Under the name, "hold" means it is held while you use them; click it for "tap", a mode switch (e.g. P0 / P2 in TouchVink).', kinds:['mod'], mods:true},
+  {title:'P10 and P11', hint:'The round button marks a control as a modifier. Modifier 1 is red, 2 blue, 3 olive, 4 yellow; each gets its own column for what the other controls do with it. Under the name, "hold" means it is held while you use them; click it for "tap", a mode switch (e.g. P0 / P2 in TouchVink). When a function needs controls held together, such as P10 + P11, add them under "Held together": they get one column. Modifiers and held-together sets are four at most.', kinds:['mod'], mods:true},
   {title:'Knobs and faders', kinds:['knob','fader'], mods:true},
   {title:'Pads', kinds:['pad'], mods:true},
   {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
@@ -379,6 +379,25 @@ function midiInput(s, example){
     e.classList.toggle('bad',bad); e.title= bad? 'Not read as MIDI. Write e.g. "CC 20", "note 36 ch 10" or "CC 30 ≥ 64"; separate several with · or a comma.' : ''; };
   e.addEventListener('input',check); check();
   return e;
+}
+/* controls held together as one modifier (doc.combos, core.js): pick them, each set gets a column */
+function comboRow(){
+  const opts=SLOTS.filter(s=>MODDABLE.includes(s.kind));
+  const pick=(v,aria,none)=>{ const c=el('select',{innerHTML:(none?'<option value="">none</option>':'')+opts.map(s=>`<option>${s.id}</option>`).join('')}); c.value=v; c.setAttribute('aria-label',aria); return c; };
+  const a=pick('P10','First control held'), b=pick('P11','Second control held'), c=pick('','Third control held, optional',true);
+  const add=()=>{
+    const ids=[a.value,b.value,c.value].filter(Boolean), id=comboId(ids);
+    if(new Set(ids).size<ids.length){ flash('Pick different controls.'); return; }
+    if(mods().includes(id)){ flash(`${modLab(id)} already has a column.`); return; }
+    doc.combos=[...(doc.combos||[]),id]; buildForm(); render();
+  };
+  const full=mods().length>=MOD_MAX, row=el('div',{className:'fprow'}, el('span',{className:'cap',textContent:'Held together'}), a, '+', b, '+', c,
+    el('button',{type:'button',className:'tight',textContent:'Add column',disabled:full,title:full?'Four modifiers and held-together sets at most':'',onclick:add}));
+  for(const m of mods().filter(isCombo)){
+    const t=el('b',{textContent:modLab(m)}); t.style.color=`var(--m${modIndex(m)+1})`;
+    row.append(t, el('button',{type:'button',className:'tight',textContent:'Remove',title:'Its labels come back if you add it again',onclick:()=>{ doc.combos=doc.combos.filter(x=>x!==m); buildForm(); render(); }}));
+  }
+  return row;
 }
 function section(title,hint){ form.append(el('h2',{textContent:title})); if(hint) form.append(el('p',{className:'hint',textContent:hint})); }
 function buildForm(){
@@ -450,7 +469,7 @@ function buildForm(){
   for(const g of GROUPS){
     section(g.title,g.hint);
     const cols=[{k:'main',t:'Line 1',max:LIMITS.line},{k:'main_2',t:'Line 2 (smaller)',max:LIMITS.line2,cls:'l2'}];
-    if(g.mods) for(const m of mods()) cols.push({k:'m_'+m,t:(isToggle(m)?'in ':'+ ')+lab(SLOT[m]),mod:m,max:LIMITS.line2});
+    if(g.mods) for(const m of mods()) cols.push({k:'m_'+m,t:(isToggle(m)?'in ':'+ ')+modLab(m),mod:m,max:LIMITS.line2});
     cols.push({k:'midi',t:'MIDI',max:LIMITS.midi,cls:'midi'});
     const grid=el('div',{className:'lgrid'});
     grid.style.gridTemplateColumns=`64px ${g.mods?'30px ':''}repeat(${cols.length-1},minmax(0,1fr)) minmax(0,1.4fr)`;   // the last is MIDI
@@ -470,14 +489,14 @@ function buildForm(){
         const cb=el('input',{type:'checkbox',checked:isMod(s.id),title:isMod(s.id)?`Modifier ${modIndex(s.id)+1}`:'Make this a modifier'});
         cb.setAttribute('aria-label',`${lab(s)} is a modifier`);
         cb.disabled=!isMod(s.id) && mods().length>=MOD_MAX;
-        cb.onchange=()=>{ const list=mods(); doc.modifiers = cb.checked ? [...list,s.id] : list.filter(x=>x!==s.id); if(!cb.checked) delete doc.modTypes[s.id]; buildForm(); render(); };
+        cb.onchange=()=>{ const list=mods().filter(m=>!isCombo(m)); doc.modifiers = cb.checked ? [...list,s.id] : list.filter(x=>x!==s.id); if(!cb.checked) delete doc.modTypes[s.id]; buildForm(); render(); };
         const tg=el('div',{className:'tog'},cb); if(isMod(s.id)) tg.style.setProperty('--mc',`var(--m${modIndex(s.id)+1})`);
         row.append(tg);
       }
       for(const c of cols){
         const cell=el('div',{className:'cell'});
         if(c.mod) cell.style.setProperty('--mcol',`var(--m${modIndex(c.mod)+1})`);
-        const skip=(c.k==='main_2'&&NO_LINE2.includes(s.id)) || c.mod===s.id;
+        const skip=(c.k==='main_2'&&NO_LINE2.includes(s.id)) || (c.mod && inMod(c.mod,s.id));
         if(c.k==='midi'){ cell.append(midiInput(s, !grid.querySelector('input.midi'))); row.append(cell); continue; }
         if(!skip) cell.append(mkInput(['labels',s.id,c.k],c.max,{cls:(c.cls||'')+(c.mod?' modin':''),ph:c.k==='main'&&r?r[0]:c.k==='main_2'&&r&&r[1]?r[1]:'',aria:`${lab(s)} ${c.t}`,slot:s.id}));
         row.append(cell);
@@ -487,6 +506,7 @@ function buildForm(){
       grid.append(row);
     }
     form.append(grid);
+    if(g.kinds.includes('mod')) form.append(comboRow());
   }
 
   section('Extra labels','Free labels you place yourself, e.g. "MIDI in" or a patch name. Drag them on the preview.');
@@ -892,16 +912,16 @@ const kitParts=()=>hasSecondary()? ['main','second'] : ['main'];
 const mdCell=t=>String(t||'').replace(/\|/g,'\\|').replace(/\s+/g,' ').trim();
 function controlsMD(){
   const ms=mods().filter(usesMod), midi=TABLE_ORDER.some(id=>val(id,'midi').trim());
-  const head=['Control','Function',...ms.map(m=>(isToggle(m)?'after ':'+ ')+slotName(m)),...(midi?['MIDI']:[])];
+  const head=['Control','Function',...ms.map(m=>(isToggle(m)?'after ':'+ ')+modName(m)),...(midi?['MIDI']:[])];
   const rows=TABLE_ORDER.map(id=>{
     const s=SLOT[id], fn=[val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
-    const mc=ms.map(m=>m===id? '*modifier*' : val(id,'m_'+m)), mi=midi? [val(id,'midi').trim()] : [];
+    const mc=ms.map(m=>inMod(m,id)? '*modifier*' : val(id,'m_'+m)), mi=midi? [val(id,'midi').trim()] : [];
     return fn||mc.some(x=>x.trim()&&x!=='*modifier*')||mi[0]? [`**${lab(s)}** ${KIND_NAME[s.kind]}`, fn, ...mc, ...mi] : null;
   }).filter(Boolean);
   if(!rows.length) return '<!-- TODO: no labels yet. Fill them in in the designer and make the kit again. -->';
   const line=r=>'| '+r.map(mdCell).join(' | ')+' |';
   return [line(head), '|'+head.map(()=>'---').join('|')+'|', ...rows.map(line),
-    ...(ms.length? ['', ...ms.map(m=>isToggle(m)? `- **after ${slotName(m)}**: tap ${lab(SLOT[m])} to switch the controls into this mode.` : `- **+ ${slotName(m)}**: hold ${lab(SLOT[m])} while you use the control.`)] : [])].join('\n');
+    ...(ms.length? ['', ...ms.map(m=>isToggle(m)? `- **after ${modName(m)}**: tap ${modLab(m)} to switch the controls into this mode.` : `- **+ ${modName(m)}**: hold ${modParts(m).map(p=>lab(SLOT[p])).join(' and ')} while you use the control.`)] : [])].join('\n');
 }
 function installMD(id, flash, repo){
   const rel= REPO_RE.test(repo)? `[Releases](${repo}/releases/latest)` : 'the releases page <!-- TODO: link to your releases -->';

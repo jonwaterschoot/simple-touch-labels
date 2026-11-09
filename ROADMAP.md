@@ -65,6 +65,8 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [x] Modes in the format (2026-10-29): `modes` next to `labels`, one switch, a name per position, each mode keeping only the labels that differ from the print set. Designer (Mode row, Modes section, fill from the README), library and web app (Mode row; labels follow the lever while playing), downloaded manual (a button and a printed page per mode).
 - [ ] Live labels from hardware: one small shared SysEx (`F0 7D 53 54 01 <SW1> <SW2> <pads lo> <pads hi> [page] F7`), sent by the firmware (TouchPlaited first, next to its telemetry) and so by its browser build too; the library reads it from Web MIDI input. Spec in simple-touch-web's README.
 - [ ] Modes not tied to a switch (a tapped pad such as FM BleepBloop's P1, TouchPlaited's Recording): tapped modifiers cover them as columns today; see whether `modes` should take a pad, or a `page` from the firmware.
+- [x] Held-together modifiers (2026-11-09): `combos` next to `modifiers` (`"P10+P11"`, up to three controls), labels as `m_P10+P11`. A combo shares the four modifier colours. Designer, drawing, legend, control table, README reader and Play.
+- [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs the `page` above to keep the labels up. Tapped combos have no editor control yet.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 
 ## Library
