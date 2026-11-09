@@ -653,8 +653,7 @@ function fpDesktopControls(){
     if(q.faceplate){
       const path=el('input',{value:fpDeskFile(),maxLength:120,spellcheck:false,className:'code'}); path.setAttribute('aria-label','Desktop faceplate file in your repository');
       path.addEventListener('input',()=>{ const v=path.value.trim(), good=FP_PATH.test(v); path.classList.toggle('bad',!good); if(good){ q.file=v; autosave(); } });
-      form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-        el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpDeskName(),onclick:()=>downloadFaceplate(true)})));
+      form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))));
     }
   }
   if(q.art==='own'? q.faceplate : q.art==='same' && doc.faceplate)
@@ -706,8 +705,7 @@ function buildStyle(){
     const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
     path.addEventListener('input',ok);
     form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg, .webp, .gif or .avif), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}),
-      el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpName(),onclick:downloadFaceplate})));
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg, .webp, .gif or .avif), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}));
   }
   if(doc.faceplate) fpPlacement(fpStyle(), patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); }, ()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); });
   fpDesktopControls();
@@ -1007,9 +1005,7 @@ $('htmlBtn').onclick=()=>{
 };
 /* labels, design and font: the saved file, and the repository's simple-touch-labels.json */
 const customFp=()=>doc.faceplate && !doc.faceplateRef;
-const fpName=()=>fpFile().split('/').pop();
 const customFpDesk=()=>doc.fpDesktop?.art==='own' && !!doc.fpDesktop.faceplate;
-const fpDeskName=()=>fpDeskFile().split('/').pop();
 /* the faceplate files that go into the repository */
 const fpFiles=()=>[...(customFp()? [{path:fpFile(), data:fpFileData().data}] : []), ...(customFpDesk()? [{path:fpDeskFile(), data:fpFileData(doc.fpDesktop.faceplate,fpDeskFile()).data}] : [])];
 function downloadFaceplate(desktop){ const f=desktop===true? fpFileData(doc.fpDesktop.faceplate,fpDeskFile()) : fpFileData(); download(f.name, URL.createObjectURL(new Blob([f.data],{type:f.type}))); }
