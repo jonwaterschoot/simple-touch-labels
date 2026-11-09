@@ -35,16 +35,16 @@
       <div class="btns">
         <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
-        <button type="button" class="outline" id="appBtn" title="Your manual as a page of its own, playable when a browser build is approved, ready for GitHub Pages">Web app…</button>
+        <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
         <button type="button" id="shareBtn">Copy share link</button>
-        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a new tab that follows your edits">Preview in library</button>
+        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a tab that follows your edits">Preview in library</button>
       </div>
       <div class="btns">
         <button type="button" id="openBtn">Open file…</button>
         <input type="file" id="openFile" accept=".json,application/json" hidden>
         <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
         <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
-        <button type="button" id="kitBtn" title="A README with the control map, the label file and the directory entry, in one .zip for your repository">Repository kit…</button>
+        <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
         <span class="status" id="busy"></span>
       </div>
     </div>
@@ -59,13 +59,13 @@
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
     <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg" data-why="Mark a control as a modifier to get a secondary view"></div><div class="seg" id="arrangeSeg" data-why="Shown when Main and Secondary are both on"></div><div class="seg" id="bwSeg" data-why="Black and white applies to the secondary view"></div></div>
-    <div class="grp"><span class="cap">Font</span><select id="fontSel"></select><button type="button" id="fontCustom" class="tight">Custom…</button><div class="seg" id="capsSeg" title="The labels on the drawing in capitals. What you typed stays as typed, also in the control table."></div></div>
+    <div class="grp"><span class="cap">Font</span><select id="fontSel"></select><button type="button" id="fontCustom" class="tight">Custom…</button></div>
   </div>
 
   <main class="grid">
     <section id="previewCol" aria-label="Preview">
       <div class="colgrip" id="colGrip" title="Drag to resize the preview · double-click to reset"><span></span></div>
-      <div id="previewBar"><span id="warnSum"></span><span class="hint">Click a label to edit it, drag to move it</span><button type="button" id="resetPos" class="tight">Reset positions</button></div>
+      <div id="previewBar"><span id="warnSum"></span><span class="hint">Click a label to edit it, drag to move it</span><span class="turn"><span id="turnName"></span><button type="button" id="turnCcw" class="tight" title="Turn the selected label a quarter turn counterclockwise, in this layout">↺ CCW</button><button type="button" id="turnCw" class="tight" title="Turn the selected label a quarter turn clockwise, in this layout">↻ CW</button></span><button type="button" id="resetPos" class="tight" title="Puts this layout's labels back where the layout puts them, and turns them back">Reset positions</button></div>
       <div id="stage"><p class="hint">Loading the panel drawing…</p></div>
     </section>
     <section id="formCol" aria-label="Labels"></section>
@@ -131,7 +131,7 @@
     <div class="kithead"><span class="cap">How to put it online</span><span class="hint" id="appUrl"></span></div>
     <div class="md kitmd" id="appSteps"></div>
     <div class="kitfiles"><span class="cap">In the .zip</span><ul id="appFiles"></ul></div>
-    <div class="mfoot"><span class="status" id="appBusy"></span><button type="button" id="appPreview" title="Your manual as the web app shows it, in a new tab that follows your edits">Preview ↗</button><button type="button" class="primary" id="appZip">Download web app (.zip)</button></div>
+    <div class="mfoot"><span class="status" id="appBusy"></span><button type="button" id="appPreview" title="Your manual as the web app shows it, in a tab that follows your edits">Preview ↗</button><button type="button" class="primary" id="appZip">Download web app (.zip)</button></div>
   </form>
 </dialog>
 
@@ -146,11 +146,13 @@ const UI={start:'blank', tab:'labels', arrange:'side', previewW:0, partsOn:{main
 const $=id=>document.getElementById(id);
 const stage=$('stage'), form=$('formCol');
 let ready=false;
+let selKey=null;   // the label the CW / CCW buttons turn: a control, c<id> (extra label), n:<id> (its name), f:<id> (its faceplate label)
 
 function snapshot(forShare){
   const d=cleanData();
   if(d.faceplateRef) delete d.faceplate;                 // example faceplates are fetched again
   else if(forShare) delete d.faceplate;                  // a custom faceplate is too big for a link
+  if(forShare && d.fpDesktop) delete d.fpDesktop.faceplate;
   return {doc:d, V:{theme:V.theme,layout:V.layout,ref:V.ref,refMode:V.refMode,mode:V.mode},
     UI:{start:UI.start,tab:UI.tab,arrange:UI.arrange,previewW:UI.previewW,partsOn:UI.partsOn,bwPreview:UI.bwPreview,font:UI.font,fontUrl:UI.fontUrl,tableMode:UI.tableMode,exWhat:UI.exWhat,exLook:UI.exLook,kit:UI.kit},
     design};
@@ -170,14 +172,14 @@ function saveNow(){
   clearTimeout(saveTimer); histRecord();
   const s=snapshot(false);
   try{ localStorage.setItem(KEY,JSON.stringify(s)); }
-  catch(e){ try{ delete s.doc.faceplate; localStorage.setItem(KEY,JSON.stringify(s)); flash('Faceplate too big to keep in this browser. Use Save file.'); }catch(e2){} }
+  catch(e){ try{ delete s.doc.faceplate; if(s.doc.fpDesktop) delete s.doc.fpDesktop.faceplate; localStorage.setItem(KEY,JSON.stringify(s)); flash('Faceplate too big to keep in this browser. Use Save file.'); }catch(e2){} }
 }
 /* Undo and redo (Ctrl+Z; Ctrl+Shift+Z or Ctrl+Y): the labels, the style and the font, one step per pause in
    editing (the autosave's). The faceplate is kept by reference, so steps stay small. */
 const HIST_MAX=100, hist={past:[], future:[], cur:null};
-function histState(){ const d=cleanData(); delete d.faceplate; return {key:JSON.stringify({d, design, font:UI.font, fontUrl:UI.fontUrl}), fp:doc.faceplate, fpRef:doc.faceplateRef}; }
+function histState(){ const d=cleanData(); delete d.faceplate; if(d.fpDesktop) delete d.fpDesktop.faceplate; return {key:JSON.stringify({d, design, font:UI.font, fontUrl:UI.fontUrl}), fp:doc.faceplate, fpRef:doc.faceplateRef, fpDesk:doc.fpDesktop?.faceplate||''}; }
 function histRecord(){
-  const s=histState(); if(hist.cur && s.key===hist.cur.key && s.fp===hist.cur.fp) return;
+  const s=histState(); if(hist.cur && s.key===hist.cur.key && s.fp===hist.cur.fp && s.fpDesk===hist.cur.fpDesk) return;
   if(hist.cur){ hist.past.push(hist.cur); if(hist.past.length>HIST_MAX) hist.past.shift(); }
   hist.future=[]; hist.cur=s;
 }
@@ -187,6 +189,7 @@ function histGo(from, to, what){
   to.push(hist.cur); hist.cur=from.pop();
   const j=JSON.parse(hist.cur.key), path=document.activeElement?.dataset?.path;
   doc=normalise({...j.d, faceplate:hist.cur.fp, faceplateRef:hist.cur.fpRef}); design=mergeDesign(j.design);
+  if(doc.fpDesktop?.art==='own') doc.fpDesktop.faceplate=hist.cur.fpDesk;
   if(j.font!==UI.font || j.fontUrl!==UI.fontUrl){ UI.font=j.font; UI.fontUrl=j.fontUrl; setLabelFont(UI.font); ensureFontLoaded(UI.font,UI.fontUrl).then(render); }
   closeColour?.(); applyDesign(); applyChrome(); setFaceplate(doc.faceplate, doc.faceplateRef); buildForm(); render();
   if(path) document.querySelector(`[data-path="${path}"]`)?.focus();
@@ -211,12 +214,15 @@ function seg(el, opts, isOn, pick){
 function syncBars(){
   const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second, off=(id,d)=>{ $(id).querySelectorAll('button').forEach(b=>b.disabled=d); $(id).title= d? $(id).dataset.why||'' : ''; };
   off('refModeSeg',!V.ref); off('partSeg',!sec); off('bwSeg',!sec); off('arrangeSeg',!both);
-  $('capsSeg').firstChild?.setAttribute('aria-pressed',String(!!design.caps));   // here, as undo and Reset all style change it too
+}
+/* the reference names controls: in the toolbar and in the Style tab, so both are redrawn on a change */
+function fillRefSegs(setEl, modeEl){
+  seg(setEl, [['','Off'],...Object.entries(REF_SETS).map(([k,r])=>[k,r.label])], v=>(V.ref||'')===v, v=>{ V.ref=v; buildBars(); buildForm(); render(); });
+  seg(modeEl, [['both','Captions + empty controls'],['caption','Captions'],['empty','Empty controls']], v=>V.refMode===v, v=>{ V.refMode=v; buildBars(); buildForm(); render(); });
 }
 function buildBars(){
   seg($('startSeg'), Object.entries(EXAMPLES).map(([k,e])=>[k,e.label]), v=>UI.start===v, startFrom);
-  seg($('refSeg'), [['','Off'],...Object.entries(REF_SETS).map(([k,r])=>[k,r.label])], v=>(V.ref||'')===v, v=>{ V.ref=v; buildBars(); buildForm(); render(); });
-  seg($('refModeSeg'), [['both','Captions + empty controls'],['caption','Captions'],['empty','Empty controls']], v=>V.refMode===v, v=>{ V.refMode=v; buildBars(); render(); });
+  fillRefSegs($('refSeg'), $('refModeSeg'));
   seg($('tableSeg'), [['off','Off'],['filled','Filled'],['blank','Blank rows']], v=>UI.tableMode===v, v=>{ UI.tableMode=v;
     if(v!=='off' && !['table','all'].includes(UI.exWhat)) UI.exWhat= UI.exWhat==='notes'? 'all' : 'table';
     buildBars(); buildForm(); render(); });
@@ -226,7 +232,6 @@ function buildBars(){
     const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; buildBars(); render(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; buildBars(); render(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; buildBars(); render(); });
-  seg($('capsSeg'), [['caps','ALL CAPS']], ()=>design.caps, ()=>{ design.caps=!design.caps; applyDesign(); render(); });
   const fs=$('fontSel'), list=FONTS.includes(UI.font)? FONTS : [...FONTS,UI.font];
   fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
   if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
@@ -314,7 +319,7 @@ async function startFrom(key){
    FORM
    ============================================================ */
 const GROUPS = [
-  {title:'P10 and P11', hint:'The round button marks a control as a modifier. Modifier 1 is red, 2 blue, 3 olive, 4 yellow; each gets its own column for what the other controls do with it. Under the name, "hold" means it is held while you use them; click it for "tap", a mode switch (e.g. P0 / P2 in TouchVink). When a function needs controls held together, such as P10 + P11, add them under "Held together": they get one column. Modifiers and held-together sets are four at most.', kinds:['mod'], mods:true},
+  {title:'P10 and P11', hint:'The round button marks a control as a modifier, with a column for what the other controls do with it. Under the name, "hold" means held while you use them. Click it for "tap", a mode switch. Controls held together, such as P10 + P11, go under "Held together" and share a column. Four columns at most.', kinds:['mod'], mods:true},
   {title:'Knobs and faders', kinds:['knob','fader'], mods:true},
   {title:'Pads', kinds:['pad'], mods:true},
   {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
@@ -335,32 +340,42 @@ function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
   e.value=getPath(path);
   const own=()=>e.classList.toggle('own', !!m && !!e.value.trim()); own();
   e.addEventListener('input',()=>{ setPath(path,e.value); own(); render(); });
-  if(slot) e.addEventListener('focus',()=>{ if(V.focusId!==slot){ V.focusId=slot; render(); } });
+  if(slot) e.addEventListener('focus',()=>{ selKey=slot; if(V.focusId!==slot){ V.focusId=slot; render(); } else syncTurn(); });
   return e;
 }
 /* Colour inputs: a swatch that opens a small picker with the colour it had when opened (click it to go back),
    the colours used recently (this browser), a hex field and the system picker */
-const RECENT_KEY='simpleTouchManual.recentColours', RECENT_MAX=12, HEX=/^#[0-9a-f]{6}$/i;
+const RECENT_KEY='simpleTouchManual.recentColours', RECENT_MAX=12, HEX=/^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
 const recentColours=()=>{ try{ const a=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]'); return Array.isArray(a)? a.filter(c=>HEX.test(c)) : []; }catch(e){ return []; } };
 function rememberColour(c){ try{ localStorage.setItem(RECENT_KEY, JSON.stringify([c, ...recentColours().filter(x=>x.toLowerCase()!==c)].slice(0,RECENT_MAX))); }catch(e){} }
 let closeColour=null;
 function colorInput(value, label, onInput, onChange){
-  let cur= HEX.test(value)? value.toLowerCase() : '#000000';
+  let cur= colourHex(parseColour(value)||[0,0,0,1]);
   const sw=el('button',{type:'button',className:'cswatch',title:label}); sw.setAttribute('aria-label',label); sw.style.setProperty('--c',cur);
   const set=v=>{ cur=v.toLowerCase(); sw.style.setProperty('--c',cur); onInput(cur); };
   sw.onclick=e=>{
     e.stopPropagation();
     const open=!!sw.dataset.open; closeColour?.(); if(open) return;   // a second click closes it
     const before=cur;
-    const nat=el('input',{type:'color',value:cur,title:'More colours'}), hex=el('input',{value:cur,maxLength:7,spellcheck:false,className:'hex'}), now=el('span',{className:'cchip now'});
+    const nat=el('input',{type:'color',value:cur.slice(0,7),title:'More colours'}), hex=el('input',{value:cur,maxLength:32,spellcheck:false,className:'hex',title:'Hex (#rrggbb or #rrggbbaa) or rgba(r, g, b, a)'}), now=el('span',{className:'cchip now'});
+    const num=(l,max,step)=>{ const i=el('input',{type:'number',min:0,max,step,className:'rgba'}); i.setAttribute('aria-label',label+', '+l); return i; };
+    const fields=[num('red',255,1), num('green',255,1), num('blue',255,1), num('alpha',1,.01)];
+    const alpha=el('input',{type:'range',min:0,max:100,step:1,className:'alpha',title:'Opacity'}); alpha.setAttribute('aria-label',label+', opacity');
     nat.setAttribute('aria-label',label+', any colour'); hex.setAttribute('aria-label',label+', hex');
-    const sync=()=>{ nat.value=cur; hex.value=cur; now.style.setProperty('--c',cur); };
+    /* every field shows the colour, except the one being typed in */
+    const sync=()=>{ const c=parseColour(cur), a=document.activeElement, put=(e,v)=>{ if(e!==a) e.value=v; };
+      nat.value=cur.slice(0,7); put(hex,cur); now.style.setProperty('--c',cur);
+      fields.forEach((f,i)=>put(f, i<3? c[i] : +c[3].toFixed(2))); put(alpha, Math.round(c[3]*100)); };
     const chip=(c,t)=>{ const b=el('button',{type:'button',className:'cchip',title:t||c}); b.style.setProperty('--c',c); b.onclick=()=>{ set(c); sync(); }; return b; };
-    nat.oninput=()=>{ set(nat.value); sync(); };
-    hex.oninput=()=>{ const v=hex.value.trim(), w=v.startsWith('#')? v : '#'+v; if(HEX.test(w)){ set(w); nat.value=cur; now.style.setProperty('--c',cur); } };
+    nat.oninput=()=>{ set(colourHex([...parseColour(nat.value).slice(0,3), parseColour(cur)[3]])); sync(); };
+    fields.forEach(f=>f.oninput=()=>{ const v=fields.map(x=>Number(x.value)); if(fields.some(x=>x.value==='') || v.some(Number.isNaN)) return;
+      set(colourHex([...v.slice(0,3).map(x=>Math.round(Math.min(255,Math.max(0,x)))), Math.min(1,Math.max(0,v[3]))])); sync(); });
+    alpha.oninput=()=>{ set(colourHex([...parseColour(cur).slice(0,3), +alpha.value/100])); sync(); };
+    hex.oninput=()=>{ const c=parseColour(hex.value); if(c){ set(colourHex(c)); sync(); } };
     const rec=recentColours().filter(c=>c!==before);
     const pop=el('div',{className:'cpop'},
       el('div',{className:'crow'}, el('span',{className:'clab',textContent:'Before'}), chip(before,'Back to '+before), el('span',{className:'clab',textContent:'Now'}), now, hex, nat),
+      el('div',{className:'crow'}, el('span',{className:'clab',textContent:'RGBA'}), ...fields, alpha),
       el('div',{className:'crow'}, el('span',{className:'clab',textContent:'Recent'}), ...(rec.length? rec.map(c=>chip(c)) : [el('span',{className:'hint',textContent:'Colours you pick show up here.'})])));
     pop.setAttribute('role','dialog'); pop.setAttribute('aria-label',label);
     sync(); document.body.append(pop); sw.dataset.open='1';
@@ -405,9 +420,11 @@ function section(title,hint){ form.append(el('h2',{textContent:title})); if(hint
 function buildForm(){
   const keepScroll=form.scrollTop; form.innerHTML='';
   const tabs=el('div',{className:'tabs',role:'tablist'});
-  for(const [k,l] of [['labels','Labels'],['style','Style']]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
+  if(UI.tab==='fplabels' && !doc.fpLabels?.on) UI.tab='style';
+  for(const [k,l] of [['labels','Labels'],['style','Style'],...(doc.fpLabels?.on? [['fplabels','Faceplate labels']] : [])]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
   form.append(tabs);
   if(UI.tab==='style'){ buildStyle(); form.scrollTop=keepScroll; return; }
+  if(UI.tab==='fplabels'){ buildFpLabels(); form.scrollTop=keepScroll; return; }
   if(modeList().length){ form.append(el('div',{id:'modeBar',className:'modebar'})); drawModeBar(); }
   section('Firmware');
   const meta=el('div',{className:'meta'});
@@ -452,7 +469,7 @@ function buildForm(){
     el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })})), blist);
 
   // modes: a switch whose positions change what the other controls do
-  section('Modes','When a switch changes what the other controls do, such as a playmode switch, name its positions: each becomes a mode in the Mode row. The labels without a mode are the print set, what goes on a printed panel, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
+  section('Modes','When a switch changes what the other controls do, name its positions. Each becomes a button in the Mode row. The labels without a mode are the print set, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
   const mg=el('div',{className:'meta modes'});
   const msw=el('select',{innerHTML:'<option value="">No modes</option>'+Object.entries(MODE_POS).map(([id,ps])=>`<option value="${id}">${lab(SLOT[id])}: ${ps.join(', ')}</option>`).join('')});
   msw.value=doc.modes?.switch||''; msw.setAttribute('aria-label','Mode switch'); msw.onchange=()=>setModeSwitch(msw.value);
@@ -466,7 +483,7 @@ function buildForm(){
   }
   form.append(mg);
   if(REPO_RE.test(normRepo(doc.firmware.repo))) form.append(el('div',{className:'btns'},
-    el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'A heading per switch position, such as ### Seq (SW2 Up), with that mode\'s controls under it',onclick:fillModes})));
+    el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'Needs a heading per switch position, such as ### Seq (SW2 Up)',onclick:fillModes})));
 
   for(const g of GROUPS){
     section(g.title,g.hint);
@@ -564,11 +581,85 @@ function slider(label,min,max,step,get,set,fmt=v=>v){
   inp.oninput=()=>{ set(+inp.value); out.textContent=fmt(+inp.value); };
   return el('label',{className:'dc'},el('span',{textContent:label}),inp,out);
 }
+/* Phone and Desktop columns */
+const inColumns=()=>el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'});
+const perLayout=(label,cell)=>el('div',{className:'dcol'},el('span',{textContent:label}),...LAYOUTS.map(cell));
+const range=(aria,min,max,get,set,off)=>{ const i=el('input',{type:'range',min,max,step:1,value:get(),title:String(get()),disabled:!!off}); i.setAttribute('aria-label',aria); i.oninput=()=>{ set(+i.value); i.title=i.value; }; return i; };
+/* The faceplate's placement: the phone's (and the desktop's, unless it has its own), or the desktop's own */
+function fpPlacement(f, setF, reset){
+  const g=el('div',{className:'dgrid'});
+  const area=el('div',{className:'seg'}); seg(area,[['panel','Whole panel'],['top','Top plate only']],v=>f.area===v,v=>{ setF({area:v}); buildForm(); });
+  g.append(el('div',{className:'dc'},el('span',{textContent:'Area'}),area,el('span')));
+  const bsel=el('select',{innerHTML:BLENDS.map(b=>`<option>${b}</option>`).join('')}); bsel.value=f.blend; bsel.onchange=()=>setF({blend:bsel.value});
+  g.append(el('div',{className:'dc'},el('span',{textContent:'Blend mode'}),stepper(bsel),el('span')));
+  g.append(slider('Opacity',0,100,1,()=>Math.round(f.opacity*100),v=>setF({opacity:v/100}),v=>v+'%'));
+  g.append(slider('Scale',10,300,1,()=>Math.round(f.scale*100),v=>setF({scale:v/100}),v=>v+'%'));
+  g.append(slider('Move left / right',-700,700,1,()=>f.x,v=>setF({x:v})));
+  g.append(slider('Move up / down',-1000,1000,1,()=>f.y,v=>setF({y:v})));
+  const st=el('input',{type:'checkbox',checked:!!f.stretch}); st.onchange=()=>setF({stretch:st.checked});
+  g.append(el('label',{className:'dc'},el('span',{textContent:'Stretch to the panel'}),el('span',{className:'chk'},st,el('small',{textContent:'ignore its own shape'})),el('span')));
+  form.append(g, el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset placement',onclick:reset})));
+}
+/* The desktop layout's own faceplate (doc.fpDesktop, core.js): the same art placed differently, other art, or none */
+function fpDesktopControls(){
+  const on=el('input',{type:'checkbox',checked:!!doc.fpDesktop});
+  on.onchange=()=>{ doc.fpDesktop= on.checked? {art:'same', faceplate:'', file:'', style:{...doc.fpStyle}} : null; setFpDesktop(); buildForm(); render(); };
+  form.append(el('label',{className:'xchk fpown'},on,' The desktop layout has its own faceplate'));
+  const q=doc.fpDesktop; if(!q) return;
+  form.append(el('span',{className:'cap',textContent:'Desktop'}));
+  const art=el('div',{className:'seg'});
+  seg(art,[['same','Same art as phone'],['own','Its own art'],['none','No faceplate']],v=>q.art===v,v=>{ q.art=v; setFpDesktop(); buildForm(); render(); });
+  form.append(el('div',{className:'fprow'},art));
+  if(q.art==='own'){
+    const inp=el('input',{type:'file',accept:FP_TYPES,hidden:true});
+    const status=el('span',{className:'hint',textContent:q.faceplate? fpDeskMsg||'Its own faceplate.' : 'Upload the art for the desktop layout.'});
+    inp.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+      try{
+        if(/^image\/(png|jpeg|webp)$/.test(f.type)){ const r=await imageFaceplate(f); q.faceplate=sanitizeFaceplate(r.svg); q.style={ratio:r.ratio}; setFpDesktop(); fpDeskMsg=r.msg; }
+        else { q.faceplate=sanitizeFaceplate(await f.text()); q.style={}; setFpDesktop(); }
+        buildForm(); render();
+      }catch(err){ status.textContent='This faceplate could not be used: '+err.message; } };
+    form.append(el('div',{className:'fprow'},
+      el('button',{type:'button',className:'tight',textContent:'Upload SVG or image',onclick:()=>inp.click()}),
+      el('button',{type:'button',className:'tight',textContent:'Remove',hidden:!q.faceplate,onclick:()=>{ q.faceplate=''; q.style={}; setFpDesktop(); buildForm(); render(); }}), inp, status));
+    if(q.faceplate){
+      const path=el('input',{value:fpDeskFile(),maxLength:120,spellcheck:false,className:'code'}); path.setAttribute('aria-label','Desktop faceplate file in your repository');
+      path.addEventListener('input',()=>{ const v=path.value.trim(), good=FP_PATH.test(v); path.classList.toggle('bad',!good); if(good){ q.file=v; autosave(); } });
+      form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
+        el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpDeskName(),onclick:()=>downloadFaceplate(true)})));
+    }
+  }
+  if(q.art==='own'? q.faceplate : q.art==='same' && doc.faceplate)
+    fpPlacement({...FP_DEFAULT,...q.style}, patch=>{ q.style={...q.style,...patch}; render(); }, ()=>{ q.style={ratio:q.style.ratio}; if(q.style.ratio===undefined) delete q.style.ratio; buildForm(); render(); });
+}
+/* The extra tab, opened by the check mark under Style: what the faceplate itself says, per control and per layout */
+function buildFpLabels(){
+  const q=doc.fpLabels, theme=design.themes[V.theme];
+  section('Faceplate labels','Text that belongs to the faceplate, with no box around it. A control takes its line 1 from the Labels tab until you type something else here; a - leaves it out. Drag a label on the preview to place it, and turn it with CW and CCW: both count for the layout on show.');
+  const g=el('div',{className:'dgrid'});
+  g.append(inColumns());
+  g.append(perLayout('Show',m=>{ const s=el('select',{innerHTML:'<option value="off">Off</option><option value="with">With label boxes</option><option value="instead">Instead of boxes</option>'}); s.value=q[m].show; s.setAttribute('aria-label',`Faceplate labels, ${m}`);
+    s.onchange=()=>{ q[m].show=s.value; render(); }; return s; }));
+  g.append(perLayout('Text size',m=>range(`Faceplate label size, ${m}`,8,60,()=>q[m].size,v=>{ q[m].size=v; render(); })));
+  g.append(perLayout('Colour',m=>colorInput(palOf(m).fpl||theme.panel.fp,`Faceplate label colour, ${m}`,v=>{ palOf(m).fpl=v; render(); })));
+  form.append(g, el('p',{className:'hint',textContent:'Instead of boxes takes away the label box of every control that has a faceplate label, on the main view. The boxes come back while a modifier is in use, and in a mode for the controls it changes.'}));
+  const rows=el('div',{className:'fplrows'});
+  for(const id of TABLE_ORDER){
+    const s=SLOT[id], key='f:'+id, inp=el('input',{id:'fpl-'+id,maxLength:LIMITS.line,value:q.text[id]||'',placeholder:(doc.labels[id]||{}).main||''});
+    inp.setAttribute('aria-label',`${lab(s)} on the faceplate`);
+    inp.oninput=()=>{ if(inp.value.trim()) q.text[id]=inp.value; else delete q.text[id]; render(); };
+    inp.onfocus=()=>{ selKey=key; if(V.focusId!==id){ V.focusId=id; render(); } else syncTurn(); };
+    const turn=(t,by,name)=>el('button',{type:'button',className:'tight',textContent:t,title:`Turn ${lab(s)} a quarter turn ${name}, in this layout`,onclick:()=>{ selKey=key; turnLabel(key,by); }});
+    rows.append(el('span',{className:'fplid',title:s.name||KIND_NAME[s.kind],textContent:lab(s)}), inp, turn('↺',-90,'counterclockwise'), turn('↻',90,'clockwise'));
+  }
+  form.append(rows);
+}
 function buildStyle(){
   const changed=()=>{ applyDesign(); applyChrome(); render(); };
   const theme=design.themes[V.theme], themeName=THEME_NAMES.find(t=>t[0]===V.theme)[1];
 
   section('Faceplate','Your own faceplate artwork, drawn over the blank panel. Jacks, knobs and faders always stay on top of it, and it is left out inside them.');
+  if(doc.fpDesktop) form.append(el('span',{className:'cap',textContent:'Phone'}));
   const fpInput=el('input',{type:'file',accept:FP_TYPES,hidden:true});
   const fpStatus=el('span',{className:'hint',textContent: doc.faceplate? (doc.faceplateRef? `From the ${EXAMPLES[doc.faceplateRef]?.label||doc.faceplateRef} example.` : fpMsg||'Custom faceplate.') : 'Blank Simple Touch faceplate.'});
   fpInput.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
@@ -587,24 +678,11 @@ function buildStyle(){
     const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
     path.addEventListener('input',ok);
     form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place. The library reads it from there.`}),
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}),
       el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpName(),onclick:downloadFaceplate})));
   }
-  if(doc.faceplate){
-    const f=fpStyle(), setF=patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); };
-    const g=el('div',{className:'dgrid'});
-    const area=el('div',{className:'seg'}); seg(area,[['panel','Whole panel'],['top','Top plate only']],v=>f.area===v,v=>{ setF({area:v}); buildForm(); });
-    g.append(el('div',{className:'dc'},el('span',{textContent:'Area'}),area,el('span')));
-    const bsel=el('select',{innerHTML:BLENDS.map(b=>`<option>${b}</option>`).join('')}); bsel.value=f.blend; bsel.onchange=()=>setF({blend:bsel.value});
-    g.append(el('div',{className:'dc'},el('span',{textContent:'Blend mode'}),stepper(bsel),el('span')));
-    g.append(slider('Opacity',0,100,1,()=>Math.round(f.opacity*100),v=>setF({opacity:v/100}),v=>v+'%'));
-    g.append(slider('Scale',10,300,1,()=>Math.round(f.scale*100),v=>setF({scale:v/100}),v=>v+'%'));
-    g.append(slider('Move left / right',-700,700,1,()=>f.x,v=>setF({x:v})));
-    g.append(slider('Move up / down',-1000,1000,1,()=>f.y,v=>setF({y:v})));
-    const st=el('input',{type:'checkbox',checked:!!f.stretch}); st.onchange=()=>setF({stretch:st.checked});
-    g.append(el('label',{className:'dc'},el('span',{textContent:'Stretch to the panel'}),el('span',{className:'chk'},st,el('small',{textContent:'ignore its own shape'})),el('span')));
-    form.append(g, el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset placement',onclick:()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); }})));
-  }
+  if(doc.faceplate) fpPlacement(fpStyle(), patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); }, ()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); });
+  fpDesktopControls();
   const help=el('div',{className:'fphelp'});
   help.innerHTML=`<p><b>Size.</b> A template-made faceplate covers the whole panel: an SVG with the artboard 0 0 1080 1598.24, or an image of 1080 × 1598 px (2160 × 3196 px for print). Any other image keeps its shape and fills the panel width; move, scale or stretch it above. Transparent parts show the panel underneath.</p>
     <p><b>Colours.</b> In an SVG, white, black and #222221 follow the theme (faceplate art, dark parts, background), so one file works in every theme. Other colours, and images, stay as drawn; use the blend mode to mix them with the panel.</p>
@@ -613,9 +691,10 @@ function buildStyle(){
     el('button',{type:'button',className:'tight',textContent:'Download SVG template (layered)',onclick:downloadTemplateSVG}),
     el('button',{type:'button',className:'tight',textContent:'Download PNG template (2160 × 3196)',onclick:()=>downloadTemplatePNG().catch(err=>alert('The PNG template could not be made: '+err.message))})));
 
-  const inColumns=()=>el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'});
-  const perLayout=(label,cell)=>el('div',{className:'dcol'},el('span',{textContent:label}),...LAYOUTS.map(cell));
-  const range=(aria,min,max,get,set,off)=>{ const i=el('input',{type:'range',min,max,step:1,value:get(),title:String(get()),disabled:!!off}); i.setAttribute('aria-label',aria); i.oninput=()=>{ set(+i.value); i.title=i.value; }; return i; };
+  section('Faceplate labels','Design text that is part of the faceplate itself. It opens a tab of its own, and each layout shows it with the label boxes, instead of them, or not at all.');
+  const fplCheck=el('input',{type:'checkbox',checked:!!doc.fpLabels?.on});
+  fplCheck.onchange=()=>{ if(fplCheck.checked){ doc.fpLabels= doc.fpLabels? {...doc.fpLabels,on:true} : fpLabelsOf({}); UI.tab='fplabels'; } else doc.fpLabels.on=false; buildForm(); render(); };
+  form.append(el('label',{className:'xchk'},fplCheck,' Design labels on the faceplate'));
 
   section('OLED','Where the OLED sits on the drawing while the firmware plays or the board is connected, per layout. A layout you have not placed it in follows the other. Drag it on the preview, and its orange corner to resize; that changes the layout on show. It stays out of the manual and the images.');
   if(!oledUsed()) form.append(el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Show the OLED on the preview',onclick:()=>{ setOled({}); buildForm(); }})));
@@ -631,7 +710,11 @@ function buildStyle(){
   }
 
   const nameSet=REF_SETS[V.ref];
-  section('Control names', nameSet? `The small ${nameSet.label} names of the controls, per layout: in the text labels, or on the drawing (a knob's name inside the knob). On the drawing, drag a name on the preview to place it by itself; Reset positions puts it back. The library shows the names that are on the drawing, in your look.` : 'Pick a set under Reference names at the top to show the small names of the controls.');
+  section('Control names', nameSet? `The small ${nameSet.label} names of the controls, per layout: in the text labels, or on the drawing (a knob's name inside the knob). On the drawing, drag a name on the preview to place it by itself; Reset positions puts it back. The library shows the names that are on the drawing, in your look.` : 'Pick a set under Reference names to show the small names of the controls.');
+  const refSet=el('div',{className:'seg'}), refMode=el('div',{className:'seg'});
+  fillRefSegs(refSet, refMode);
+  form.append(el('div',{className:'grp'}, el('span',{className:'cap',textContent:'Reference names'}), refSet));
+  if(nameSet) form.append(el('div',{className:'grp'}, el('span',{className:'cap',textContent:'Show'}), refMode));
   if(nameSet){
     const N=m=>design.names[m], g=el('div',{className:'dgrid'});
     g.append(inColumns());
@@ -665,7 +748,8 @@ function buildStyle(){
   fsel.onchange=()=>{ design.fx=fsel.value; changed(); };
   box.append(el('div',{className:'dc'},el('span',{textContent:'Effect'}),stepper(fsel),fcol));
   box.append(slider('Effect size',1,24,1,()=>design.fxSize||6,v=>{ design.fxSize=v; changed(); }));
-  box.append(el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'}));
+  box.append(inColumns());
+  box.append(perLayout('ALL CAPS',m=>{ const c=el('input',{type:'checkbox',checked:!!design.caps[m],title:'The labels on the drawing in capitals. What you typed stays as typed, also in the control table.'}); c.setAttribute('aria-label',`All caps, ${m}`); c.onchange=()=>{ design.caps[m]=c.checked; changed(); }; return el('span',{className:'chk'},c); }));
   for(const [k,label,min,max,step] of LCTRL){
     const row=el('div',{className:'dcol'},el('span',{textContent:label}));
     for(const mode of ['phone','desktop']){ const inp=el('input',{type:'range',min,max,step,value:palOf(mode)[k],title:String(palOf(mode)[k])}); inp.setAttribute('aria-label',`${label}, ${mode}`);
@@ -728,6 +812,7 @@ function render(){
   stage.innerHTML = both? `<div class="duo${UI.arrange==='stack'?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
   curPart=part;
   drawOledFrame();
+  syncTurn();
   let n=0;
   form.querySelectorAll('[data-msg]').forEach(m=>{ const w=warns[m.dataset.msg]; m.textContent= w? 'Still overlaps on the phone layout. Shorten it or use line 2.' : ''; if(w) n++; });
   $('warnSum').textContent = n? `${n} label${n>1?'s':''} still overlap on phone` : '';
@@ -763,10 +848,25 @@ function dragOled(e, what, svg){
   const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); if(UI.tab==='style') buildForm(); };
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 }
+/* CW / CCW: a quarter turn of the selected label, in the layout on show (kept with its offset, r in core.js) */
+function turnLabel(key, by){
+  const offs=doc.offsets[V.layout], o=offs[key]||{x:0,y:0}, r=(rotOf(V.layout,key)+by+360)%360, next={x:o.x||0, y:o.y||0, ...(r?{r}:{})};
+  if(next.x||next.y||r) offs[key]=next; else delete offs[key];
+  render();
+}
+function syncTurn(){
+  const on=selKey && stage.querySelector(`[data-key="${CSS.escape(selKey)}"]`), id=(selKey||'').replace(/^[nf]:/,'');
+  $('turnName').textContent= !on? 'Select a label to turn it'
+    : (SLOT[id]? lab(SLOT[id]) : doc.customs.find(c=>'c'+c.id===id)?.text||'Extra label')+(selKey.startsWith('f:')? ', on the faceplate' : selKey.startsWith('n:')? ', name' : '');
+  $('turnCcw').disabled=$('turnCw').disabled=!on;
+}
+$('turnCcw').onclick=()=>turnLabel(selKey,-90);
+$('turnCw').onclick=()=>turnLabel(selKey,90);
 /* Click a label to jump to its row; drag it to nudge it (kept per layout) */
 function focusRow(key){
-  V.focusId=SLOT[key]? key : null; render();
-  const inp= SLOT[key]? document.querySelector(`#row-${key} input`) : $('custom-'+key.slice(1));
+  const id=key.replace(/^[nf]:/,'');
+  selKey=key; V.focusId=SLOT[id]? id : null; render();
+  const inp= key.startsWith('f:')? $('fpl-'+id) : SLOT[id]? document.querySelector(`#row-${id} input`) : $('custom-'+id.slice(1));
   if(inp){ inp.scrollIntoView({block:'center',behavior:'smooth'}); inp.focus({preventScroll:true}); }
 }
 stage.addEventListener('pointerdown',e=>{
@@ -781,6 +881,7 @@ stage.addEventListener('pointerdown',e=>{
   }
   e.preventDefault();
   const key=g.dataset.key, custom=!SLOT[key]? doc.customs.find(c=>'c'+c.id===key) : null;
+  selKey=key;
   const offs=doc.offsets[V.layout], base= custom? {x:custom.x,y:custom.y} : {...(offs[key]||{x:0,y:0})};
   let moved=false;
   const move=ev=>{
@@ -788,10 +889,10 @@ stage.addEventListener('pointerdown',e=>{
     if(!moved && Math.hypot(ev.clientX-x0,ev.clientY-y0)<4) return;
     moved=true; stage.classList.add('dragging');
     const p={x:Math.round(base.x+dx), y:Math.round(base.y+dy)};
-    if(custom){ custom.x=p.x; custom.y=p.y; } else offs[key]=p;
+    if(custom){ custom.x=p.x; custom.y=p.y; } else offs[key]={...offs[key],...p};   // keeps its turn
     render();
   };
-  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); stage.classList.remove('dragging'); if(!moved) focusRow(key.replace(/^n:/,'')); };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); stage.classList.remove('dragging'); if(!moved) focusRow(key); };
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 });
 $('resetPos').onclick=()=>{ doc.offsets[V.layout]={}; render(); };
@@ -868,11 +969,17 @@ $('htmlBtn').onclick=()=>{
 /* labels, design and font: the saved file, and the repository's simple-touch-labels.json */
 const customFp=()=>doc.faceplate && !doc.faceplateRef;
 const fpName=()=>fpFile().split('/').pop();
-function downloadFaceplate(){ const f=fpFileData(); download(f.name, URL.createObjectURL(new Blob([f.data],{type:f.type}))); }
-const labelFileText=()=>{ const out=cleanData(); if(customFp()){ out.faceplate=fpFile(); delete out.faceplateFile; } out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
+const customFpDesk=()=>doc.fpDesktop?.art==='own' && !!doc.fpDesktop.faceplate;
+const fpDeskName=()=>fpDeskFile().split('/').pop();
+/* the faceplate files that go into the repository */
+const fpFiles=()=>[...(customFp()? [{path:fpFile(), data:fpFileData().data}] : []), ...(customFpDesk()? [{path:fpDeskFile(), data:fpFileData(doc.fpDesktop.faceplate,fpDeskFile()).data}] : [])];
+function downloadFaceplate(desktop){ const f=desktop===true? fpFileData(doc.fpDesktop.faceplate,fpDeskFile()) : fpFileData(); download(f.name, URL.createObjectURL(new Blob([f.data],{type:f.type}))); }
+const labelFileText=()=>{ const out=cleanData(); if(customFp()){ out.faceplate=fpFile(); delete out.faceplateFile; } if(customFpDesk()){ out.fpDesktop.faceplate=fpDeskFile(); delete out.fpDesktop.file; } out.design=design; out.font={family:UI.font,url:UI.fontUrl}; out.view={theme:V.theme,ref:V.ref,refMode:V.refMode}; return JSON.stringify(out,null,2); };
 $('saveBtn').onclick=()=>{
   downloadText(slug()+'.json', labelFileText(), 'application/json');
-  if(customFp()){ setTimeout(downloadFaceplate, 400); flash(`Saved, with ${fpName()}: put it at ${fpFile()} in your repository, beside ${LABEL_FILE} in the root.`); }
+  if(customFp()) setTimeout(downloadFaceplate, 400);
+  if(customFpDesk()) setTimeout(()=>downloadFaceplate(true), 800);
+  if(fpFiles().length) flash(`Saved, with ${fpFiles().map(f=>f.path).join(' and ')}: put ${fpFiles().length>1?'them':'it'} at that path in your repository, beside ${LABEL_FILE} in the root.`);
 };
 $('previewBtn').onclick=()=>{ saveNow(); window.open(`index.html?preview&theme=creator&layout=${V.layout}`, 'stPreview'); };
 $('openBtn').onclick=()=>$('openFile').click();
@@ -885,20 +992,27 @@ $('openFile').onchange=async e=>{
     if(d.font&&d.font.family) useFont(d.font.family,d.font.url);
     if(d.view) Object.assign(V,{theme:d.view.theme||V.theme, ref:d.view.ref??V.ref, refMode:d.view.refMode||V.refMode});
     if(hasData){
-      const had=customFp()? {fp:doc.faceplate, file:fpFile()} : null;
+      const had=customFp()? {fp:doc.faceplate, file:fpFile()} : null, hadDesk=customFpDesk()? {fp:doc.fpDesktop.faceplate, file:fpDeskFile()} : null;
       doc=await resolveFaceplate(normalise(d));
       if(!doc.faceplate && doc.faceplateFile){   // the faceplate is a file: the one open here, or the repository's
         if(had && had.file===doc.faceplateFile) doc.faceplate=had.fp;
         else { const svg=await repoFaceplate(doc.firmware.repo, doc.faceplateFile); if(svg) doc.faceplate=svg;
           else flash(`This file names its faceplate ${doc.faceplateFile}, which is not in the repository yet. Upload it again under Style.`); }
       }
+      const qd=doc.fpDesktop;
+      if(qd?.file && !qd.faceplate){
+        if(hadDesk && hadDesk.file===qd.file) qd.faceplate=hadDesk.fp;
+        else { const svg=await repoFaceplate(doc.firmware.repo, qd.file); if(svg) qd.faceplate=svg;
+          else flash(`This file names a desktop faceplate ${qd.file}, which is not in the repository yet. Upload it again under Style.`); }
+      }
+      if(qd?.faceplate) qd.faceplate=sanitizeFaceplate(qd.faceplate);
       if(doc.faceplate) doc.faceplate=sanitizeFaceplate(doc.faceplate); setFaceplate(doc.faceplate, doc.faceplateRef); UI.start='';
     }
     applyChrome(); buildBars(); buildForm(); render();
   }catch(err){ alert('This file could not be opened: '+err.message); }
 };
 $('shareBtn').onclick=async()=>{
-  const s=snapshot(true), lost=doc.faceplate&&!doc.faceplateRef;
+  const s=snapshot(true), lost=(doc.faceplate&&!doc.faceplateRef)||customFpDesk();
   const url=new URL(location.href); url.search='?s='+await encodeShareState(s); url.hash='';
   history.replaceState(null,'',url.toString());
   try{ await navigator.clipboard.writeText(url.toString()); $('shareBtn').textContent='Copied link ✓'; }catch(e){ prompt('Copy this link:',url.toString()); }
@@ -1034,9 +1148,9 @@ function kitState(){
   return {o, id, img, listed, entry, probs, readme:readmeMD(id,img,o)};
 }
 function howTo(k){
-  const name=oneLine(doc.firmware.name)||'Simple Touch firmware', fp=customFp()? fpFile() : '';
+  const name=oneLine(doc.firmware.name)||'Simple Touch firmware';
   const files=[['README.md','the root (see step 1 if you have one)'], [k.img,'a new folder named docs at the root, even if you have one called doc'],
-    [LABEL_FILE,'the root'], ...(fp? [[fp,`this path: ${LABEL_FILE} names it`]] : []),
+    [LABEL_FILE,'the root'], ...fpFiles().map(f=>[f.path,`this path: ${LABEL_FILE} names it`]),
     ...(k.probs.length? [] : [[`community-entry/${k.id}.json`,'not your repository: see step 4']])];
   const w=Math.max(...files.map(f=>f[0].length));
   return [`${name}: repository kit from Simple Touch labels (${SITE})`,'',
@@ -1046,7 +1160,7 @@ function howTo(k){
     'STEPS','',
     '1. README.md: a README for your repository (intro, control map, install and build).',
     '   Check the install and build steps, and fill in what is marked TODO.',
-    '   Already have a README? Keep yours and copy in the parts you want, e.g. the control map:',
+    '   If you already have a README, keep it and copy in the parts you want, e.g. the control map:',
     `     ![${name}: what each control does](${k.img})`,
     '   That path counts from the root of the repository, so the README showing it has to be at the root too.','',
     '2. Commit and push to your default branch (usually main). The library and the designer read the',
@@ -1105,7 +1219,7 @@ $('kitZip').onclick=async()=>{
   $('kitBusy').textContent='Making the .zip…';
   try{
     const png=new Uint8Array(await (await fetch(await kitImage(k.o))).arrayBuffer()), base=`${k.id}-repository-kit/`;
-    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...(customFp()? [{name:base+fpFile(),data:fpFileData().data}] : [])];
+    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...fpFiles().map(f=>({name:base+f.path,data:f.data}))];
     if(!k.probs.length) files.push({name:`${base}community-entry/${k.id}.json`,data:dirJSON(k.entry)});
     download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
     $('kitBusy').textContent='';
@@ -1138,7 +1252,7 @@ function appState(){
 function pagesMD(k){
   const name=oneLine(doc.firmware.name)||'Your firmware', repo=k.ok? `[${repoShort(k.repo)}](${k.repo})` : 'your repository';
   const url=k.url||'https://<you>.github.io/<repository>/', link=k.url? `[${k.url}](${k.url})` : `\`${url}\``;
-  const fp=customFp()? ` and your faceplate at \`${fpFile()}\`` : '';
+  const fp=fpFiles().length? ` and your faceplate at ${fpFiles().map(f=>'`'+f.path+'`').join(' and ')}` : '';
   return [`# ${name} as a web app`,'',
     `This folder is your manual as a page of its own: the drawing in your look, the control table, your notes and README, and Play when your label file approves a browser build. Made with [Simple Touch labels](${SITE}).`,'',
     '## On GitHub Pages','',
@@ -1147,9 +1261,9 @@ function pagesMD(k){
     '3. On GitHub, open the repository\'s **Settings › Pages**. Under **Build and deployment**, set **Source** to **Deploy from a branch**, pick your default branch (usually `main`) and the folder **/docs**, and click **Save**.',
     `4. After a minute or two the page is live at ${link}. The **Actions** tab shows it being published (pages build and deployment).`,
     '5. Link to it from your README, so people find it.','',
-    '## Good to know','',
+    '## Notes','',
     '- **Try it first.** Open a terminal in this folder, run `python -m http.server` and go to [http://localhost:8000](http://localhost:8000). Opened as a file it doesn\'t work. On your own computer the page shows the copy of the label file beside it, so you can try changes before you push them.',
-    `- **Already have a Pages site,** or a \`docs\` folder for something else? Put this folder in a subfolder of what Pages serves, e.g. \`docs/play/\`. Every path in it is relative, so it then lives at \`${url}play/\`.`,
+    `- **Existing Pages site or \`docs\` folder:** put this folder in a subfolder of what Pages serves, e.g. \`docs/play/\`. Every path in it is relative, so it then lives at \`${url}play/\`.`,
     '- **Play** needs an `emulator` block with `"embed": "allowed"` in your label file (Browser build, in the designer). The build loads from your repository\'s `simple-touch-web` branch or your Pages site, and its sha256 has to match.',
     `- **Codeberg:** Codeberg Pages serves a branch named \`pages\`. Push this folder's contents to the root of that branch and the page is at \`${k.codeberg&&k.url? k.url : 'https://<you>.codeberg.page/<repository>/'}\`.`,
     `- \`${LABEL_FILE}\` in this folder is a copy, for trying things out and for when the repository can't be read. The one at the root of the repository is the one that counts.`,
@@ -1163,7 +1277,7 @@ function appUpdate(){
   $('appUrl').textContent= k.url? 'it will be at '+k.url : '';
   $('appSteps').innerHTML=md2html(pagesMD(k));
   const files=[['index.html','the page'],['core.js, community.js, play.js, ui.css, styles.css','what it runs on, from Simple Touch labels'],['assets/','the panel drawing and icons'],
-    ['vendor/simple-touch-web/','the runtime that plays the browser build'],[LABEL_FILE,'a copy of your labels'], ...(customFp()? [[fpFile(),'your faceplate']] : []),
+    ['vendor/simple-touch-web/','the runtime that plays the browser build'],[LABEL_FILE,'a copy of your labels'], ...fpFiles().map(f=>[f.path,'your faceplate']),
     ['HOW-TO-PAGES.md','the steps above'],['LICENSE-simple-touch-labels.txt, .nojekyll','the license, and a note for GitHub Pages']];
   $('appFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
 }
@@ -1177,7 +1291,7 @@ $('appZip').onclick=async()=>{
     const files=[{name:base+'index.html', data:await get('player.html')},
       ...await Promise.all(APP_FILES.map(async f=>({name:base+f, data:await get(f)}))),
       {name:base+'LICENSE-simple-touch-labels.txt', data:await get('LICENSE')},
-      {name:base+LABEL_FILE, data:labelFileText()}, ...(customFp()? [{name:base+fpFile(), data:fpFileData().data}] : []),
+      {name:base+LABEL_FILE, data:labelFileText()}, ...fpFiles().map(f=>({name:base+f.path,data:f.data})),
       {name:base+'HOW-TO-PAGES.md', data:pagesMD(k)}, {name:base+'.nojekyll', data:''}];
     download(`${k.id}-web-app.zip`, URL.createObjectURL(zipBlob(files)));
     $('appBusy').textContent='';

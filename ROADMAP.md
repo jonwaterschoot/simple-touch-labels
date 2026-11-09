@@ -56,6 +56,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 | TouchVink workflow | `@v1` | its approved build is from the first `v1`. The next push builds with `v1.2` (LED queue in the board), so expect a new hash; the approved one stays pinned and on the branch until it is re-approved |
 | Library `vendor/simple-touch-web/` | same as `web/` at `v1.2` | |
 | TouchPlaited approved build | none yet; newest is `8acf93d464ec` (v1.2) | `00503220fe68` (v1.1) has no LED blinks |
+| Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop` or `fpLabels`, until the web app is exported again |
 
 ## The shared standard
 
@@ -69,6 +70,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [x] OLED place and shape (2026-11-09): `oled` in the label file (`{x, y, w, rows}`), moved and resized in the designer. The box follows the display's real rows, so a 128 × 32 is 4:1. A firmware's label file needs saving again and pushing to carry a placement; web apps exported earlier keep the old 2:1 box until they are exported again.
 - [x] Full screen in Connect to Simple Touch (2026-11-09), with Settings in place of Sound.
 - [x] More per layout (2026-11-09), in Phone and Desktop columns under Style: `oled` now `{rows, phone, desktop}` (an older `{x, y, w, rows}` goes for both), and `design.names` for where the control names go, their size and position. Names on the drawing are dragged as `offsets` key `n:<id>`. Still shared by both layouts: line sizes, padding, corner radius, gap, font and effect.
+- [x] Style per layout, second round (2026-11-09): `design.caps` is now `{phone, desktop}` (an older `true` goes for both) and moved from the toolbar to Style. Colours take alpha, stored as `#rrggbbaa` (not `rgba()`: `resolveVars` can't nest its brackets in a `var()` fallback). Quarter turns per label and layout, `r` in `offsets`. `fpDesktop` for a desktop faceplate of its own, `fpLabels` for text on the faceplate.
 - [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs the `page` above to keep the labels up. Tapped combos have no editor control yet.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 

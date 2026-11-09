@@ -80,7 +80,7 @@ const Play = (()=>{
     box.classList.toggle('src-device', S.source==='device');
     $p('playSrcRow').hidden=!(playable() && linkable());
     seg($p('playSrc'), [['browser','Play in browser'],['device','Connect to Simple Touch']], k=>S.source===k, setSource);
-    if(!playable()){ $p('playCredit').textContent=''; fillMidi(); body(); return; }
+    if(!playable()){ fillMidi(); body(); return; }
     const on=S.state!=='idle';
     const go=$p('playGo');
     go.textContent= on? '■ Stop' : '▶ Play';
@@ -92,16 +92,26 @@ const Play = (()=>{
     seg($p('playKeys'), Object.entries(PLAY_LAYOUTS).map(([k,l])=>[k,l.label]), k=>S.layout===k, k=>{
       S.layout=k; S.layoutSet=true; try{ localStorage.setItem(PLAY_KEYS_PREF,k); }catch(err){} refresh(); });
     fillMidi(); body();
-    $p('playCredit').innerHTML=`Browser build <code>${esc(e.sha256.slice(0,12))}</code>, approved by ${esc(fw.author||'its author')}. It runs in this page: the sound is the firmware's own.`
-      +` Drag a knob up or down, click or drag a fader, click or slide a lever. Press a pad higher up to press it harder, and drag up or down while holding it; right-click a pad to keep it held (for a combo), right-click it again to let go; keys ${PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ')}.`
-      +(mods().length? ' A modifier shows what it does on the labels: while held, or after a tap for a mode.' : '')
-      +(navigator.standalone===false? ' On iPhone, Share › Add to Home Screen opens it full screen, without the browser\'s bars.' : '');   // iOS Safari only
+  }
+  /* the text behind the i beside Play, written when opened so the key names follow the layout picked */
+  function playHelp(){
+    const e=em(), fw=doc.firmware, keys=PLAY_KEY_ROWS.map(r=>r.map(keyName).join(' ')).join(' · ');
+    return `<ul>
+      <li><b>Knobs and faders:</b> drag a knob up or down, click or drag a fader.</li>
+      <li><b>Levers:</b> click or slide.</li>
+      <li><b>Pads:</b> press higher up to press harder, and drag up or down while holding. Right-click keeps a pad held for a combo, right-click again lets go.</li>
+      <li><b>Keys:</b> ${esc(keys)}</li>
+      ${mods().length? '<li><b>Modifiers:</b> the labels show what a modifier does, while it is held or after a tap for a mode.</li>' : ''}
+      ${navigator.standalone===false? '<li><b>iPhone:</b> Share › Add to Home Screen opens it full screen, without the browser\'s bars.</li>' : ''}
+    </ul>
+    <p class="hint">Browser build <code>${esc(e.sha256.slice(0,12))}</code>, approved by ${esc(fw.author||'its author')}. It runs in this page: the sound is the firmware's own.</p>`;
   }
   function build(box){
     box.innerHTML=`<div class="pctl" id="playSrcRow" hidden>
       <span class="cap">Mode</span><span class="seg" id="playSrc"></span>
     </div><div class="pctl b-only">
       <button type="button" id="playGo" class="primary">▶ Play</button>
+      <button type="button" id="playInfo" class="info" title="How to play" aria-label="How to play">i</button>
       <label><span class="cap">Input</span><select id="playIn" aria-label="Audio input"></select></label>
       <input type="file" id="playFile" accept="audio/*" hidden>
       <label><span class="cap">In level</span><input type="range" id="playInLevel" min="0" max="1.5" step="0.01"></label>
@@ -115,10 +125,11 @@ const Play = (()=>{
       <span class="keys b-only"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
       <button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button>
       <button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>
-    </div><div class="device d-only" id="playLink"></div><div class="device" id="playDevice" hidden></div><p class="hint b-only" id="playCredit"></p>`;
+    </div><div class="device d-only" id="playLink"></div><div class="device" id="playDevice" hidden></div>`;
     $p('playLock').onclick=()=>{ S.lock=!S.lock; try{ localStorage.setItem(PLAY_LOCK_PREF, S.lock?'1':'0'); }catch(err){} body(); };
     $p('playStage').onclick=()=>stage(!S.stage);
     $p('playGo').onclick=()=> S.state==='idle'? start() : stop();
+    $p('playInfo').onclick=()=>openInfo('How to play', playHelp());
     $p('playVol').value=S.volume; $p('playVol').oninput=e=>{ S.volume=+e.target.value; if(S.out) S.out.gain.value=S.volume; };
     $p('playInLevel').value=S.inLevel; $p('playInLevel').oninput=e=>{ S.inLevel=+e.target.value; if(S.inGain) S.inGain.gain.value=S.inLevel; };
     $p('playOled').onchange=e=>{ S.oledOn=e.target.checked; if(S.state!=='idle'){ stop(); start(); } else refresh(); };
@@ -439,7 +450,7 @@ const Play = (()=>{
   }
   /* after the labels were drawn again: which hide with "Pad labels" off, and the marks on them */
   function tagLabels(){
-    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^n:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
+    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^[nf]:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     for(const id of S.hot) paintRow(id);
     const h=hovId; hovId=null; setHover(h);
   }

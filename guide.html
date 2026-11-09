@@ -48,7 +48,7 @@
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1b</span><div class="card">
         <div class="head"><b>Make the firmware</b></div>
-        <p>Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing. Building on someone's code? Keep their licence and credit them in the README.</p>
+        <p>Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing. If you build on someone's code, keep their licence and credit them in the README.</p>
         <label class="chk"><input type="checkbox" data-c="runs"> It flashes and runs on the Simple Touch</label>
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1c</span><div class="card">
@@ -58,7 +58,7 @@
       </div></li>
       <li class="step" data-path="have"><span class="num" aria-hidden="true">1a</span><div class="card">
         <div class="head"><b>Check the repository</b><span class="tools"><span class="tool">GitHub</span></span></div>
-        <p>Its default branch is where everything below goes: the library and the designer read nothing else. You see it on the repository's front page and under <a data-link="branches" target="_blank">Settings › Branches</a>, usually <code>main</code>. Work on another branch? Merge it before you check anything in the library.</p>
+        <p>Its default branch is where everything below goes: the library and the designer read nothing else. You see it on the repository's front page and under <a data-link="branches" target="_blank">Settings › Branches</a>, usually <code>main</code>. Merge work from other branches before you check anything in the library.</p>
         <label class="chk"><input type="checkbox" data-c="h-public"> The repository is public, on GitHub</label>
         <label class="chk"><input type="checkbox" data-c="h-branch"> I know its default branch, and my work is on it</label>
         <label class="chk"><input type="checkbox" data-c="h-clone"> A fresh clone builds and flashes<span data-build="daisy"> (with <code>git clone --recursive</code>, if it has submodules)</span></label>
@@ -75,14 +75,14 @@
       </div></li>
     </ol>
 
-    <h2 id="directory">2. Get in the queue: the community directory</h2>
+    <h2 id="directory">2. The community directory</h2>
     <ol class="route">
       <li class="step"><span class="num" aria-hidden="true">2a</span><div class="card">
         <div class="head"><b>Directory entry</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
-        <p>In the <a href="editor.html" target="_blank">designer</a>, fill in <b>Firmware</b>: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b>: it checks the entry the way the directory does, and opens a pull request on GitHub with the file filled in. GitHub asks you to fork the directory first; that's normal.</p>
+        <p>In the <a href="editor.html" target="_blank">designer</a>, fill in <b>Firmware</b>: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b>: it checks the entry the way the directory does, and opens a pull request on GitHub with the file filled in. GitHub asks you to fork the directory first.</p>
         <label class="chk"><input type="checkbox" data-c="entry"> Directory entry… shows no problems, and the pull request is open</label>
         <label class="chk"><input type="checkbox" data-c="validate"> The <b>Validate</b> check on the pull request is green</label>
-        <p class="hint">Red? The pull request's <b>Files changed</b> tab marks what's wrong on your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork and push: the check runs again. A reviewer then looks at whether the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days: carry on below.</p>
+        <p class="hint">If the check is red, the pull request's <b>Files changed</b> tab marks what's wrong in your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork and push: the check runs again. A reviewer then looks at whether the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days: carry on below.</p>
       </div></li>
     </ol>
 
@@ -108,10 +108,10 @@
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">3c</span><div class="card">
         <div class="head"><b>Into the repository</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
-        <p><b>Repository kit…</b> downloads a .zip; its <code>HOW-TO.txt</code> says where each file goes. In short: <code>simple-touch-labels.json</code> at the root, the control map at <code>docs/</code> (a new folder, even if you have a <code>doc/</code>), your faceplate at the path the label file names. Have a README? Keep it at the root and copy in the parts you want. Then commit to the default branch.</p>
+        <p><b>Repository kit…</b> downloads a .zip; its <code>HOW-TO.txt</code> says where each file goes. Put <code>simple-touch-labels.json</code> at the root, the control map at <code>docs/</code> (a new folder, even if you have a <code>doc/</code>), and your faceplate at the path the label file names. If you already have a README, keep it at the root and copy in the parts you want. Then commit to the default branch.</p>
         <label class="chk"><input type="checkbox" data-c="committed"> The files are on the default branch: <a data-link="raw" target="_blank">the label file</a> opens</label>
         <label class="chk"><input type="checkbox" data-c="readmemap"> The README shows the control map on GitHub</label>
-        <p class="hint">Just pushed and the file isn't there yet? GitHub caches raw files for a few minutes.</p>
+        <p class="hint">GitHub caches raw files for a few minutes, so a new push can take that long to show.</p>
       </div></li>
     </ol>
 
@@ -130,7 +130,7 @@
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">4c</span><div class="card">
         <div class="head"><b>Listen, then approve</b><span class="tools"><span class="tool t-web">Test bench</span><span class="tool t-des">Designer</span></span></div>
-        <p>In the designer, under Browser build, <b>Find builds in the repository</b> lists the builds with a <b>Test bench</b> link. Only you can say whether it sounds like your firmware. If it does, tick "drives the OLED" if it has one, then <b>Use this build</b>, <b>Save file</b>, and commit the label file again.</p>
+        <p>In the designer, under Browser build, <b>Find builds in the repository</b> lists the builds with a <b>Test bench</b> link. Listen there. If it sounds like your firmware, tick "drives the OLED" if it has one, then <b>Use this build</b>, <b>Save file</b>, and commit the label file again.</p>
         <label class="chk"><input type="checkbox" data-c="bench"> On the test bench it plays like the hardware: knobs, pads, LED<span data-build="daisy">, OLED</span></label>
         <label class="chk"><input type="checkbox" data-c="approved"> The new label file is on the default branch, and Preview in library shows Play</label>
       </div></li>
@@ -140,7 +140,7 @@
     <ol class="route">
       <li class="step"><span class="num" aria-hidden="true">5a</span><div class="card">
         <div class="head"><b>Web app</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub Pages</span></span></div>
-        <p><b>Web app…</b> packs your manual as a site: copy the folder into <code>docs/</code> on the default branch, then <a data-link="pages" target="_blank">Settings › Pages</a>: Deploy from a branch, your default branch, <code>/docs</code>. It's yours from day one, listed or not; link it from your README.</p>
+        <p><b>Web app…</b> packs your manual as a site: copy the folder into <code>docs/</code> on the default branch, then <a data-link="pages" target="_blank">Settings › Pages</a>: Deploy from a branch, your default branch, <code>/docs</code>. It works whether or not the firmware is listed. Link it from your README.</p>
         <label class="chk"><input type="checkbox" data-c="pages"> The page is live at <a data-link="site" target="_blank">your Pages address</a></label>
       </div></li>
     </ol>
@@ -150,8 +150,8 @@
       <li class="step"><span class="num" aria-hidden="true">6a</span><div class="card">
         <div class="head"><b>In the library</b><span class="tools"><span class="tool t-lib">Library</span></span></div>
         <p>The directory publishes on every merge, and the <a href="index.html" target="_blank">library</a> lists your firmware under <b>Community</b>. It reads your repository each time, so labels and builds you add later show up by themselves.</p>
-        <label class="chk"><input type="checkbox" data-c="listed"> The library's Community list has it, and its notice says <b>Labels by the creator</b></label>
-        <p class="hint">Changes requested on the pull request? Edit the file in your fork, on the same branch: the pull request updates and the check runs again.</p>
+        <label class="chk"><input type="checkbox" data-c="listed"> The library's Community list has it, and the <b>i</b> beside its name says <b>Labels by the creator</b></label>
+        <p class="hint">If a reviewer requests changes, edit the file in your fork, on the same branch. The pull request updates and the check runs again.</p>
       </div></li>
     </ol>
 
@@ -186,7 +186,7 @@
     const all=[...document.querySelectorAll('[data-c]')].filter(c=>c.offsetParent!==null);
     all.forEach(c=>{ c.checked=!!S.done[c.dataset.c]; c.closest('.chk').classList.toggle('done',c.checked); });
     const n=all.filter(c=>c.checked).length;
-    $('gProgress').textContent=`${n} of ${all.length} checks done`+(n===all.length? '. All done: well played.' : '');
+    $('gProgress').textContent=`${n} of ${all.length} checks done`;
     links();
   }
   for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S[k]=b.dataset.v; save(); draw(); };

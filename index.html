@@ -28,7 +28,7 @@
   <header class="top">
     <div class="intro">
       <nav class="nav"><span class="on">Library</span><a href="editor.html" id="editLink">Designer</a><a href="guide.html">Guide</a><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
-      <h1 id="title">Simple Touch control map</h1>
+      <h1><span id="title">Simple Touch control map</span><button type="button" id="labelsInfo" class="info" hidden title="About these labels" aria-label="About these labels">i</button></h1>
       <p id="intro"></p>
     </div>
     <div class="export">
@@ -43,9 +43,8 @@
     <div class="grp" id="commGrp" hidden><span class="cap">Community</span><select id="commSel" aria-label="Community firmware"></select></div>
   </div>
   <div class="bar">
-    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
-    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
-    <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
+    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div><button type="button" id="themeMore" class="tight" hidden>Other themes</button></div>
+    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
     <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
@@ -108,7 +107,7 @@ const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null, mode:''};
-const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, exWhat:'panel', exLook:'color'};
+const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', allThemes:false, arrange:'side', exWhat:'panel', exLook:'color'};
 const $=id=>document.getElementById(id);
 let ready=false;
 
@@ -120,20 +119,21 @@ function buildBars(){
   seg($('setSeg'), Object.entries(REF_SETS).map(([k,r])=>[k,r.label]), v=>UI.src===v, pick);
   seg($('fwSeg'), FIRMWARE.map(k=>[k,EXAMPLES[k].label]), v=>UI.src===v, pick);
   $('commSel').value= UI.proj? UI.proj.id : '';
-  seg($('themeSeg'), [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
-    v=>{ UI.theme=v; if(v!=='creator') UI.libTheme=v; update(); });
+  // a creator's look: that one alone, with the others one click away
+  const lookOnly=doc.look && UI.theme==='creator' && !UI.allThemes;
+  $('themeMore').hidden=!lookOnly;
+  seg($('themeSeg'), lookOnly? [['creator','Creator']] : [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
+    v=>{ UI.theme=v; if(v==='creator') UI.allThemes=false; else UI.libTheme=v; update(); });
   seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; update(); });
-  seg($('partSeg'), [['main','Main'],['second','Secondary']], v=>UI.partsOn[v], v=>{
-    const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
-  seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
   // modes (doc.modes, core.js): all of them (the print set) or one; while playing, the lever picks
   const ml=modeList(); $('modeGrp').hidden=!ml.length;
   if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; update(); });
     $('modeSeg').querySelectorAll('button').forEach((b,i)=>{ b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}` : 'The labels for every mode, as printed'; b.disabled=Play.on; }); }
-  // greyed out rather than hidden, so the toolbar never shifts
-  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
-  for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
+  // only with a secondary view; while playing there is one drawing
+  const sec=hasSecondary();
+  $('arrangeSeg').hidden=!sec;
+  $('arrangeSeg').querySelectorAll('button').forEach(b=>b.disabled=Play.on||Play.stage);
 }
 /* entries from the Synthux community directory; listed ones have no label file yet */
 function buildCommunity(list){
@@ -156,7 +156,7 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
-  Play.reset(); V.mode='';
+  Play.reset(); V.mode=''; UI.allThemes=false;
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
   else if(src==='preview'){
@@ -204,7 +204,7 @@ function noticeHTML(editHref){
   const r=UI.read, how='<a href="about.html#labels">How this works</a>';
   if(!r) return '<p><b>Reading the repository…</b> Looking for a label file or a README with control names.</p>';
   const files=r.files.map(f=>`<a href="${escAttr(f.url)}" target="_blank">${esc(f.path)}</a>`).join(' and ');
-  const creator=`<p><b>Made this firmware?</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
+  const creator=`<p><b>For the creator:</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
   if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository${UI.read.doc.look?', in their own look (Creator)':''}. ${how}</p>`;
   if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
   const ms=r.modes||[], modeName=k=>ms.find(m=>m.key===k)?.name||'';
@@ -218,9 +218,8 @@ function update(){
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
   // while playing or full screen, one drawing: the one the controls are on
-  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
-  part= !sec? 'main' : both? 'main' : (UI.partsOn.main? 'main' : 'second');
-  bw= sec && UI.bwPreview;
+  const fw=doc.firmware, both=hasSecondary()&&!Play.on&&!Play.stage;
+  part='main'; bw=false;
 
   const build=buildFor(V.layout), draw=pt=>svgOf(build(true,V.theme,pt));
   const fig=$('fig'), stack=both&&UI.arrange==='stack'; fig.className= V.layout==='desktop'||(both&&!stack)? 'wide' : ''; sizeFig();
@@ -233,8 +232,12 @@ function update(){
   $('intro').textContent= isFw()? [fw.description, fw.author&&'By '+fw.author+'.'].filter(Boolean).join(' ')||'Firmware for the Simple Touch.' : INTRO[UI.src];
   const repo= P? P.repo : pv? (REPO_RE.test(fw.repo||'')? fw.repo : '') : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
-  const nt=$('notice'); nt.hidden=!P&&!pv;
-  nt.innerHTML= P? noticeHTML(editHref) : pv? previewHTML() : '';
+  // labels by the creator need no warning: that note waits behind the i beside the name
+  const byCreator=!!P && UI.read?.source==='file', nt=$('notice');
+  nt.hidden=(!P&&!pv)||byCreator;
+  nt.innerHTML= byCreator? '' : P? noticeHTML(editHref) : pv? previewHTML() : '';
+  $('labelsInfo').hidden=!byCreator;
+  $('labelsInfo').onclick=()=>openInfo('About these labels', noticeHTML(editHref));
   $('side').innerHTML= `<div id="sideTable">${libTable()}</div>`+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
   Play.table();
@@ -246,7 +249,7 @@ function update(){
 /* the mode switch moved while playing (play.js): the labels on the drawing are drawn again there; the toolbar and table here */
 function onModeChange(){ buildBars(); const t=$('sideTable'); if(t){ t.innerHTML=libTable(); Play.table(); } }
 $('pngBtn').onclick=()=>{
-  const sec=hasSecondary(), parts= !sec? ['main'] : (UI.partsOn.main&&UI.partsOn.second)? ['main','second'] : [part];
+  const parts= hasSecondary()? ['main','second'] : ['main'];
   openExportPreview({layout:V.layout, stacked:UI.arrange==='stack', parts:parts.length, look:UI.exLook, notesOk:!!(doc.firmware.notes||'').trim(), tableNotesOnly:true,
     include:{table:['table','all'].includes(UI.exWhat), notes:UI.exWhat==='all'},
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? libTable() : '', withNotes:inc.notes,
@@ -263,6 +266,7 @@ $('libSplit').addEventListener('pointerdown',e=>{
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 });
 $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(figKey()); }catch(e){} sizeFig(); });
+$('themeMore').onclick=()=>{ UI.allThemes=true; buildBars(); };
 
 (async()=>{
   const q=new URLSearchParams(location.search);
