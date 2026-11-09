@@ -254,9 +254,11 @@ body.play-stage .lib figure#fig { position:fixed; inset:0; z-index:900; width:au
 body.play-stage #fig > svg { width:100%; height:100%; }
 body.play-stage #play { display:none; position:fixed; left:8px; right:8px; bottom:60px; z-index:902; max-height:70vh; overflow:auto; background:var(--page); box-shadow:0 -8px 24px rgba(0,0,0,.4); }
 body.play-stage.stage-sound #play { display:block; }
-body.play-stage.stage-nopadlabels #fig .padlabel { display:none; }
+body.play-stage.stage-nopads #fig .padlabel { display:none; }
+body.play-stage.stage-faceplate #fig svg > g.over > :not(.fplabels), body.play-stage.stage-clean #fig svg > g.over { display:none; }
 .stagebar { position:fixed; left:0; right:0; bottom:0; z-index:903; display:flex; gap:8px; justify-content:center; padding:8px; background:var(--page); border-top:1px solid var(--hair); }
 .stagebar button { min-width:0; padding:8px 12px; }
+.stagebar button[data-a="labels"] { min-width:8.5em; text-align:center; }   /* the same width for every view, so the buttons stay under the thumb */
 .play p { margin:0; }
 .play a { font-weight:700; }
 .play code { font:13px ui-monospace,Consolas,monospace; }

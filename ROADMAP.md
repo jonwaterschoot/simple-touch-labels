@@ -56,7 +56,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 | TouchVink workflow | `@v1` | its approved build is from the first `v1`. The next push builds with `v1.2` (LED queue in the board), so expect a new hash; the approved one stays pinned and on the branch until it is re-approved |
 | Library `vendor/simple-touch-web/` | same as `web/` at `v1.2` | |
 | TouchPlaited approved build | none yet; newest is `8acf93d464ec` (v1.2) | `00503220fe68` (v1.1) has no LED blinks |
-| Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop` or `fpLabels`, draws a `-` box for a hidden control, and has no `design.fonts` or extra label `style`, until the web app is exported again. They also have no **Upload to device…** until then |
+| Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop` or `fpLabels`, draws a `-` box for a hidden control, and has no `design.fonts` or extra label `style`, until the web app is exported again. They also have no **Upload to device…** and only the **Pad labels** toggle in full screen until then |
 
 ## The shared standard
 
@@ -76,6 +76,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [x] Added hiding a control (2026-11-09): `-` in Line 1 leaves it out of the main view, with its reference name and its name on the drawing. Saved as `"main":"-"`.
 - [x] Added fonts per part (2026-11-09): `design.fonts` for Line 1, Line 2, control names and faceplate labels, each `{family, url, weight}`.
 - [x] Added a style per extra label (2026-11-09): `style` on the label, with font, sizes, colours and outline.
+- [x] Changed the full screen **Pad labels** toggle (2026-11-09): one button steps through **All labels**, **No pad labels**, **Faceplate** and **No labels**. **Faceplate** needs `fpLabels` in the file and ignores that layout's `show: off`.
 - [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs the `page` above to keep the labels up. Tapped combos have no editor control yet.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 

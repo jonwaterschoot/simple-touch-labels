@@ -44,7 +44,7 @@ flowchart TD
   - **Web MIDI**: connects a MIDI keyboard to the firmware's USB MIDI input and its output to a device.
   - **Control table**: lights the rows of the controls in use and shows the last MIDI message in and out. When the label file gives the controls' MIDI, each control's row also shows its last value in or out, and a note into a pad's note presses that pad on the drawing.
   - **Highlight**: a control, its label and its table row light together: lightly while you point at any of them (also when not playing), strongly while the control is in use or MIDI moves it.
-  - **Phone**: Lock scroll (on by default on touch screens) keeps touches on the drawing from scrolling the page. Full screen shows the drawing alone, with the sound controls in a sheet and the pad labels optional.
+  - **Phone**: Lock scroll (on by default on touch screens) keeps touches on the drawing from scrolling the page. Full screen shows the drawing alone, with the sound controls in a sheet. One button steps through **All labels**, **No pad labels**, **Faceplate** (only the faceplate labels, when the file has them, also on a layout set to off) and **No labels**.
   - **Input**: a loop, the mic or a sound file of your own.
 - **Upload to device…**: on a firmware in the library and in the web app. Pulls the `.bin` of the repository's latest release, shows whether it runs from internal flash or needs the Daisy bootloader (QSPI or SRAM), with the steps for that case, and writes it with **Connect and flash**.
   - **Source**: GitHub or Codeberg releases, through `proxy/firmware-proxy.js` (release downloads send no CORS header). GitHub's sha256 is checked in the page. Without a release or a proxy, the dialog takes a file from this computer.

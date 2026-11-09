@@ -853,8 +853,9 @@ function fplSpot(s,mode,sz){
   if(s.kind==='led') return {x:s.x, y:s.y+14+sz*0.5};
   return {x:s.x, y:s.y-(mode==='phone'? 46 : 14)-sz*0.5};   // pads: clear of the box or the leader's dot on them
 }
+let fplForce = false;   // full screen's Faceplate view (play.js): draws them on a layout set to off too
 function fpLabelsSVG(mode){
-  if(!fplOn(mode)) return '';
+  if(!fplOn(mode) && !(fplForce && doc.fpLabels?.on)) return '';
   const sz=doc.fpLabels[mode].size, q=design.themes[T.theme].panel, f=v=>v.toFixed(1);
   // on the simplified drawing the pads and the Seed window are light where the top plate is dark
   const ink=s=>T.fpl || (q.drawing==='simple' && !['knob','fader','jack'].includes(s.kind)? q.shape : q.fp) || T.ink;
@@ -937,7 +938,7 @@ function buildPhone(forExport,th=V.theme,pt=part,frame){
   return {warns, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`<g ${fontAttr()}>${fpLabelsSVG('phone')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
+    over:(f=>`<g class="fplabels" ${fontAttr()}>${fpLabelsSVG('phone')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 
 /* ============================================================
@@ -1085,7 +1086,7 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   return {warns:{}, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`<g ${fontAttr()}>${fpLabelsSVG('desktop')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
+    over:(f=>`<g class="fplabels" ${fontAttr()}>${fpLabelsSVG('desktop')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 const buildFor = layout => layout==='desktop'? buildDesktop : buildPhone;
 const svgLabel = () => (doc.firmware.name||'Simple Touch')+' controls';
