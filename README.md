@@ -55,7 +55,8 @@ The designer adds:
 - **Colours**: each colour opens a picker with the colour it had before (click to go back), the colours you used recently, a hex field and the system picker.
 - **Preview in library**: opens the library on your manual as it will look there, in a tab that follows your edits.
 - **ALL CAPS**: next to the font, shows every label on the drawing in capitals. What you typed stays as typed, also in the control table, and the setting is saved with the design.
-- **OLED**: under Style, or dragged on the preview: where the display sits on the drawing and how wide it is, saved as `oled` in the label file. Its height follows the display, 128 × 32 or 128 × 64.
+- **OLED**: under Style, or dragged on the preview: where the display sits on the drawing and how wide it is, per layout, saved as `oled` in the label file. Its height follows the display, 128 × 32 or 128 × 64.
+- **Control names**: under Style, per layout: the small names such as P1 or S36 in the text labels or on the drawing (a knob's name inside the knob), with their size and position. On the drawing, each can be dragged by itself.
 - **Undo**: Ctrl+Z undoes the last change (labels, style, font), Ctrl+Shift+Z or Ctrl+Y redoes it.
 - **Fonts**: any Google Font by name, or a CSS URL (Adobe Fonts projects work too).
 - **Files**: save and open JSON (Fabio Bartali's `simple-touch-manual/3` format, plus extras), copy a compressed share link, download a standalone manual page (phone and desktop layouts, screen and print versions).

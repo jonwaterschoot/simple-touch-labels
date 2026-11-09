@@ -135,6 +135,7 @@ const DESIGN_DEFAULT = {
   leaderW:2.5,           // desktop leader lines, panel units (the dot at the control grows with it)
   fx:'none', fxColor:'#000000', fxSize:6,   // label effect: none | shadow | glow
   caps:false,            // the labels on the drawing in capitals; what was typed stays as typed
+  names:{phone:{place:'label',size:null,x:0,y:0}, desktop:{place:'label',size:null,x:0,y:0}},   // the control names (P1, S36) per layout: in the text labels or on the drawing
   themes: THEME_DEFAULT,
 };
 const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW','caps'];
@@ -142,11 +143,18 @@ const cloneDesign = d => structuredClone(d);
 /* Before version 2 the themes were dark (now 'panel'), light (now 'print') and gold */
 const OLD_THEME = { dark:'panel', light:'print' };
 const migrateTheme = th => OLD_THEME[th] || th;
+const LAYOUTS = ['phone','desktop'];
+/* from any file, so only plain values pass */
+function namesOf(n){
+  const num=(v,lo,hi)=> typeof v==='number' && Number.isFinite(v)? Math.min(hi,Math.max(lo,v)) : 0;
+  return Object.fromEntries(LAYOUTS.map(m=>{ const o=n?.[m]||{}; return [m,{place:o.place==='drawing'?'drawing':'label', size:num(o.size,8,60)||null, x:num(o.x,-200,200), y:num(o.y,-200,200)}]; }));
+}
 /* Accepts this format ({themes}) and Fabio's ({phone, desktop, light, panel}) */
 function mergeDesign(d){
   const out = cloneDesign(DESIGN_DEFAULT);
   if(!d || typeof d!=='object') return out;
   for(const k of DESIGN_KEYS) if(k in d) out[k]=d[k];
+  out.names=namesOf(d.names);
   let themes = d.themes;
   if(themes && d.v!==DESIGN_V) themes = { panel:themes.dark, print:themes.light, gold:themes.gold };
   if(themes){ for(const th in out.themes) for(const p of ['phone','desktop','panel']) Object.assign(out.themes[th][p], (themes[th]||{})[p]||{}); }
@@ -176,6 +184,7 @@ const SZ = n => T['size'+n], LH = n => T['lh'+n];
 const palOf = (mode, th=V.theme) => design.themes[th][mode];
 function usePalette(mode, th=V.theme){
   const p=palOf(mode,th), q=design.themes[th].panel;
+  T.size3=design.names[mode].size||design.size3||Math.round(T.size2*0.72); T.lh3=Math.round(T.size3*1.25);   // the control names: per layout
   T.outline=p.mw; T.boxOutline=p.ow; T.box=p.box; T.text=p.text; T.line=p.line; T.ref=p.ref;
   T.mods = bw? [p.text,p.text,p.text,p.text] : [p.m1,p.m2,p.m3,p.m4];
   T.padBox=p.padBox||null; T.padText=p.padText||null;   // pads can have their own chip colour
@@ -261,7 +270,9 @@ function lookOf(d){
   if(!d || typeof d.design!=='object' || !d.design || !('size1' in d.design)) return null;
   const theme= d.view && THEME_NAMES.some(t=>t[0]===d.view.theme)? d.view.theme : 'panel';
   const f=d.font||{}, google= !f.url || /^https:\/\/fonts\.googleapis\.com\//.test(f.url);
-  return {design:safeDesign(d.design), theme, font: google && GOOGLE_FAMILY.test(f.family||'')? f.family : 'Archivo'};
+  const out=safeDesign(d.design);
+  if(d.view && REF_SETS[d.view.ref]) out.nameSet=d.view.ref;   // the names a layout puts on the drawing; the library doesn't pick a set for a creator's look
+  return {design:out, theme, font: google && GOOGLE_FAMILY.test(f.family||'')? f.family : 'Archivo'};
 }
 /* placement of a faceplate from a file: plain numbers and known words only */
 const FP_BLENDS=['normal','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','hard-light','soft-light','difference','exclusion','hue','saturation','color','luminosity'];
@@ -299,21 +310,24 @@ function cleanData(){
   const md=cleanModes(doc.modes); if(md) out.modes=md;
   return out;
 }
-/* The optional OLED on the drawing, in panel units: {x, y, w, rows}, the designer's placement (doc.oled), else the
-   top plate's free corner. A display of 128 pixels by rows (32 or 64), so the width sets the height. */
+/* The optional OLED on the drawing, in panel units: the designer's placement per layout (doc.oled: {rows, phone:{x,y,w},
+   desktop:{x,y,w}}), a layout without its own following the other, else the top plate's free corner. A display of
+   128 pixels by rows (32 or 64), so the width sets the height. An older file's {x, y, w, rows} goes for both layouts. */
 const OLED_HOME = {x:270, y:330, w:240, rows:64};
 const oledRowsOf = device => { const r=device?.live?.oled?.rows; return r===32||r===64? r : 0; };
 function oledOf(o){
   if(!o || typeof o!=='object') return null;
   const num=(v,lo,hi)=> typeof v==='number' && Number.isFinite(v)? Math.round(Math.min(hi,Math.max(lo,v))) : null;
-  const rows= o.rows===32? 32 : 64, w=num(o.w,60,800); if(w===null) return null;
-  const x=num(o.x,0,ARTBOARD.w-w), y=num(o.y,0,ARTBOARD.h-w*rows/128);
-  return x===null||y===null? null : {x,y,w,rows};
+  const rows= o.rows===32? 32 : 64;
+  const one=p=>{ if(!p || typeof p!=='object') return null; const w=num(p.w,60,800); if(w===null) return null;
+    const x=num(p.x,0,ARTBOARD.w-w), y=num(p.y,0,ARTBOARD.h-w*rows/128); return x===null||y===null? null : {x,y,w}; };
+  const phone=one(o.phone)||one(o), desktop=one(o.desktop);
+  return phone||desktop? {rows, ...(phone?{phone}:{}), ...(desktop?{desktop}:{})} : null;
 }
 /* where it is drawn for a display of that many rows (0: as placed); another height keeps the same middle */
-function oledBox(rows){
-  const o=doc.oled||OLED_HOME, h=o.w*(rows||o.rows)/128;
-  return {x:o.x, y:o.y+(o.w*o.rows/128-h)/2, w:o.w, h};
+function oledBox(rows, layout=V.layout){
+  const q=doc.oled, o=(q && (q[layout]||q.phone||q.desktop))||OLED_HOME, was=q?.rows||OLED_HOME.rows, h=o.w*(rows||was)/128;
+  return {x:o.x, y:o.y+(o.w*was/128-h)/2, w:o.w, h};
 }
 /* Modes: a switch whose positions change what the controls do, e.g. a playmode switch.
    {switch:'S07_S08', list:[{pos:'up', name:'Seq', labels:{S31:{main:'Tempo'}}}, …]}
@@ -456,7 +470,7 @@ const fillAttr=(lines,col)=>`fill="${col||(lines&&lines.pal?lines.pal.box:T.box)
 /* Reference names (V.refMode): 'empty' = an unlabelled control shows its reference name,
    'caption' = a labelled control gets the reference name as a small first line, 'both' = both */
 function withRef(s,L,mode){
-  const r=refOf(s.id); if(!r) return L;
+  const r=refOf(s.id); if(!r || namesOn(mode)) return L;
   if(!L.length){
     if(V.refMode==='caption') return L;
     const R=[];
@@ -708,6 +722,26 @@ function simpleArt(q){
 }
 const boxG=(key,inner)=>`<g data-key="${escAttr(key)}">${inner}</g>`;
 const userOffset=(layout,id)=>((doc.offsets||{})[layout]||{})[id];
+/* The control names on the drawing itself (design.names), on the main view: inside a knob, above a fader, beside the
+   rest. Each can be dragged (offsets, key n:<id>). With a halo in the background colour, so they read on any drawing. */
+const namesOn=mode=>design.names[mode].place==='drawing';
+const nameOf=id=>REF_SETS[V.ref||design.nameSet]?.names[id]?.[0]||'';
+function nameSpot(s,mode,sz,box){
+  if(s.kind==='knob') return {x:s.x, y:s.y};
+  if(s.kind==='fader') return {x:s.x, y:601-sz*0.9};
+  if(mode==='phone' && box) return {x:box.x+box.w/2, y:box.y-sz*0.75};   // a label box covers the control
+  if(s.kind==='jack') return {x:s.x, y:s.y+35+sz*0.8};
+  if(s.kind==='switch') return {x:s.x, y:s.y-(s.id==='S07_S08'? 47 : 19)-sz*0.8};
+  if(s.kind==='led') return {x:s.x, y:s.y-8-sz*0.8};
+  return {x:s.x, y:s.y+(mode==='desktop'? 12+sz*0.7 : 0)};   // desktop: under the leader's dot
+}
+function namesSVG(mode, boxOf){
+  if(curPart!=='main' || !namesOn(mode)) return '';
+  const n=design.names[mode], sz=T.size3, f=v=>v.toFixed(1);
+  return SLOTS.map(s=>{ const t=nameOf(s.id); if(!t) return '';
+    const p=nameSpot(s,mode,sz,boxOf&&boxOf(s.id)), d=userOffset(mode,'n:'+s.id)||{x:0,y:0};
+    return boxG('n:'+s.id,`<text x="${f(p.x+n.x+d.x)}" y="${f(p.y+n.y+d.y+sz*0.35)}" font-size="${sz}" text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
+}
 
 /* ============================================================
    PHONE: boxes on top of the controls
@@ -771,6 +805,7 @@ function buildPhone(forExport,th=V.theme,pt=part,frame){
   curPart=pt; usePalette('phone',th);
   const {items,warns}=layoutPhone();
   let g=items.map(o=>boxG(o.s.id,boxSVG(o.lines,o.x,o.y,o.w,o.h,'middle',boxStyle(o.s)))).join('');
+  const named=namesSVG('phone',id=>items.find(o=>o.s.id===id));
   let x0=PANEL_BOX.x, y0=PANEL_BOX.y, x1=PANEL_BOX.x+PANEL_BOX.w, y1=PANEL_BOX.y+PANEL_BOX.h;
   for(const o of items){ x0=Math.min(x0,o.x-12); x1=Math.max(x1,o.x+o.w+12); y0=Math.min(y0,o.y-12); y1=Math.max(y1,o.y+o.h+12); }
   if(frame){ ({x0,y0,x1}=frame); y1=frame.y1c; }
@@ -781,7 +816,7 @@ function buildPhone(forExport,th=V.theme,pt=part,frame){
   return {warns, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}</g>`)(fxDef())};
+    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 
 /* ============================================================
@@ -891,11 +926,17 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   if(topRow.length===2){ const [a,b]=topRow.sort((p,q)=>p.s.x-q.s.x); const need=(a.w+b.w)/2+gap-(b.cx-a.cx); if(need>0){ a.cx-=need/2; b.cx+=need/2; } }
   topRow.forEach(o=>{ const d=userOffset('desktop',o.s.id); o.x=o.cx-o.w/2+(d?d.x:0); o.y=panelTop-topGap-o.h+(d?d.y:0); });
 
+  // a knob with its name inside: the leader starts at the rim
+  const named=namesSVG('desktop');
+  const rim=(o,k)=>{ const a=path(o,k), s=o.s, dy=o.cy-s.y; if(!named || s.kind!=='knob' || !nameOf(s.id)) return a;
+    if(Math.abs(dy)>=KNOB_R) a[0]=[s.x, s.y+Math.sign(dy)*KNOB_R];
+    else { const x=s.x+(k==='L'?-1:1)*Math.sqrt(KNOB_R*KNOB_R-dy*dy); a[0]=a[1]=[x,o.cy]; }
+    return a; };
   let lines='',boxes='';
   const lw=design.leaderW??2.5, dot=s=>`<circle cx="${s.x}" cy="${s.y}" r="${Math.max(4,lw*2.8).toFixed(1)}" fill="${T.leader}"/>`;
   for(const k of ['L','R']) for(const o of side[k]){
-    const pts=path(o,k).map(p=>p.map(v=>(+v).toFixed(1)).join(',')).join(' ');
-    lines+=`<polyline points="${pts}" fill="none" stroke="${T.leader}" stroke-opacity=".6" stroke-width="${lw}"/>`+dot(o.s);
+    const a=rim(o,k), pts=a.map(p=>p.map(v=>(+v).toFixed(1)).join(',')).join(' ');
+    lines+=`<polyline points="${pts}" fill="none" stroke="${T.leader}" stroke-opacity=".6" stroke-width="${lw}"/>`+dot({x:a[0][0],y:a[0][1]});
     boxes+=boxG(o.s.id,boxSVG(o.lines,o.x,o.y,o.w,o.h,k==='L'?'start':'end',boxStyle(o.s)));
   }
   for(const o of topRow){
@@ -922,7 +963,7 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   return {warns:{}, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}</g>`)(fxDef())};
+    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 const buildFor = layout => layout==='desktop'? buildDesktop : buildPhone;
 const svgLabel = () => (doc.firmware.name||'Simple Touch')+' controls';
