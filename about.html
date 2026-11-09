@@ -145,18 +145,8 @@
     <p>Online, the page reads the label file from the root of your repository, so a build you approve later shows there without a new export. On your own computer (<code>python -m http.server</code> in the folder) it shows the copy beside it, so you can try changes before you push. If Pages already serves something else, any subfolder works, e.g. <code>docs/play/</code>.</p>
     <h3>Get listed in the directory</h3>
     <p>In the designer, fill in <b>Repository</b> and <b>Author link</b> under Firmware, then click <b>Directory entry…</b>. It builds your <code>projects/&lt;id&gt;.json</code>, checks it the way the directory does, and opens a pull request on GitHub with the file filled in. Listing is not endorsement. Synthux does not test or review the code or firmware of listed projects.</p>
-    <h3>A README the script can read</h3>
-    <p>If you'd rather keep everything in your README, write the controls as a table or a list, one control per line, using the Synthux names:</p>
-<pre>## Controls
-
-| Control | Function |
-|---|---|
-| S30 | **Cutoff** |
-| S36 | **Level** |
-| P03 | **Kick** |
-
-- **P10 + S30** · Resonance
-- **Switch A** · Mode: notes / drone / off</pre>
+    <h3 id="readme-format">A README the script can read</h3>
+    <p>If you'd rather keep everything in your README, write the controls as a table or a list, one control per line, using the Synthux names. The guide has <a href="guide.html#readme-minimum">a template</a> in this format.</p>
     <ul>
       <li><b>Names it knows:</b> knobs S30–S35 (or knob1–knob6), faders S36 and S37 (or left / right fader), pads P00–P11 (or P0–P11), switches S09-S10 and S07-S08 (or Switch A / B, SW1 / SW2, left / right switch).</li>
       <li><b>The label</b> is bold text, or the words after a separator (<code>-</code>, <code>:</code>, <code>|</code>, <code>·</code>). Table rows count most, then lists and headings, then bold control names in sentences.</li>

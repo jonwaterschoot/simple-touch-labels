@@ -24,7 +24,7 @@
     <div class="intro">
       <nav class="nav"><a href="index.html">Library</a><a href="editor.html">Designer</a><span class="on">Guide</span><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
       <h1>Step by step</h1>
-      <p>From a firmware to the library: labelled, playable, and listed in the Synthux community directory. Every step ends with checks; tick them as you go. This browser remembers them.</p>
+      <p>From a firmware to the library: labelled, playable, and listed in the Synthux community directory. Every step ends with checks; tick them as you go. This browser remembers them. To share a firmware without this site, <a href="#readme-minimum">A README for any firmware</a> lists the minimum.</p>
     </div>
   </header>
 
@@ -43,12 +43,12 @@
     <ol class="route">
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1a</span><div class="card">
         <div class="head"><b>Set up</b><span class="tools"><span class="tool">Editor</span><span class="tool">Git</span><span class="tool">GitHub</span></span></div>
-        <p>An editor (VS Code, say), Git and a GitHub account. <span data-build="daisy">For libDaisy, the <a href="https://daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes.</span><span data-build="pd"> For Plugdata, <a href="https://plugdata.org" target="_blank">Plugdata</a> with its Daisy export, and the Simple Touch board file (a custom JSON).</span></p>
+        <p>An editor (VS Code, say), Git and a GitHub account. <span data-build="daisy">For libDaisy, the <a href="https://daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes.</span><span data-build="pd"> For Plugdata, <a href="https://plugdata.org" target="_blank">Plugdata</a> with its Daisy export, and the Simple Touch board file <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json" target="_blank"><code>simple_touch.json</code></a>.</span></p>
         <label class="chk"><input type="checkbox" data-c="setup"> I can build something and flash it to my Simple Touch</label>
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1b</span><div class="card">
         <div class="head"><b>Make the firmware</b></div>
-        <p>Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing. If you build on someone's code, keep their licence and credit them in the README.</p>
+        <p><span data-build="daisy">Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing.</span><span data-build="pd">Start from <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch_template.pd" target="_blank"><code>simple_touch_template.pd</code></a> in hvcc-examples-daisy. It receives every control and prints its changes, and passes audio from input to output. Compile it with <code>simple_touch.json</code>, debug printing on and patch size Big, then build your patch from there.</span> If you build on someone's code, keep their licence and credit them in the README.</p>
         <label class="chk"><input type="checkbox" data-c="runs"> It flashes and runs on the Simple Touch</label>
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1c</span><div class="card">
@@ -65,8 +65,9 @@
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">1d</span><div class="card">
         <div class="head"><b>A README</b></div>
-        <p>What the firmware does and how to install it. A short one is enough for now: the designer's Repository kit writes a full one with the control map in step 3, which you can merge into yours.</p>
+        <p>What the firmware does, how to install it, and a table of its controls. <a href="#readme-minimum">A README for any firmware</a> has the minimum and a template. The designer's Repository kit can write a full one with the control map in step 3, which you can merge into yours.</p>
         <label class="chk"><input type="checkbox" data-c="readme"> <code>README.md</code> is at the root of the default branch</label>
+        <label class="chk"><input type="checkbox" data-c="readmetable"> It has a table with one row per control</label>
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">1e</span><div class="card">
         <div class="head"><b>A release with the .bin</b><span class="tools"><span class="tool">GitHub</span></span></div>
@@ -162,6 +163,70 @@
       <li><b>The directory entry</b> only changes when the name, description or repository does.</li>
     </ul>
     <p><button type="button" id="gReset">Clear my ticks</button></p>
+
+    <h2 id="readme-minimum">A README for any firmware</h2>
+    <p>For anyone sharing Simple Touch firmware, listed here or not. A player with the instrument in front of them looks up one control at a time, so the controls go in a table, in <code>README.md</code> at the root of the repository.</p>
+    <h3>The minimum</h3>
+    <ol>
+      <li><b>What it is:</b> one or two sentences on what it does, and that it runs on the Simple Touch.</li>
+      <li><b>Install:</b> a link to the newest <code>.bin</code>, how to flash it, and whether it needs the Daisy bootloader.</li>
+      <li><b>Controls:</b> a table with one row per control the firmware uses. Name each control the same way throughout: knobs S30–S35, faders S36 (left) and S37 (right), pads P00–P11, and the left and right switch.</li>
+      <li><b>Modifiers,</b> if it has them: a row for each function that needs a held pad, written as <code>P10 + S30</code>.</li>
+      <li><b>Modes,</b> if a switch changes what the controls do: a heading and a table for each position.</li>
+      <li><b>Licence and credits:</b> the licence, and whose code it builds on.</li>
+    </ol>
+    <h3>Optional but preferred</h3>
+    <ul>
+      <li><b>Releases:</b> publish each version as a GitHub release with its <code>.bin</code> attached (<a href="#repo">step 1e</a>). The address <code>/releases/latest</code> then always points to the newest version.</li>
+      <li><b>The Synthux community directory:</b> add your firmware to the <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">community directory</a> with a pull request on <a href="https://github.com/Synthux-Academy/community-instruments" target="_blank">its repository</a>. <b>Directory entry…</b> in the designer fills in the file for you (<a href="#directory">step 2</a>). Listed Simple Touch firmware also appears in this site's library.</li>
+    </ul>
+    <h3>Template</h3>
+<pre># My Firmware
+
+A tape delay for the Synthux Simple Touch.
+
+## Install
+
+Download the newest `.bin` from [Releases](https://github.com/you/my-firmware/releases/latest)
+and flash it with the [Daisy Web Programmer](https://flash.daisy.audio/).
+Hold BOOT while plugging in USB. It does not need the Daisy bootloader.
+
+## Controls
+
+| Control | Function | Detail |
+|---|---|---|
+| S30 | Time | 10 ms to 2 s |
+| S31 | Feedback | Fully right self-oscillates |
+| S36 | Level | Output volume |
+| Left switch | Mode | Up: notes. Down: presets |
+| P10 | Modifier | Hold with a knob |
+| P10 + S30 | Width | Mono to wide |
+
+### Notes (Left switch up)
+
+| Control | Function | Detail |
+|---|---|---|
+| P03–P09 | Play notes | Hold to sustain |
+
+### Presets (Left switch down)
+
+| Control | Function | Detail |
+|---|---|---|
+| P03–P06 | Recall a preset | Tap to recall |
+
+## Licence and credits
+
+MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
+    <h3>Where it goes</h3>
+    <ul>
+      <li><b>In the root README:</b> GitHub shows that file on the repository's front page. If the full manual is in another file, link it from the root README with the word manual in the link text: <code>[Manual](docs/manual.md)</code>.</li>
+      <li><b>In Markdown:</b> a PDF or HTML manual can sit next to it. The table stays in Markdown.</li>
+      <li><b>In a table:</b> explain the sound and the ideas in paragraphs below it, and name every control in the table as well.</li>
+    </ul>
+    <h3>Worth adding</h3>
+    <p>A picture of the panel with its labels, a table of MIDI CCs, a demo recording, what changed in each version, and how to build from source.</p>
+    <h3>On this site</h3>
+    <p>The library reads a table like this as auto-extracted labels. <a href="about.html#readme-format">The format</a> lists what the script understands. A label file from the designer replaces those labels (<a href="#labels">step 3</a>), and <b>Repository kit…</b> writes a README from your labels.</p>
   </main>
 </div>
 <script>

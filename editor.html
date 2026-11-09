@@ -1120,7 +1120,7 @@ function buildMD(build, flash, repo){
     `1. ${clone}`,
     '2. Build the libraries once: `make -C libDaisy` and `make -C DaisySP` <!-- TODO: their paths in this repository -->',
     `3. \`make\`, then \`make program-dfu\` to flash${flash==='internal'? '' : ' (with `APP_TYPE = BOOT_QSPI` in the Makefile to run from the bootloader)'}.`].join('\n');
-  if(build==='pd') return ['Made in [Plugdata](https://plugdata.org): a Pd patch compiled for the Daisy with Heavy, using the Simple Touch board file [`simple_touch.json`](https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.json).','',
+  if(build==='pd') return ['Made in [Plugdata](https://plugdata.org): a Pd patch compiled for the Daisy with Heavy, using the Simple Touch board file [`simple_touch.json`](https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json).','',
     `1. ${clone}`,
     '2. Open `<patch>.pd` in Plugdata. <!-- TODO: the patch file -->',
     '3. In the compiler, choose the Daisy target with the custom board file `simple_touch.json`, then compile and flash. <!-- TODO: check these steps for your setup -->'].join('\n');

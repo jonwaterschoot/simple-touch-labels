@@ -53,7 +53,7 @@ flowchart TD
   - Uploading needs WebUSB (Chrome or Edge, over HTTPS or on localhost).
 - `editor.html`: the designer. Accepts `?start=blank|touchbass|touchfx|touchstring|audreytouch&ref=sx|ld|pd&theme=…&layout=…`, `?community=<id>` (a directory entry's name, author and repository, with the labels the library found) or `?s=<share link>`. State is kept in this browser (localStorage `simpleTouchManual.v1`).
 - `player.html`: one firmware's manual as a site of its own, with Play: the page the designer's **Web app…** exports as `index.html`. Online it reads `simple-touch-labels.json` from the root of the firmware's repository (so a newly approved build shows without a new export); on localhost, or when the repository can't be read, the copy beside it. Without a copy, `?repo=<repository URL>` picks one; `?preview` shows the designer's current state in this browser and follows its edits.
-- `guide.html`: step by step from a firmware to the library and the community directory, with checks that this browser remembers. Starts from an existing repository or from scratch, libDaisy or Plugdata; a repository URL at the top fills in the links (Releases, Actions, the raw label file, Pages).
+- `guide.html`: step by step from a firmware to the library and the community directory, with checks that this browser remembers. Starts from an existing repository or from scratch, libDaisy or Plugdata; a repository URL at the top fills in the links (Releases, Actions, the raw label file, Pages). Ends with the minimum for a firmware README and a template, for any author (`#readme-minimum`).
 - `about.html`: the whole route from firmware to library (a flowchart with an anchor per step, `#step-0` … `#step-5`), how the library, firmware repositories and the community directory fit together, how labels are found, and how creators publish theirs (including a README layout the extractor reads).
 
 Both pages:
@@ -108,8 +108,8 @@ External at runtime: html-to-image (jsDelivr) for PNG and PDF export, Google Fon
 
 ## Sources
 
-- json: https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.json
-- pd: https://github.com/jonwaterschoot/hvcc-examples-daisy/blob/simple_touch/simple_touch.pd
+- json: https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json
+- pd: https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch_template.pd
 - pin sheet: https://docs.google.com/spreadsheets/d/1xtg_s1tk8tm-6qNkBLFc6V1L_Mpmu-PCOvv7qEyr9mU/edit?usp=sharing
 - Firmware: [TouchBass](https://github.com/Synthux-Academy/TouchBass), [TouchFX](https://github.com/Synthux-Academy/TouchFX), [TouchString](https://github.com/Synthux-Academy/TouchString), [AudreyTouch](https://github.com/Synthux-Academy/AudreyTouch)
 - Touch FX manual (Fabio Bartali): https://bartali.nl/touch-fx-manual.html
