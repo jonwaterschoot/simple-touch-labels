@@ -1362,7 +1362,7 @@ function md2html(src){
 /* ============================================================
    CONTROL TABLE: control | reference name | function | + each modifier
    ============================================================ */
-/* A control's MIDI, as its label file writes it: "CC 20", "note 36 ch 10 · CC 31", "CC 30 ≥ 64".
+/* A control's MIDI, as its label file writes it: "CC 20", "note 36 ch 10 · CC 31", "CC 30 ≥ 64", "CC 21 = 3".
    Parts are split on · , or ;. Channels count from 1; no channel = any. A range after a CC number
    narrows it to those values. Returns [{cc|note, ch, lo, hi}]; what it cannot read, it leaves out. */
 const NOTE_PC={c:0,d:2,e:4,f:5,g:7,a:9,b:11};
@@ -1370,9 +1370,9 @@ function midiMap(text){
   const out=[];
   for(const part of String(text||'').split(/[·,;]/)){
     const chm=part.match(/\bch(?:annel)?\s*(\d{1,2})\b/i), ch= chm && chm[1]>=1 && chm[1]<=16 ? chm[1]-1 : null;
-    const cc=part.match(/\bcc\s*(\d{1,3})(?:\s*(<=|>=|≤|≥|<|>)\s*(\d{1,3}))?/i);
+    const cc=part.match(/\bcc\s*(\d{1,3})(?:\s*(<=|>=|≤|≥|<|>|=)\s*(\d{1,3}))?/i);
     if(cc && cc[1]<128){
-      const v=+cc[3], lo={'>=':v,'≥':v,'>':v+1}[cc[2]], hi={'<=':v,'≤':v,'<':v-1}[cc[2]];
+      const v=+cc[3], lo={'>=':v,'≥':v,'>':v+1,'=':v}[cc[2]], hi={'<=':v,'≤':v,'<':v-1,'=':v}[cc[2]];
       out.push({cc:+cc[1], ch, lo:lo??0, hi:hi??127});
       continue;
     }

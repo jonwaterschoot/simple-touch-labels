@@ -46,7 +46,7 @@ const Play = (()=>{
     panel:null,     // settings and presets from the label file's device block (device-panel.js)
     glow:{},        // pads that just played on the board, fading (0..1)
     source:'browser', link:null, follows:false,   // browser | device: the firmware in this page or a real board, never both, so MIDI cannot loop. follows: the drawing shows the board
-    midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control
+    midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{}, ccOut:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control; the firmware's last value per CC
     hot:new Set(), cool:{},   // table rows of the controls in use
     mode:null, held:[],       // the toggle modifier tapped last, the hold modifiers held: the labels follow them
     lock:matchMedia('(pointer: coarse)').matches, stage:false, sound:false, labels:'all',   // touch: scroll lock; full screen, its sound sheet and label view (STAGE_LABELS)
@@ -262,7 +262,7 @@ const Play = (()=>{
     try{ S.st?.disconnect(); }catch(e){}
     S.ctx?.close().catch(()=>{});
     S.st=S.ctx=S.out=S.inGain=S.live=null;
-    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.oledShown=0; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
+    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.oledShown=0; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.ccOut={}; S.runOut=0;
     S.mode=null; S.held=[]; soloMod=null;
     if(doc.modes) V.mode='';
     keys(false);
@@ -420,6 +420,9 @@ const Play = (()=>{
     const v= t===0xB0? `${m[2]}` : t===0x90&&m[2]? `on ${m[2]}` : t===0x80||t===0x90? 'off' : t===0xA0? `pressure ${m[2]}` : null;
     if(dir==='in' && t===0xB0 && (m[1]===120 || m[1]===123)) for(const i in S.midiPads){ delete S.midiPads[i]; drawPad(i); hot(padId(+i),false); }   // all sound / notes off
     if(v===null) return;
+    // firmware can repeat its state (TouchSpore: root and scale every 500 ms for 10 s after Play), so a CC out lights its control only when the value changes
+    const ccKey=m[0]<<8|m[1], repeat= dir==='out' && t===0xB0 && (S.ccOut[ccKey]??m[2])===m[2];
+    if(dir==='out' && t===0xB0) S.ccOut[ccKey]=m[2];
     midiRefs??=TABLE_ORDER.map(id=>[id, midiMap(val(id,'midi'))]).filter(r=>r[1].length);
     for(const [id,list] of midiRefs){
       const x=list.find(x=>(x.ch===null || x.ch===ch) && (t===0xB0? x.cc===m[1] && m[2]>=x.lo && m[2]<=x.hi : x.note===m[1]));
@@ -430,7 +433,7 @@ const Play = (()=>{
         const i=+id.slice(1);
         if(t===0x90 && m[2]) S.midiPads[i]=m[2]/127; else if(t===0xA0){ if(S.midiPads[i]!==undefined) S.midiPads[i]=m[2]/127; } else delete S.midiPads[i];
         drawPad(i); hot(id, S.midiPads[i]!==undefined);
-      } else flash(id);
+      } else if(!repeat) flash(id);
     }
   }
   function paintMv(id){
