@@ -439,7 +439,7 @@ const Play = (()=>{
   }
   /* after the labels were drawn again: which hide with "Pad labels" off, and the marks on them */
   function tagLabels(){
-    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^n:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
+    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^[nf]:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     for(const id of S.hot) paintRow(id);
     const h=hovId; hovId=null; setHover(h);
   }

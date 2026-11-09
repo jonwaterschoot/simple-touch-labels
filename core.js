@@ -134,11 +134,11 @@ const DESIGN_DEFAULT = {
   boxOpacity:1,          // label box fill, 0 = no box
   leaderW:2.5,           // desktop leader lines, panel units (the dot at the control grows with it)
   fx:'none', fxColor:'#000000', fxSize:6,   // label effect: none | shadow | glow
-  caps:false,            // the labels on the drawing in capitals; what was typed stays as typed
+  caps:{phone:false, desktop:false},   // the labels on the drawing in capitals, per layout; what was typed stays as typed
   names:{phone:{place:'label',size:null,x:0,y:0}, desktop:{place:'label',size:null,x:0,y:0}},   // the control names (P1, S36) per layout: in the text labels or on the drawing
   themes: THEME_DEFAULT,
 };
-const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW','caps'];
+const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW'];
 const cloneDesign = d => structuredClone(d);
 /* Before version 2 the themes were dark (now 'panel'), light (now 'print') and gold */
 const OLD_THEME = { dark:'panel', light:'print' };
@@ -149,12 +149,14 @@ function namesOf(n){
   const num=(v,lo,hi)=> typeof v==='number' && Number.isFinite(v)? Math.min(hi,Math.max(lo,v)) : 0;
   return Object.fromEntries(LAYOUTS.map(m=>{ const o=n?.[m]||{}; return [m,{place:o.place==='drawing'?'drawing':'label', size:num(o.size,8,60)||null, x:num(o.x,-200,200), y:num(o.y,-200,200)}]; }));
 }
+/* one setting for both layouts in older files */
+const capsOf=c=>Object.fromEntries(LAYOUTS.map(m=>[m, typeof c==='boolean'? c : c?.[m]===true]));
 /* Accepts this format ({themes}) and Fabio's ({phone, desktop, light, panel}) */
 function mergeDesign(d){
   const out = cloneDesign(DESIGN_DEFAULT);
   if(!d || typeof d!=='object') return out;
   for(const k of DESIGN_KEYS) if(k in d) out[k]=d[k];
-  out.names=namesOf(d.names);
+  out.names=namesOf(d.names); out.caps=capsOf(d.caps);
   let themes = d.themes;
   if(themes && d.v!==DESIGN_V) themes = { panel:themes.dark, print:themes.light, gold:themes.gold };
   if(themes){ for(const th in out.themes) for(const p of ['phone','desktop','panel']) Object.assign(out.themes[th][p], (themes[th]||{})[p]||{}); }
@@ -176,7 +178,7 @@ let design = cloneDesign(DESIGN_DEFAULT);
 let part = 'main', curPart = 'main', bw = false;
 let soloMod = null;   // while playing: the modifier held or tapped; the main view then shows what it does
 function applyDesign(d=design){
-  for(const k of ['size1','size2','padX','padY','radius','gap','weight','caps']) T[k]=d[k];
+  for(const k of ['size1','size2','padX','padY','radius','gap','weight']) T[k]=d[k];
   T.size3 = d.size3 || Math.round(T.size2*0.72);   // reference captions: their own size, or line 2's
   T.lh1 = Math.round(T.size1*1.19); T.lh2 = Math.round(T.size2*1.18); T.lh3 = Math.round(T.size3*1.25);
 }
@@ -185,6 +187,7 @@ const palOf = (mode, th=V.theme) => design.themes[th][mode];
 function usePalette(mode, th=V.theme){
   const p=palOf(mode,th), q=design.themes[th].panel;
   T.size3=design.names[mode].size||design.size3||Math.round(T.size2*0.72); T.lh3=Math.round(T.size3*1.25);   // the control names: per layout
+  T.layout=mode; T.caps=!!design.caps[mode]; T.fpl=p.fpl||'';   // fpl: the faceplate labels' colour, if the layout has its own
   T.outline=p.mw; T.boxOutline=p.ow; T.box=p.box; T.text=p.text; T.line=p.line; T.ref=p.ref;
   T.mods = bw? [p.text,p.text,p.text,p.text] : [p.m1,p.m2,p.m3,p.m4];
   T.padBox=p.padBox||null; T.padText=p.padText||null;   // pads can have their own chip colour
@@ -198,7 +201,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -214,6 +217,8 @@ function normalise(d){
   s.modes = cleanModes(d.modes);
   s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
   s.oled = oledOf(d.oled);
+  s.fpDesktop = fpDesktopOf(d.fpDesktop);
+  s.fpLabels = fpLabelsOf(d.fpLabels);
   s.combos = Array.isArray(d.combos)? [...new Set(d.combos.filter(comboOk))] : [];
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
@@ -225,7 +230,7 @@ function normalise(d){
 /* A faceplate kept as a file in the firmware's repository, at a plain relative path: an SVG, or the image itself
    when the faceplate is an uploaded image (it is wrapped in an SVG here; its placement is in fpStyle either way) */
 const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.(svg|png|jpe?g|webp)$/i;
-const FP_DEFAULT_FILE='img/faceplate.svg';
+const FP_DEFAULT_FILE='img/faceplate.svg', FP_DESKTOP_FILE='img/faceplate-desktop.svg';
 const FP_IMAGE_EXT={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
 function fpImage(svg=doc.faceplate){   // the image inside an uploaded image's wrapper: {mime, ext, b64}, else null
   if(!svg || svg.length<100 || !/<image\b/.test(svg)) return null;
@@ -234,12 +239,13 @@ function fpImage(svg=doc.faceplate){   // the image inside an uploaded image's w
   const m=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(kids[0].getAttribute('href')||kids[0].getAttribute('xlink:href')||'');
   return m && {mime:m[1], ext:FP_IMAGE_EXT[m[1]], b64:m[2].replace(/\s+/g,'')};
 }
-const fpFile=()=>{ const base=FP_PATH.test(doc.faceplateFile||'')? doc.faceplateFile : FP_DEFAULT_FILE, im=fpImage();
-  return base.replace(/\.[a-z]+$/i, '.'+(im? im.ext : 'svg')); };
+const fpPathOf=(path, fallback, svg)=>{ const im=fpImage(svg); return (FP_PATH.test(path||'')? path : fallback).replace(/\.[a-z]+$/i, '.'+(im? im.ext : 'svg')); };
+const fpFile=()=>fpPathOf(doc.faceplateFile, FP_DEFAULT_FILE, doc.faceplate);
+const fpDeskFile=()=>fpPathOf(doc.fpDesktop?.file, FP_DESKTOP_FILE, doc.fpDesktop?.faceplate);
 /* the faceplate as the file it is saved as: {name, data (text or bytes), type} */
-function fpFileData(){
-  const im=fpImage(), name=fpFile().split('/').pop();
-  if(!im) return {name, data:doc.faceplate, type:'image/svg+xml'};
+function fpFileData(svg=doc.faceplate, path=fpFile()){
+  const im=fpImage(svg), name=path.split('/').pop();
+  if(!im) return {name, data:svg, type:'image/svg+xml'};
   const bin=atob(im.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   return {name, data:u8, type:im.mime};
 }
@@ -286,6 +292,25 @@ function safeFpStyle(o){
   if(typeof o.stretch==='boolean') out.stretch=o.stretch;
   return out;
 }
+/* The desktop layout's own faceplate: art 'same' (the phone's art), 'own' or 'none' (the blank panel), each with its own
+   placement. In a label file its art is a path, as the main faceplate's is. Null: the desktop follows the phone. */
+function fpDesktopOf(o){
+  if(!o || typeof o!=='object') return null;
+  const art=['same','own','none'].includes(o.art)? o.art : 'same', out={art, faceplate:'', file:'', style:safeFpStyle(o.style)};
+  if(art!=='own') return out;
+  const f=typeof o.faceplate==='string'? o.faceplate : '';
+  if(FP_PATH.test(f)) out.file=f; else { out.faceplate=f; if(typeof o.file==='string' && FP_PATH.test(o.file)) out.file=o.file; }
+  return out;
+}
+/* Text that belongs to the faceplate (no box): per layout whether it shows ('off', 'with' or 'instead' of the label boxes)
+   and its size; shared, the text a control has instead of its line 1 ("-" for none). Turned and moved as offsets, key f:<id>. */
+const FPL_SHOW=['off','with','instead'], FPL_SIZE=24;
+function fpLabelsOf(o){
+  if(!o || typeof o!=='object') return null;
+  const by=m=>{ const p=o[m]||{}, z=p.size; return {show:FPL_SHOW.includes(p.show)? p.show : 'with', size:typeof z==='number' && Number.isFinite(z)? Math.round(Math.min(60,Math.max(8,z))) : FPL_SIZE}; };
+  const text={}; for(const [id,v] of Object.entries(o.text&&typeof o.text==='object'? o.text : {})) if(SLOT[id] && typeof v==='string' && v.trim()) text[id]=v.slice(0,LIMITS.line);
+  return {on:o.on!==false, phone:by('phone'), desktop:by('desktop'), text};
+}
 /* The manual file (Fabio's simple-touch-manual/3), plus this editor's extras */
 function cleanData(){
   const labels={};
@@ -307,6 +332,8 @@ function cleanData(){
   if(doc.emulator) out.emulator=doc.emulator;
   if(doc.device) out.device=doc.device;
   if(doc.oled) out.oled=doc.oled;
+  if(doc.fpDesktop){ const q=doc.fpDesktop; out.fpDesktop={art:q.art, ...(q.art==='own'&&q.faceplate?{faceplate:q.faceplate}:{}), ...(q.art==='own'&&q.file?{file:q.file}:{}), style:{...q.style}}; }
+  if(doc.fpLabels) out.fpLabels=structuredClone(doc.fpLabels);
   const md=cleanModes(doc.modes); if(md) out.modes=md;
   return out;
 }
@@ -558,8 +585,19 @@ function boxSize(lines){
 const capText=lines=> capsT(isToggle(mods()[lines.modIdx])? 'Tap' : 'Hold');
 const modStyle=()=>design.modStyle||'outline';
 const holdCap=lines=> lines.modBox && !lines.split && !bwSec() && modStyle()==='hold' ? {size:T.size2*0.8, h:T.size2*1.15} : null;
-function onColour(hex){ const m=/^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return '#ffffff';
-  const n=parseInt(m[1],16), c=[n>>16&255,n>>8&255,n&255].map(v=>{v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
+/* a colour as [r, g, b, a] (a from 0 to 1): #rgb, #rgba, #rrggbb, #rrggbbaa, rgb() or rgba(); null if it is none of those */
+function parseColour(v){
+  const t=String(v||'').trim(), h=/^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(t);
+  if(h){ const x=h[1].length<6? [...h[1]].map(c=>c+c).join('') : h[1], n=i=>parseInt(x.slice(i,i+2),16); return [n(0),n(2),n(4), x.length===8? n(6)/255 : 1]; }
+  const m=/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*(?:[,/]\s*([\d.]+)(%?)\s*)?\)$/i.exec(t);
+  if(!m) return null;
+  const c=x=>Math.min(255,Math.round(+x));
+  return [c(m[1]),c(m[2]),c(m[3]), m[4]===undefined? 1 : Math.min(1,+m[4]/(m[5]?100:1))];
+}
+/* stored as hex, with two more digits when see-through: var() fallbacks can't hold the brackets of rgba() (resolveVars) */
+const colourHex=([r,g,b,a])=>'#'+[r,g,b,...(a<1?[Math.round(a*255)]:[])].map(x=>x.toString(16).padStart(2,'0')).join('');
+function onColour(col){ const p=parseColour(col); if(!p) return '#ffffff';
+  const c=p.slice(0,3).map(v=>{v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
   return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2] > 0.4 ? '#1c1c1b' : '#ffffff'; }
 const textEl=(l,tx,cy,align,fill)=>{ const sz=SZ(l.size), lh=LH(l.size);
   return `<text x="${tx.toFixed(1)}" y="${(cy+lh/2+sz*0.35).toFixed(1)}" font-size="${sz}" text-anchor="${align}" fill="${fill}">${esc(l.text)}</text>`; };
@@ -722,6 +760,16 @@ function simpleArt(q){
 }
 const boxG=(key,inner)=>`<g data-key="${escAttr(key)}">${inner}</g>`;
 const userOffset=(layout,id)=>((doc.offsets||{})[layout]||{})[id];
+/* A label can be turned by quarter turns, per layout (r in its offsets, clockwise). The layout sees the turned box: a
+   quarter turn swaps its sides, so columns and pushing apart keep working. {w,h} as placed, {bw,bh} as drawn. */
+const ROTS=[0,90,180,270];
+const rotOf=(layout,id)=>{ const r=userOffset(layout,id)?.r; return ROTS.includes(r)? r : 0; };
+function turnedSize(lines, layout, key){ const {w,h}=boxSize(lines), r=rotOf(layout,key), q=r%180!==0; return {w:q?h:w, h:q?w:h, bw:w, bh:h, r}; }
+function placedBox(o, align, style){
+  if(!o.r) return boxSVG(o.lines,o.x,o.y,o.w,o.h,align,style);
+  const cx=o.x+o.w/2, cy=o.y+o.h/2;
+  return `<g transform="rotate(${o.r} ${cx.toFixed(1)} ${cy.toFixed(1)})">${boxSVG(o.lines,cx-o.bw/2,cy-o.bh/2,o.bw,o.bh,'middle',style)}</g>`;
+}
 /* The control names on the drawing itself (design.names), on the main view: inside a knob, above a fader, beside the
    rest. Each can be dragged (offsets, key n:<id>). With a halo in the background colour, so they read on any drawing. */
 const namesOn=mode=>design.names[mode].place==='drawing';
@@ -739,8 +787,32 @@ function namesSVG(mode, boxOf){
   if(curPart!=='main' || !namesOn(mode)) return '';
   const n=design.names[mode], sz=T.size3, f=v=>v.toFixed(1);
   return SLOTS.map(s=>{ const t=nameOf(s.id); if(!t) return '';
-    const p=nameSpot(s,mode,sz,boxOf&&boxOf(s.id)), d=userOffset(mode,'n:'+s.id)||{x:0,y:0};
-    return boxG('n:'+s.id,`<text x="${f(p.x+n.x+d.x)}" y="${f(p.y+n.y+d.y+sz*0.35)}" font-size="${sz}" text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
+    const p=nameSpot(s,mode,sz,boxOf&&boxOf(s.id)), d=userOffset(mode,'n:'+s.id)||{x:0,y:0}, cx=p.x+n.x+d.x, cy=p.y+n.y+d.y, r=rotOf(mode,'n:'+s.id);
+    return boxG('n:'+s.id,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}" text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
+}
+
+/* The faceplate labels (doc.fpLabels): text on the panel itself, like print on the hardware. It follows the print set,
+   because a faceplate does not change with a mode. Above the knobs, below the faders, where the label boxes leave room. */
+const fplOn=mode=>{ const q=doc.fpLabels; return q && q.on && q[mode].show!=='off'? q[mode].show : ''; };
+const fplText=id=>{ const own=doc.fpLabels?.text[id]; return arrows(own!=null? (own.trim()==='-'? '' : own) : ((doc.labels[id]||{}).main||'')); };
+/* 'instead': the faceplate says it, so the box goes. Not while a modifier is in use or a mode has its own text. */
+const fplHidesBox=(mode,id)=> curPart==='main' && fplOn(mode)==='instead' && !soloMod && !!fplText(id) && !curMode()?.labels[id];
+function fplSpot(s,mode,sz){
+  if(s.kind==='knob') return {x:s.x, y:s.y-44-sz*0.5};
+  if(s.kind==='fader') return {x:s.x, y:886+sz*0.5};
+  if(s.kind==='jack') return {x:s.x, y:s.y-37-sz*0.5};
+  if(s.kind==='switch') return {x:s.x, y:s.y+(s.id==='S07_S08'? 55 : 27)+sz*0.5};
+  if(s.kind==='led') return {x:s.x, y:s.y+14+sz*0.5};
+  return {x:s.x, y:s.y-(mode==='phone'? 46 : 14)-sz*0.5};   // pads: clear of the box or the leader's dot on them
+}
+function fpLabelsSVG(mode){
+  if(!fplOn(mode)) return '';
+  const sz=doc.fpLabels[mode].size, q=design.themes[T.theme].panel, f=v=>v.toFixed(1);
+  // on the simplified drawing the pads and the Seed window are light where the top plate is dark
+  const ink=s=>T.fpl || (q.drawing==='simple' && !['knob','fader','jack'].includes(s.kind)? q.shape : q.fp) || T.ink;
+  return SLOTS.map(s=>{ const t=fplText(s.id); if(!t) return '';
+    const key='f:'+s.id, p=fplSpot(s,mode,sz), d=userOffset(mode,key)||{x:0,y:0}, cx=p.x+d.x, cy=p.y+d.y, r=rotOf(mode,key);
+    return boxG(key,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}" text-anchor="middle" fill="${ink(s)}">${esc(capsT(t))}</text>`); }).join('');
 }
 
 /* ============================================================
@@ -752,12 +824,13 @@ function namesSVG(mode, boxOf){
 function layoutPhone(){
   const items=[];
   for(const s of SLOTS){
+    if(fplHidesBox('phone',s.id)) continue;
     const lines=slotLines(s); if(!lines.length) continue;
     // knobs: the box hangs just below the knob and is never pushed up onto it;
     // faders: the box sits on the fader's centre, between the two rows of knob labels
-    const {w,h}=boxSize(lines), below=s.kind==='knob'? s.y+KNOB_R+T.gap : null;
+    const t=turnedSize(lines,'phone',s.id), {h}=t, below=s.kind==='knob'? s.y+KNOB_R+T.gap : null;
     const ay= below!=null? below+h/2 : (s.ly??s.y);
-    items.push({s,lines,w,h,ax:s.x,ay,cx:s.x,cy:ay,lock:!!s.lockX,minCy:below!=null? ay : s.minTop!=null?s.minTop+h/2:-Infinity});
+    items.push({s,lines,...t,ax:s.x,ay,cx:s.x,cy:ay,lock:!!s.lockX,minCy:below!=null? ay : s.minTop!=null?s.minTop+h/2:-Infinity});
   }
   const G=T.gap, N=400;
   for(let it=0;it<N;it++){
@@ -779,7 +852,7 @@ function layoutPhone(){
   for(const o of items){ const d=userOffset('phone',o.s.id); if(d){ o.cx+=d.x; o.cy+=d.y; } }
   if(curPart==='main') for(const c of doc.customs||[]){
     const lines=customLines(c); if(!lines.length) continue;
-    const {w,h}=boxSize(lines); items.push({s:{id:'c'+c.id,kind:'custom',x:c.x,y:c.y},lines,w,h,cx:c.x,cy:c.y,custom:true});
+    items.push({s:{id:'c'+c.id,kind:'custom',x:c.x,y:c.y},lines,...turnedSize(lines,'phone','c'+c.id),cx:c.x,cy:c.y,custom:true});
   }
   const warns={};
   for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++){
@@ -804,7 +877,7 @@ function buildPhone(forExport,th=V.theme,pt=part,frame){
   if(frame===undefined) frame=frameOf(buildPhone,th,pt);
   curPart=pt; usePalette('phone',th);
   const {items,warns}=layoutPhone();
-  let g=items.map(o=>boxG(o.s.id,boxSVG(o.lines,o.x,o.y,o.w,o.h,'middle',boxStyle(o.s)))).join('');
+  let g=items.map(o=>boxG(o.s.id,placedBox(o,'middle',boxStyle(o.s)))).join('');
   const named=namesSVG('phone',id=>items.find(o=>o.s.id===id));
   let x0=PANEL_BOX.x, y0=PANEL_BOX.y, x1=PANEL_BOX.x+PANEL_BOX.w, y1=PANEL_BOX.y+PANEL_BOX.h;
   for(const o of items){ x0=Math.min(x0,o.x-12); x1=Math.max(x1,o.x+o.w+12); y0=Math.min(y0,o.y-12); y1=Math.max(y1,o.y+o.h+12); }
@@ -816,7 +889,7 @@ function buildPhone(forExport,th=V.theme,pt=part,frame){
   return {warns, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
+    over:(f=>`<g ${fontAttr()}>${fpLabelsSVG('phone')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}<g ${fontAttr()}${f.attr}>${g}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 
 /* ============================================================
@@ -844,8 +917,9 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   const gap=Math.max(T.gap,12);
   const side={L:[],R:[]}, topRow=[];
   for(const s of SLOTS){
+    if(fplHidesBox('desktop',s.id)) continue;
     const lines=slotLines(s,'desktop'); if(!lines.length) continue;
-    const {w,h}=boxSize(lines); const o={s,lines,w,h};
+    const o={s,lines,...turnedSize(lines,'desktop',s.id)};
     if(s.id==='P10'||s.id==='P11') topRow.push(o); else side[s.x<540?'L':'R'].push(o);
   }
 
@@ -937,17 +1011,17 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   for(const k of ['L','R']) for(const o of side[k]){
     const a=rim(o,k), pts=a.map(p=>p.map(v=>(+v).toFixed(1)).join(',')).join(' ');
     lines+=`<polyline points="${pts}" fill="none" stroke="${T.leader}" stroke-opacity=".6" stroke-width="${lw}"/>`+dot({x:a[0][0],y:a[0][1]});
-    boxes+=boxG(o.s.id,boxSVG(o.lines,o.x,o.y,o.w,o.h,k==='L'?'start':'end',boxStyle(o.s)));
+    boxes+=boxG(o.s.id,placedBox(o,k==='L'?'start':'end',boxStyle(o.s)));
   }
   for(const o of topRow){
     const bx=o.x+o.w/2, by=o.y+o.h;
     const pts = Math.abs(bx-o.s.x)<1 ? `${o.s.x},${o.s.y} ${o.s.x},${by}` : `${o.s.x},${o.s.y} ${o.s.x},${(by+o.s.y)/2} ${bx},${(by+o.s.y)/2} ${bx},${by}`;
     lines+=`<polyline points="${pts}" fill="none" stroke="${T.leader}" stroke-opacity=".6" stroke-width="${lw}"/>`+dot(o.s);
-    boxes+=boxG(o.s.id,boxSVG(o.lines,o.x,o.y,o.w,o.h,'middle',boxStyle(o.s)));
+    boxes+=boxG(o.s.id,placedBox(o,'middle',boxStyle(o.s)));
   }
   if(curPart==='main') for(const c of doc.customs||[]){
     const cl=customLines(c); if(!cl.length) continue;
-    const {w,h}=boxSize(cl); boxes+=boxG('c'+c.id,boxSVG(cl,c.x-w/2,c.y-h/2,w,h,'middle',boxStyle(null)));
+    const t=turnedSize(cl,'desktop','c'+c.id); boxes+=boxG('c'+c.id,placedBox({lines:cl,...t,x:c.x-t.w/2,y:c.y-t.h/2},'middle',boxStyle(null)));
   }
   const pad=24;
   let x0=lx-maxW.L-pad, x1=rx+maxW.R+pad;
@@ -963,7 +1037,7 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   return {warns:{}, bounds, th, part:pt, panelVars:T.panelVars,
     vb:`${x0.toFixed(1)} ${y0.toFixed(1)} ${(x1-x0).toFixed(1)} ${(y1-y0).toFixed(1)}`,
     art:artSVG(x0,y0,x1,y1),
-    over:(f=>`${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
+    over:(f=>`<g ${fontAttr()}>${fpLabelsSVG('desktop')}</g>${f.def}${forExport?'':hl(SLOT[V.focusId])}${lines}<g ${fontAttr()}${f.attr}>${boxes}</g><g ${fontAttr()}>${legendText}${named}</g>`)(fxDef())};
 }
 const buildFor = layout => layout==='desktop'? buildDesktop : buildPhone;
 const svgLabel = () => (doc.firmware.name||'Simple Touch')+' controls';
@@ -979,11 +1053,11 @@ function svgOf(r){
 /* the drawing has the Seed's USB port but not its LED, so the LED is added to the controls layer */
 const USB_RECT=[858.81,323.95,45.08,69.42];
 const LED_RECT=`<rect id="st-LED" x="${829-11}" y="${305-7}" width="22" height="14" rx="2" style="fill:var(--pled,var(--pline,#fff)); stroke:var(--pline,#fff); stroke-width:1px; vector-effect:non-scaling-stroke;"/>`;
-let panelSrc='', panelBaseSrc='', panelCtlSrc='', topPlateD='', fpMarkup='', fpMsg='';
+let panelSrc='', panelBaseSrc='', panelCtlSrc='', topPlateD='', fpMarkup='', fpMsg='', fpDeskMarkup='', fpDeskMsg='';
 function ensureDefs(){
   if(document.getElementById('stDefs')) return;
   const d=document.createElement('div');
-  d.innerHTML='<svg id="stDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="panelBase"></g><g id="faceplateArt"></g><g id="panelCtl"></g><clipPath id="fpTop"><path id="fpTopPath"/></clipPath>'+FP_TOP_SIMPLE+fpHoles(false)+fpHoles(true)+'</defs></svg>';
+  d.innerHTML='<svg id="stDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="panelBase"></g><g id="faceplateArt"></g><g id="faceplateArtDesktop"></g><g id="panelCtl"></g><clipPath id="fpTop"><path id="fpTopPath"/></clipPath>'+FP_TOP_SIMPLE+fpHoles(false)+fpHoles(true)+'</defs></svg>';
   document.body.prepend(d.firstChild);
 }
 /* one top-level layer of the drawing: st-Black_BG, st-Faceplate_BOTTOM, st-Layer_2, st-Faceplate_TOP, st-Knobs_Faders_Jacks */
@@ -1022,10 +1096,17 @@ function fpHoles(simple){
     + ['S36','S37'].map(id=>`<rect x="${(SLOT[id].x-w/2).toFixed(2)}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`).join('')
     + '</mask>';
 }
-const fpUse=()=>{ if(!doc.faceplate) return ''; const f=fpStyle(), tr=fpTransform(f);
+/* a layout's faceplate: which art and where, or null for the blank panel */
+function fpOf(layout){
+  const q=doc.fpDesktop, main=doc.faceplate? 'faceplateArt' : '';
+  if(layout!=='desktop' || !q) return main? {id:main, style:fpStyle()} : null;
+  const id= q.art==='own'? (q.faceplate? 'faceplateArtDesktop' : '') : q.art==='same'? main : '';
+  return id? {id, style:{...FP_DEFAULT, ...q.style}} : null;
+}
+const fpUse=()=>{ const u=fpOf(T.layout); if(!u) return ''; const f=u.style, tr=fpTransform(f);
   const st=[f.opacity<1?`opacity:${f.opacity}`:'', f.blend!=='normal'?`mix-blend-mode:${f.blend}`:''].filter(Boolean).join(';');
   const simple= design.themes[T.theme].panel.drawing==='simple', top= simple? 'fpTopSimple' : 'fpTop';
-  return `<g${st?` style="${st}"`:''}${f.area==='top'?` clip-path="url(#${top})"`:''} mask="url(#fpHoles${simple?'Simple':''})"><use href="#faceplateArt" xlink:href="#faceplateArt"${tr?` transform="${tr}"`:''}/></g>`; };
+  return `<g${st?` style="${st}"`:''}${f.area==='top'?` clip-path="url(#${top})"`:''} mask="url(#fpHoles${simple?'Simple':''})"><use href="#${u.id}" xlink:href="#${u.id}"${tr?` transform="${tr}"`:''}/></g>`; };
 function sanitizeFaceplate(text){
   const d=new DOMParser().parseFromString(text,'image/svg+xml');
   if(d.querySelector('parsererror')) throw new Error('this is not a valid SVG file');
@@ -1074,9 +1155,17 @@ function setFaceplate(clean, ref='', style=null){
   fpMarkup = doc.faceplate ? faceplateMarkup(doc.faceplate) : '';
   if(!doc.faceplate) fpMsg='';
   document.getElementById('faceplateArt').innerHTML = fpMarkup;
+  setFpDesktop();
+}
+/* the desktop layout's own art, put where the drawing can use it (every load goes through setFaceplate) */
+function setFpDesktop(){
+  ensureDefs();
+  const art=doc.fpDesktop?.art==='own'? doc.fpDesktop.faceplate : '', keep=fpMsg;
+  fpDeskMarkup= art? faceplateMarkup(art) : ''; fpDeskMsg= art? fpMsg : ''; fpMsg=keep;
+  document.getElementById('faceplateArtDesktop').innerHTML = fpDeskMarkup;
 }
 const bakeColours=(svg,th)=>resolveVars(svg, panelVarMap(th));
-const panelDefs=()=>`<g id="panelBase">${panelBaseSrc}</g><g id="panelCtl">${panelCtlSrc}</g><clipPath id="fpTop"><path d="${topPlateD}"/></clipPath>${FP_TOP_SIMPLE}${fpHoles(false)}${fpHoles(true)}`+(doc.faceplate?`<g id="faceplateArt">${fpMarkup}</g>`:'');
+const panelDefs=()=>`<g id="panelBase">${panelBaseSrc}</g><g id="panelCtl">${panelCtlSrc}</g><clipPath id="fpTop"><path d="${topPlateD}"/></clipPath>${FP_TOP_SIMPLE}${fpHoles(false)}${fpHoles(true)}`+(doc.faceplate?`<g id="faceplateArt">${fpMarkup}</g>`:'')+(fpDeskMarkup?`<g id="faceplateArtDesktop">${fpDeskMarkup}</g>`:'');
 /* Standalone SVG of the drawing alone (colours baked in), used as an <img> in the PNG export */
 function artImageSVG(r){
   return bakeColours(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${r.vb}"><defs>${panelDefs()}</defs>${r.art}</svg>`, r.th);
@@ -1300,6 +1389,7 @@ async function designerPreview(){
   const d=await resolveFaceplate(normalise(s.doc)), u=s.UI||{};
   d.look=lookOf({design:s.design, view:s.V, font:{family:u.font, url:u.fontUrl}});
   try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
+  try{ if(d.fpDesktop?.faceplate) d.fpDesktop.faceplate=sanitizeFaceplate(d.fpDesktop.faceplate); }catch(e){ d.fpDesktop.faceplate=''; }
   return {doc:d, ref:(s.V||{}).ref||'', refMode:(s.V||{}).refMode||'both'};
 }
 
@@ -1747,7 +1837,7 @@ ${(fw.notes||'').trim()?`<section class="md">${md2html(fw.notes)}</section>`:''}
     h.classList.add('md-'+x.getAttribute('data-mode')); }; });
 })();
 <\/script>
-<script type="application/json" id="manual-data">${JSON.stringify({...d,faceplate:undefined}).replace(/</g,'\\u003c')}<\/script>
+<script type="application/json" id="manual-data">${JSON.stringify({...d,faceplate:undefined,fpDesktop:d.fpDesktop&&{...d.fpDesktop,faceplate:undefined}}).replace(/</g,'\\u003c')}<\/script>
 </body></html>`;
   return html;
 }

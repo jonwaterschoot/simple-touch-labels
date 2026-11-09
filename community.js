@@ -96,14 +96,14 @@ function labelFileDoc(d, repo){
   }
   const fw={}; for(const [k,n] of Object.entries({name:LIMITS.name,author:LIMITS.author,version:LIMITS.version,description:LIMITS.desc,notes:LIMITS.notes,repo:200,authorUrl:200})) fw[k]=str(s.firmware[k],n);
   const num=v=>Number.isFinite(v)? v : 0;
-  const offs=o=>Object.fromEntries(Object.entries(o||{}).filter(([k,v])=>v&&typeof v==='object').map(([k,v])=>[k,{x:num(v.x),y:num(v.y)}]));
+  const offs=o=>Object.fromEntries(Object.entries(o||{}).filter(([k,v])=>v&&typeof v==='object').map(([k,v])=>[k,{x:num(v.x),y:num(v.y),...(ROTS.includes(v.r)&&v.r?{r:v.r}:{})}]));
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
     modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), combos:s.combos, modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y)})),
     offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo), modes:s.modes, device:s.device, oled:s.oled,
     // the creator's look, and their faceplate: a file in the repository (read by readRepoNow) or, in older files, the SVG itself
     look:lookOf(d), faceplateFile:s.faceplateFile, faceplate: typeof s.faceplate==='string' && s.faceplate.trim().startsWith('<')? s.faceplate : '',
-    fpStyle:safeFpStyle(d.fpStyle)};
+    fpStyle:safeFpStyle(d.fpStyle), fpDesktop:s.fpDesktop, fpLabels:s.fpLabels};
 }
 
 /* What the library and designer show for a directory entry, in this order:
@@ -118,6 +118,9 @@ async function labelDocOf(text, repo, faceplate){
   if(!d) return null;
   if(d.faceplateFile) d.faceplate=await faceplate(d.faceplateFile) || '';
   try{ if(d.faceplate) d.faceplate=sanitizeFaceplate(d.faceplate); }catch(e){ d.faceplate=''; }
+  const q=d.fpDesktop;   // the desktop layout's own art, if it has any
+  if(q?.file && !q.faceplate) q.faceplate=await faceplate(q.file) || '';
+  try{ if(q?.faceplate) q.faceplate=sanitizeFaceplate(q.faceplate); }catch(e){ q.faceplate=''; }
   return d;
 }
 async function readRepoNow(p){
