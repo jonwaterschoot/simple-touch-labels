@@ -204,7 +204,7 @@ function noticeHTML(editHref){
   const r=UI.read, how='<a href="about.html#labels">How this works</a>';
   if(!r) return '<p><b>Reading the repository…</b> Looking for a label file or a README with control names.</p>';
   const files=r.files.map(f=>`<a href="${escAttr(f.url)}" target="_blank">${esc(f.path)}</a>`).join(' and ');
-  const creator=`<p><b>Made this firmware?</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
+  const creator=`<p><b>For the creator:</b> <a href="${escAttr(editHref)}">Build the labels in the Designer</a>, save the file and add it to the root of your repository as <code>${LABEL_FILE}</code>. The library then shows your labels instead. ${how}</p>`;
   if(r.source==='file') return `<p><b>Labels by the creator</b>, from ${files} in the repository${UI.read.doc.look?', in their own look (Creator)':''}. ${how}</p>`;
   if(r.source==='none') return `<p><b>No labels yet.</b> ${r.files.length? `A script read ${files} but found no control names in it.` : 'The repository has no README.md the script could read.'} The drawing shows the Synthux names.</p>`+creator;
   const ms=r.modes||[], modeName=k=>ms.find(m=>m.key===k)?.name||'';

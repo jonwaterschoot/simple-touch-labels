@@ -35,16 +35,16 @@
       <div class="btns">
         <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
-        <button type="button" class="outline" id="appBtn" title="Your manual as a page of its own, playable when a browser build is approved, ready for GitHub Pages">Web app…</button>
+        <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
         <button type="button" id="shareBtn">Copy share link</button>
-        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a new tab that follows your edits">Preview in library</button>
+        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a tab that follows your edits">Preview in library</button>
       </div>
       <div class="btns">
         <button type="button" id="openBtn">Open file…</button>
         <input type="file" id="openFile" accept=".json,application/json" hidden>
         <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
         <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
-        <button type="button" id="kitBtn" title="A README with the control map, the label file and the directory entry, in one .zip for your repository">Repository kit…</button>
+        <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
         <span class="status" id="busy"></span>
       </div>
     </div>
@@ -131,7 +131,7 @@
     <div class="kithead"><span class="cap">How to put it online</span><span class="hint" id="appUrl"></span></div>
     <div class="md kitmd" id="appSteps"></div>
     <div class="kitfiles"><span class="cap">In the .zip</span><ul id="appFiles"></ul></div>
-    <div class="mfoot"><span class="status" id="appBusy"></span><button type="button" id="appPreview" title="Your manual as the web app shows it, in a new tab that follows your edits">Preview ↗</button><button type="button" class="primary" id="appZip">Download web app (.zip)</button></div>
+    <div class="mfoot"><span class="status" id="appBusy"></span><button type="button" id="appPreview" title="Your manual as the web app shows it, in a tab that follows your edits">Preview ↗</button><button type="button" class="primary" id="appZip">Download web app (.zip)</button></div>
   </form>
 </dialog>
 
@@ -315,7 +315,7 @@ async function startFrom(key){
    FORM
    ============================================================ */
 const GROUPS = [
-  {title:'P10 and P11', hint:'The round button marks a control as a modifier. Modifier 1 is red, 2 blue, 3 olive, 4 yellow; each gets its own column for what the other controls do with it. Under the name, "hold" means it is held while you use them; click it for "tap", a mode switch (e.g. P0 / P2 in TouchVink). When a function needs controls held together, such as P10 + P11, add them under "Held together": they get one column. Modifiers and held-together sets are four at most.', kinds:['mod'], mods:true},
+  {title:'P10 and P11', hint:'The round button marks a control as a modifier, with a column for what the other controls do with it. Under the name, "hold" means held while you use them. Click it for "tap", a mode switch. Controls held together, such as P10 + P11, go under "Held together" and share a column. Four columns at most.', kinds:['mod'], mods:true},
   {title:'Knobs and faders', kinds:['knob','fader'], mods:true},
   {title:'Pads', kinds:['pad'], mods:true},
   {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
@@ -465,7 +465,7 @@ function buildForm(){
     el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })})), blist);
 
   // modes: a switch whose positions change what the other controls do
-  section('Modes','When a switch changes what the other controls do, such as a playmode switch, name its positions: each becomes a mode in the Mode row. The labels without a mode are the print set, what goes on a printed panel, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
+  section('Modes','When a switch changes what the other controls do, name its positions. Each becomes a button in the Mode row. The labels without a mode are the print set, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
   const mg=el('div',{className:'meta modes'});
   const msw=el('select',{innerHTML:'<option value="">No modes</option>'+Object.entries(MODE_POS).map(([id,ps])=>`<option value="${id}">${lab(SLOT[id])}: ${ps.join(', ')}</option>`).join('')});
   msw.value=doc.modes?.switch||''; msw.setAttribute('aria-label','Mode switch'); msw.onchange=()=>setModeSwitch(msw.value);
@@ -479,7 +479,7 @@ function buildForm(){
   }
   form.append(mg);
   if(REPO_RE.test(normRepo(doc.firmware.repo))) form.append(el('div',{className:'btns'},
-    el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'A heading per switch position, such as ### Seq (SW2 Up), with that mode\'s controls under it',onclick:fillModes})));
+    el('button',{type:'button',className:'tight',textContent:'Fill the modes from the README',title:'Needs a heading per switch position, such as ### Seq (SW2 Up)',onclick:fillModes})));
 
   for(const g of GROUPS){
     section(g.title,g.hint);
@@ -674,7 +674,7 @@ function buildStyle(){
     const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
     path.addEventListener('input',ok);
     form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place. The library reads it from there.`}),
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}),
       el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpName(),onclick:downloadFaceplate})));
   }
   if(doc.faceplate) fpPlacement(fpStyle(), patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); }, ()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); });
@@ -1152,7 +1152,7 @@ function howTo(k){
     'STEPS','',
     '1. README.md: a README for your repository (intro, control map, install and build).',
     '   Check the install and build steps, and fill in what is marked TODO.',
-    '   Already have a README? Keep yours and copy in the parts you want, e.g. the control map:',
+    '   If you already have a README, keep it and copy in the parts you want, e.g. the control map:',
     `     ![${name}: what each control does](${k.img})`,
     '   That path counts from the root of the repository, so the README showing it has to be at the root too.','',
     '2. Commit and push to your default branch (usually main). The library and the designer read the',
@@ -1253,9 +1253,9 @@ function pagesMD(k){
     '3. On GitHub, open the repository\'s **Settings › Pages**. Under **Build and deployment**, set **Source** to **Deploy from a branch**, pick your default branch (usually `main`) and the folder **/docs**, and click **Save**.',
     `4. After a minute or two the page is live at ${link}. The **Actions** tab shows it being published (pages build and deployment).`,
     '5. Link to it from your README, so people find it.','',
-    '## Good to know','',
+    '## Notes','',
     '- **Try it first.** Open a terminal in this folder, run `python -m http.server` and go to [http://localhost:8000](http://localhost:8000). Opened as a file it doesn\'t work. On your own computer the page shows the copy of the label file beside it, so you can try changes before you push them.',
-    `- **Already have a Pages site,** or a \`docs\` folder for something else? Put this folder in a subfolder of what Pages serves, e.g. \`docs/play/\`. Every path in it is relative, so it then lives at \`${url}play/\`.`,
+    `- **Existing Pages site or \`docs\` folder:** put this folder in a subfolder of what Pages serves, e.g. \`docs/play/\`. Every path in it is relative, so it then lives at \`${url}play/\`.`,
     '- **Play** needs an `emulator` block with `"embed": "allowed"` in your label file (Browser build, in the designer). The build loads from your repository\'s `simple-touch-web` branch or your Pages site, and its sha256 has to match.',
     `- **Codeberg:** Codeberg Pages serves a branch named \`pages\`. Push this folder's contents to the root of that branch and the page is at \`${k.codeberg&&k.url? k.url : 'https://<you>.codeberg.page/<repository>/'}\`.`,
     `- \`${LABEL_FILE}\` in this folder is a copy, for trying things out and for when the repository can't be read. The one at the root of the repository is the one that counts.`,
