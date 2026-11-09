@@ -134,9 +134,10 @@ const DESIGN_DEFAULT = {
   boxOpacity:1,          // label box fill, 0 = no box
   leaderW:2.5,           // desktop leader lines, panel units (the dot at the control grows with it)
   fx:'none', fxColor:'#000000', fxSize:6,   // label effect: none | shadow | glow
+  caps:false,            // the labels on the drawing in capitals; what was typed stays as typed
   themes: THEME_DEFAULT,
 };
-const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW'];
+const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW','caps'];
 const cloneDesign = d => structuredClone(d);
 /* Before version 2 the themes were dark (now 'panel'), light (now 'print') and gold */
 const OLD_THEME = { dark:'panel', light:'print' };
@@ -167,7 +168,7 @@ let design = cloneDesign(DESIGN_DEFAULT);
 let part = 'main', curPart = 'main', bw = false;
 let soloMod = null;   // while playing: the modifier held or tapped; the main view then shows what it does
 function applyDesign(d=design){
-  for(const k of ['size1','size2','padX','padY','radius','gap','weight']) T[k]=d[k];
+  for(const k of ['size1','size2','padX','padY','radius','gap','weight','caps']) T[k]=d[k];
   T.size3 = d.size3 || Math.round(T.size2*0.72);   // reference captions: their own size, or line 2's
   T.lh1 = Math.round(T.size1*1.19); T.lh2 = Math.round(T.size2*1.18); T.lh3 = Math.round(T.size3*1.25);
 }
@@ -188,7 +189,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -203,6 +204,7 @@ function normalise(d){
   s.emulator = emulatorOf(d.emulator, (d.firmware||{}).repo);
   s.modes = cleanModes(d.modes);
   s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
+  s.oled = oledOf(d.oled);
   s.combos = Array.isArray(d.combos)? [...new Set(d.combos.filter(comboOk))] : [];
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
@@ -240,6 +242,7 @@ function safeDesign(d){
   const def=cloneDesign(DESIGN_DEFAULT), out=mergeDesign(d);
   const ok=(k,v,dv)=> SAFE_WORD[k]? SAFE_WORD[k].includes(v)
     : k==='size3'? v===null || (typeof v==='number' && Number.isFinite(v) && v>0 && v<=200)
+    : typeof dv==='boolean'? typeof v==='boolean'
     : typeof dv==='number'? typeof v==='number' && Number.isFinite(v) && Math.abs(v)<=1000
     : typeof v==='string' && SAFE_COLOUR.test(v.trim());
   for(const k of DESIGN_KEYS) if(!ok(k,out[k],def[k])) out[k]=def[k];
@@ -292,8 +295,25 @@ function cleanData(){
   if(Object.keys(doc.offsets.phone).length||Object.keys(doc.offsets.desktop).length) out.offsets=doc.offsets;
   if(doc.emulator) out.emulator=doc.emulator;
   if(doc.device) out.device=doc.device;
+  if(doc.oled) out.oled=doc.oled;
   const md=cleanModes(doc.modes); if(md) out.modes=md;
   return out;
+}
+/* The optional OLED on the drawing, in panel units: {x, y, w, rows}, the designer's placement (doc.oled), else the
+   top plate's free corner. A display of 128 pixels by rows (32 or 64), so the width sets the height. */
+const OLED_HOME = {x:270, y:330, w:240, rows:64};
+const oledRowsOf = device => { const r=device?.live?.oled?.rows; return r===32||r===64? r : 0; };
+function oledOf(o){
+  if(!o || typeof o!=='object') return null;
+  const num=(v,lo,hi)=> typeof v==='number' && Number.isFinite(v)? Math.round(Math.min(hi,Math.max(lo,v))) : null;
+  const rows= o.rows===32? 32 : 64, w=num(o.w,60,800); if(w===null) return null;
+  const x=num(o.x,0,ARTBOARD.w-w), y=num(o.y,0,ARTBOARD.h-w*rows/128);
+  return x===null||y===null? null : {x,y,w,rows};
+}
+/* where it is drawn for a display of that many rows (0: as placed); another height keeps the same middle */
+function oledBox(rows){
+  const o=doc.oled||OLED_HOME, h=o.w*(rows||o.rows)/128;
+  return {x:o.x, y:o.y+(o.w*o.rows/128-h)/2, w:o.w, h};
 }
 /* Modes: a switch whose positions change what the controls do, e.g. a playmode switch.
    {switch:'S07_S08', list:[{pos:'up', name:'Seq', labels:{S31:{main:'Tempo'}}}, …]}
@@ -424,6 +444,7 @@ function slotLines(s, mode='phone'){
   try{
     let L=slotLines0(s,mode);
     if(curPart==='main') L=withRef(s,L,mode);
+    for(const l of L) l.text=capsT(l.text);
     const mine=modFor(s.id);
     if(L.length && mine){ L.modBox=modColor(mine); L.modIdx=modIndex(mine); }
     if(pad) L.pal={box:T.box, text:T.text};
@@ -439,7 +460,7 @@ function withRef(s,L,mode){
   if(!L.length){
     if(V.refMode==='caption') return L;
     const R=[];
-    if(mode==='desktop' && r[1] && measure(r[0]+' '+r[1],T.size1)<=DESK.maxLine) R.push({text:r[0]+' · '+r[1],color:T.text,size:1});
+    if(mode==='desktop' && r[1] && measure(capsT(r[0]+' '+r[1]),T.size1)<=DESK.maxLine) R.push({text:r[0]+' · '+r[1],color:T.text,size:1});
     else { R.push({text:r[0],color:T.text,size:1}); if(r[1]) R.push({text:r[1],color:T.ref,size:2}); }
     return R;
   }
@@ -470,13 +491,13 @@ function slotLines0(s, mode='phone'){
     L.split= splitOn() && mks.length>1;
     return L;
   }
-  if(mode==='desktop' && a && b && measure(a+' '+b,T.size1)<=DESK.maxLine) add(a+' '+b,own,1);
+  if(mode==='desktop' && a && b && measure(capsT(a+' '+b),T.size1)<=DESK.maxLine) add(a+' '+b,own,1);
   else { add(a,own,1); add(b,own,2); }
   if(curPart==='main' || !MODDABLE.includes(s.kind)) return L;
   for(const m of mods()) if(!inMod(m,s.id) && has(s.id,'m_'+m)) add(val(s.id,'m_'+m),modColor(m),2);
   return L;
 }
-const customLines = c => { const L=[]; if((c.text||'').trim()) L.push({text:c.text.trim(),color:T.text,size:1}); if((c.sub||'').trim()) L.push({text:c.sub.trim(),color:T.text,size:2}); return L; };
+const customLines = c => { const L=[]; if((c.text||'').trim()) L.push({text:capsT(c.text.trim()),color:T.text,size:1}); if((c.sub||'').trim()) L.push({text:capsT(c.sub.trim()),color:T.text,size:2}); return L; };
 const boxStyle = s => { const m=s && modFor(s.id); return m ? {stroke:modColor(m),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{}); };
 const usesMod = m => SLOTS.some(s=>!inMod(m,s.id) && has(s.id,'m_'+m));
 const hasSecondary = () => mods().some(usesMod);
@@ -501,6 +522,7 @@ function bwRect(x,y,w,h,mod,idx){
    MEASURE + BOX
    ============================================================ */
 const ctx=document.createElement('canvas').getContext('2d');
+const capsT=t=> T.caps? t.toUpperCase() : t;
 const measure=(t,size)=>{ ctx.font=`${T.weight} ${size}px ${T.font}`; return ctx.measureText(t).width; };
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const escAttr=t=>esc(t).replace(/"/g,'&quot;');
@@ -519,7 +541,7 @@ function boxSize(lines){
   if(cap) w=Math.max(w,measure(capText(lines),cap.size)-2*T.padX);
   return {w:Math.ceil(w)+2*T.padX, h:h+2*T.padY+(cap?cap.h:0)};
 }
-const capText=lines=> isToggle(mods()[lines.modIdx])? 'Tap' : 'Hold';
+const capText=lines=> capsT(isToggle(mods()[lines.modIdx])? 'Tap' : 'Hold');
 const modStyle=()=>design.modStyle||'outline';
 const holdCap=lines=> lines.modBox && !lines.split && !bwSec() && modStyle()==='hold' ? {size:T.size2*0.8, h:T.size2*1.15} : null;
 function onColour(hex){ const m=/^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return '#ffffff';
@@ -593,7 +615,7 @@ function legendSVG(left, top, maxW){
   if(curPart==='main') return {svg:'',text:'',h:0};
   const groups=[];
   const txt=t=>({t, w:measure(t,T.size1)});
-  const box=(text,color,style,mb,mi)=>{ const l=[{text,color,size:1}]; if(mb) l.modBox=mb; if(mi!==undefined) l.mods=[mi]; return {box:l, ...boxSize(l), style}; };
+  const box=(text,color,style,mb,mi)=>{ const l=[{text:capsT(text),color,size:1}]; if(mb) l.modBox=mb; if(mi!==undefined) l.mods=[mi]; return {box:l, ...boxSize(l), style}; };
   const sp=T.size1*0.35, gGap=T.size1*2, gw=g=>g.reduce((s,p)=>s+p.w,0)+sp*(g.length-1);
   for(const m of mods()){
     if(!usesMod(m)) continue;

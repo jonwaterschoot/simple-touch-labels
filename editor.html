@@ -59,7 +59,7 @@
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
     <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg" data-why="Mark a control as a modifier to get a secondary view"></div><div class="seg" id="arrangeSeg" data-why="Shown when Main and Secondary are both on"></div><div class="seg" id="bwSeg" data-why="Black and white applies to the secondary view"></div></div>
-    <div class="grp"><span class="cap">Font</span><select id="fontSel"></select><button type="button" id="fontCustom" class="tight">Custom…</button></div>
+    <div class="grp"><span class="cap">Font</span><select id="fontSel"></select><button type="button" id="fontCustom" class="tight">Custom…</button><div class="seg" id="capsSeg" title="The labels on the drawing in capitals. What you typed stays as typed, also in the control table."></div></div>
   </div>
 
   <main class="grid">
@@ -211,6 +211,7 @@ function seg(el, opts, isOn, pick){
 function syncBars(){
   const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second, off=(id,d)=>{ $(id).querySelectorAll('button').forEach(b=>b.disabled=d); $(id).title= d? $(id).dataset.why||'' : ''; };
   off('refModeSeg',!V.ref); off('partSeg',!sec); off('bwSeg',!sec); off('arrangeSeg',!both);
+  $('capsSeg').firstChild?.setAttribute('aria-pressed',String(!!design.caps));   // here, as undo and Reset all style change it too
 }
 function buildBars(){
   seg($('startSeg'), Object.entries(EXAMPLES).map(([k,e])=>[k,e.label]), v=>UI.start===v, startFrom);
@@ -225,6 +226,7 @@ function buildBars(){
     const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; buildBars(); render(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; buildBars(); render(); });
   seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; buildBars(); render(); });
+  seg($('capsSeg'), [['caps','ALL CAPS']], ()=>design.caps, ()=>{ design.caps=!design.caps; applyDesign(); render(); });
   const fs=$('fontSel'), list=FONTS.includes(UI.font)? FONTS : [...FONTS,UI.font];
   fs.innerHTML=list.map(f=>`<option value="${escAttr(f)}">${esc(f)}</option>`).join('')+'<option value="__custom__" data-skip>Custom…</option>';
   if(!fs.parentElement.classList.contains('stepper')){ const holder=fs.parentElement, next=fs.nextSibling; holder.insertBefore(stepper(fs,{wheel:false}), next); }
@@ -611,6 +613,19 @@ function buildStyle(){
     el('button',{type:'button',className:'tight',textContent:'Download SVG template (layered)',onclick:downloadTemplateSVG}),
     el('button',{type:'button',className:'tight',textContent:'Download PNG template (2160 × 3196)',onclick:()=>downloadTemplatePNG().catch(err=>alert('The PNG template could not be made: '+err.message))})));
 
+  section('OLED','Where the OLED sits on the drawing while the firmware plays or the board is connected. Drag it on the preview, and its orange corner to resize. It stays out of the manual and the images.');
+  if(!oledUsed()) form.append(el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Show the OLED on the preview',onclick:()=>{ setOled({}); buildForm(); }})));
+  else {
+    const g=el('div',{className:'dgrid'}), dev=oledRowsOf(doc.device), size=el('div',{className:'seg'});
+    seg(size,[[32,'128 × 32'],[64,'128 × 64']],v=>oledEditRows()===v,v=>{ const b=oledBox(v); doc.oled=oledOf({x:b.x,y:b.y,w:b.w,rows:v}); buildForm(); render(); });
+    g.append(el('div',{className:'dc'},el('span',{textContent:'Display'}),dev? el('span',{textContent:`128 × ${dev}, from the label file's device block`}) : size,el('span')));
+    g.append(slider('Move left / right',0,ARTBOARD.w,1,()=>oledPlace().x,v=>setOled({x:v})));
+    g.append(slider('Move up / down',0,Math.floor(ARTBOARD.h),1,()=>oledPlace().y,v=>setOled({y:v})));
+    g.append(slider('Width',60,800,1,()=>oledPlace().w,v=>setOled({w:v})));
+    form.append(g, el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset OLED',onclick:()=>{ doc.oled=null; buildForm(); render(); }})));
+    if(!dev) form.append(el('p',{className:'hint',textContent:'While playing, the display the firmware reports decides the height, around the same middle.'}));
+  }
+
   section('Modifier colours',`Modifier 1 to 4 in the ${themeName} theme, phone and desktop.`);
   const mrow=el('div',{className:'mcolors'});
   for(let i=1;i<=MOD_MAX;i++){
@@ -696,6 +711,7 @@ function render(){
   const draw=pt=>svgOf(build(false,V.theme,pt));
   stage.innerHTML = both? `<div class="duo${UI.arrange==='stack'?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
   curPart=part;
+  drawOledFrame();
   let n=0;
   form.querySelectorAll('[data-msg]').forEach(m=>{ const w=warns[m.dataset.msg]; m.textContent= w? 'Still overlaps on the phone layout. Shorten it or use line 2.' : ''; if(w) n++; });
   $('warnSum').textContent = n? `${n} label${n>1?'s':''} still overlap on phone` : '';
@@ -703,6 +719,30 @@ function render(){
   const tp=$('tablePrev'); if(tp) tp.innerHTML=tableHTML(UI.tableMode==='blank');
 }
 
+/* The OLED on the preview only, never in an export (doc.oled, core.js). Under the labels, as while playing. */
+const oledUsed=()=>!!(doc.oled || doc.emulator?.oled || oledRowsOf(doc.device));
+const oledEditRows=()=>oledRowsOf(doc.device)||doc.oled?.rows||64;
+const oledPlace=()=>{ const rows=oledEditRows(), b=oledBox(rows); return {x:b.x, y:b.y, w:b.w, rows}; };
+function setOled(patch){ doc.oled=oledOf({...oledPlace(),...patch}); render(); }
+function drawOledFrame(){
+  if(!oledUsed()) return;
+  const rows=oledEditRows(), o=oledBox(rows), size=Math.min(o.h*0.42,o.w/8).toFixed(1), grip=32;
+  const html=`<g class="oledframe" data-oled="move"><title>Drag to move the OLED</title><rect class="bezel" x="${o.x-10}" y="${o.y-10}" width="${o.w+20}" height="${o.h+20}" rx="8"/><rect class="screen" x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}"/>`
+    +`<text x="${o.x+o.w/2}" y="${o.y+o.h/2}" font-size="${size}" text-anchor="middle" dominant-baseline="central">OLED 128 × ${rows}</text>`
+    +`<rect class="grip" data-oled="size" x="${o.x+o.w+18-grip}" y="${o.y+o.h+18-grip}" width="${grip}" height="${grip}" rx="4"><title>Drag to resize the OLED</title></rect></g>`;
+  for(const svg of stage.querySelectorAll('svg')){
+    if(svg.parentElement.closest('svg')) continue;
+    const at=svg.querySelector(':scope > g[clip-path]');
+    if(at) at.insertAdjacentHTML('afterend',html); else svg.insertAdjacentHTML('beforeend',html);
+  }
+}
+function dragOled(e, what, svg){
+  e.preventDefault();
+  const scale=svg.getScreenCTM().a, x0=e.clientX, y0=e.clientY, base=oledPlace();
+  const move=ev=>{ const dx=(ev.clientX-x0)/scale, dy=(ev.clientY-y0)/scale; setOled(what==='size'? {w:base.w+dx} : {x:base.x+dx, y:base.y+dy}); };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); if(UI.tab==='style') buildForm(); };
+  addEventListener('pointermove',move); addEventListener('pointerup',up);
+}
 /* Click a label to jump to its row; drag it to nudge it (kept per layout) */
 function focusRow(key){
   V.focusId=SLOT[key]? key : null; render();
@@ -711,6 +751,7 @@ function focusRow(key){
 }
 stage.addEventListener('pointerdown',e=>{
   const svg=e.target.closest('svg'); if(!svg||e.button) return;
+  const oled=e.target.closest('[data-oled]'); if(oled){ dragOled(e, oled.dataset.oled, svg); return; }
   const g=e.target.closest('[data-key]'), scale=svg.getScreenCTM().a, x0=e.clientX, y0=e.clientY;
   if(!g){
     const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const p=pt.matrixTransform(svg.getScreenCTM().inverse());

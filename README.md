@@ -54,6 +54,8 @@ The designer adds:
 - **Browser build**: **Find builds in the repository** lists the builds on the firmware's `simple-touch-web` branch (newest first, with a test bench link); **Use this build** approves one. Or paste the `emulator` block from a [simple-touch-web](https://github.com/jonwaterschoot/simple-touch-web#publishing-a-build) build's run summary to approve that build. `"embed": "allowed"` lets the library play it, `"link-only"` with a `"url"` links to the author's own page, and `"oled": true` shows the OLED. The build must come from the firmware's repository (raw files or its owner's Pages), and its `sha256` pins it.
 - **Colours**: each colour opens a picker with the colour it had before (click to go back), the colours you used recently, a hex field and the system picker.
 - **Preview in library**: opens the library on your manual as it will look there, in a tab that follows your edits.
+- **ALL CAPS**: next to the font, shows every label on the drawing in capitals. What you typed stays as typed, also in the control table, and the setting is saved with the design.
+- **OLED**: under Style, or dragged on the preview: where the display sits on the drawing and how wide it is, saved as `oled` in the label file. Its height follows the display, 128 × 32 or 128 × 64.
 - **Undo**: Ctrl+Z undoes the last change (labels, style, font), Ctrl+Shift+Z or Ctrl+Y redoes it.
 - **Fonts**: any Google Font by name, or a CSS URL (Adobe Fonts projects work too).
 - **Files**: save and open JSON (Fabio Bartali's `simple-touch-manual/3` format, plus extras), copy a compressed share link, download a standalone manual page (phone and desktop layouts, screen and print versions).
