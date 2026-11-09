@@ -244,7 +244,7 @@ function update(){
   $('labelsInfo').hidden=!byCreator;
   $('labelsInfo').onclick=()=>openInfo('About these labels', noticeHTML(editHref));
   $('side').innerHTML= `<div id="sideTable">${libTable()}</div>`+`<div class="sources"><span class="cap">Sources</span><div>${src.map(([h,t])=>`<a href="${escAttr(h)}" target="_blank">${esc(t)}</a>`).join('')}</div></div>`
-    +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch Plugdata patch"></figure>':'');
+    +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch_template.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch_template Plugdata patch"></figure>':'');
   Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
   readmeSection(repo);
