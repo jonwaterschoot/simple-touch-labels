@@ -34,9 +34,8 @@
   </header>
 
   <div class="bar">
-    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
-    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
-    <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div><div class="seg" id="bwSeg"></div></div>
+    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div><button type="button" id="themeMore" class="tight" hidden>Other themes</button></div>
+    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
     <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
@@ -62,7 +61,7 @@
 const LIBRARY='https://jonwaterschoot.github.io/simple-touch-labels/';
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'', refMode:'empty', focusId:null, mode:''};
-const UI={theme:'panel', libTheme:'panel', arrange:'side', partsOn:{main:true,second:true}, bwPreview:false, repo:'', from:''};
+const UI={theme:'panel', libTheme:'panel', allThemes:false, arrange:'side', repo:'', from:''};
 const $=id=>document.getElementById(id);
 let ready=false;
 
@@ -71,20 +70,20 @@ function seg(el, opts, isOn, pick){
   for(const [v,l] of opts){ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.setAttribute('aria-pressed',String(!!isOn(v))); b.onclick=()=>pick(v); el.append(b); }
 }
 function buildBars(){
-  seg($('themeSeg'), [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
-    v=>{ UI.theme=v; if(v!=='creator') UI.libTheme=v; update(); });
+  // a creator's look: that one alone, with the others one click away
+  const lookOnly=doc.look && UI.theme==='creator' && !UI.allThemes;
+  $('themeMore').hidden=!lookOnly;
+  seg($('themeSeg'), lookOnly? [['creator','Creator']] : [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
+    v=>{ UI.theme=v; if(v==='creator') UI.allThemes=false; else UI.libTheme=v; update(); });
   seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; update(); });
-  seg($('partSeg'), [['main','Main'],['second','Secondary']], v=>UI.partsOn[v], v=>{
-    const o=v==='main'?'second':'main'; UI.partsOn[v]=!UI.partsOn[v]; if(!UI.partsOn[v]&&!UI.partsOn[o]) UI.partsOn[o]=true; update(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
-  seg($('bwSeg'), [['bw','B&W']], ()=>UI.bwPreview, ()=>{ UI.bwPreview=!UI.bwPreview; update(); });
   // modes (doc.modes, core.js): all of them (the print set) or one; while playing, the lever picks
   const ml=modeList(); $('modeGrp').hidden=!ml.length;
   if(ml.length){ seg($('modeSeg'), [['','All modes'],...ml.map(m=>[m.pos,m.name])], v=>(curMode()?.pos||'')===v, v=>{ V.mode=v; update(); });
     $('modeSeg').querySelectorAll('button').forEach((b,i)=>{ b.title= i? `${lab(SLOT[doc.modes.switch])} ${ml[i-1].pos}` : 'The labels for every mode, as printed'; b.disabled=Play.on; }); }
-  const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
-  $('partGrp').hidden=!sec;
-  for(const [id,d] of [['partSeg',!sec],['bwSeg',!sec],['arrangeSeg',!both]]) $(id).querySelectorAll('button').forEach(b=>b.disabled=d);
+  // only with a secondary view; while playing there is one drawing
+  $('arrangeSeg').hidden=!hasSecondary();
+  $('arrangeSeg').querySelectorAll('button').forEach(b=>b.disabled=Play.on||Play.stage);
 }
 /* the mode switch moved while playing (play.js): the labels on the drawing are drawn again there; the toolbar and table here */
 function onModeChange(){ buildBars(); const t=$('sideTable'); if(t){ t.innerHTML=tableHTML(false); Play.table(); } }
@@ -129,9 +128,8 @@ function update(){
   document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
   // while playing or full screen, one drawing: the one the controls are on
-  const fw=doc.firmware, sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second&&!Play.on&&!Play.stage;
-  part= !sec? 'main' : both? 'main' : (UI.partsOn.main? 'main' : 'second');
-  bw= sec && UI.bwPreview;
+  const fw=doc.firmware, both=hasSecondary()&&!Play.on&&!Play.stage;
+  part='main'; bw=false;
   const build=buildFor(V.layout), draw=pt=>svgOf(build(true,V.theme,pt));
   const fig=$('fig'), stack=both&&UI.arrange==='stack'; fig.className= V.layout==='desktop'||(both&&!stack)? 'wide' : ''; sizeFig();
   fig.innerHTML= both? `<div class="duo${stack?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
@@ -161,6 +159,7 @@ $('libSplit').addEventListener('pointerdown',e=>{
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 });
 $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(figKey()); }catch(e){} sizeFig(); });
+$('themeMore').onclick=()=>{ UI.allThemes=true; buildBars(); };
 
 (async()=>{
   const q=new URLSearchParams(location.search);

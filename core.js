@@ -1841,3 +1841,11 @@ ${(fw.notes||'').trim()?`<section class="md">${md2html(fw.notes)}</section>`:''}
 </body></html>`;
   return html;
 }
+
+/* A short text behind an i button, in a dialog of its own. html is trusted: escape what comes from a repository. */
+function openInfo(title, html){
+  const d=document.createElement('dialog');
+  d.innerHTML=`<form method="dialog" class="modal"><div class="mhead"><span>${esc(title)}</span><button class="tight">Close</button></div><div class="infobody">${html}</div></form>`;
+  d.onclose=()=>d.remove();
+  document.body.append(d); d.showModal();
+}

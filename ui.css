@@ -30,6 +30,14 @@ button[aria-pressed="true"] { background:var(--active); color:#fff; }
 button.primary { background:var(--active); border-color:var(--active); color:#fff; font-weight:700; font-size:14px; padding:8px 14px; }
 button.outline { border-color:var(--active); font-weight:700; font-size:14px; padding:8px 14px; }
 button.tight { padding:4px 10px; font-size:12px; }
+button.info { width:28px; height:28px; padding:0; border-radius:50%; text-align:center; font:700 15px/1 Georgia, serif; flex:none; }
+.intro h1 .info { margin-left:12px; vertical-align:middle; }
+.play .pctl button.info { min-width:0; }
+.infobody { font-size:14px; line-height:1.5; }
+.infobody ul { margin:0 0 10px; padding-left:20px; }
+.infobody li { margin-bottom:4px; }
+.infobody p { margin:0 0 6px; }
+.infobody code { font:13px ui-monospace,Consolas,monospace; }
 input, textarea, select { font:500 13px var(--font-body); color:var(--text); background:var(--field); border:1px solid var(--hair); border-radius:0; padding:6px 8px; min-width:0; }
 select { border:2px solid var(--text); background:var(--page); padding:5px 8px; }
 input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible { outline:2px solid var(--active); outline-offset:2px; }

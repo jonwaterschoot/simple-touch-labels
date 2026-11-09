@@ -215,10 +215,14 @@ function syncBars(){
   const sec=hasSecondary(), both=sec&&UI.partsOn.main&&UI.partsOn.second, off=(id,d)=>{ $(id).querySelectorAll('button').forEach(b=>b.disabled=d); $(id).title= d? $(id).dataset.why||'' : ''; };
   off('refModeSeg',!V.ref); off('partSeg',!sec); off('bwSeg',!sec); off('arrangeSeg',!both);
 }
+/* the reference names controls: in the toolbar and in the Style tab, so both are redrawn on a change */
+function fillRefSegs(setEl, modeEl){
+  seg(setEl, [['','Off'],...Object.entries(REF_SETS).map(([k,r])=>[k,r.label])], v=>(V.ref||'')===v, v=>{ V.ref=v; buildBars(); buildForm(); render(); });
+  seg(modeEl, [['both','Captions + empty controls'],['caption','Captions'],['empty','Empty controls']], v=>V.refMode===v, v=>{ V.refMode=v; buildBars(); buildForm(); render(); });
+}
 function buildBars(){
   seg($('startSeg'), Object.entries(EXAMPLES).map(([k,e])=>[k,e.label]), v=>UI.start===v, startFrom);
-  seg($('refSeg'), [['','Off'],...Object.entries(REF_SETS).map(([k,r])=>[k,r.label])], v=>(V.ref||'')===v, v=>{ V.ref=v; buildBars(); buildForm(); render(); });
-  seg($('refModeSeg'), [['both','Captions + empty controls'],['caption','Captions'],['empty','Empty controls']], v=>V.refMode===v, v=>{ V.refMode=v; buildBars(); render(); });
+  fillRefSegs($('refSeg'), $('refModeSeg'));
   seg($('tableSeg'), [['off','Off'],['filled','Filled'],['blank','Blank rows']], v=>UI.tableMode===v, v=>{ UI.tableMode=v;
     if(v!=='off' && !['table','all'].includes(UI.exWhat)) UI.exWhat= UI.exWhat==='notes'? 'all' : 'table';
     buildBars(); buildForm(); render(); });
@@ -706,7 +710,11 @@ function buildStyle(){
   }
 
   const nameSet=REF_SETS[V.ref];
-  section('Control names', nameSet? `The small ${nameSet.label} names of the controls, per layout: in the text labels, or on the drawing (a knob's name inside the knob). On the drawing, drag a name on the preview to place it by itself; Reset positions puts it back. The library shows the names that are on the drawing, in your look.` : 'Pick a set under Reference names at the top to show the small names of the controls.');
+  section('Control names', nameSet? `The small ${nameSet.label} names of the controls, per layout: in the text labels, or on the drawing (a knob's name inside the knob). On the drawing, drag a name on the preview to place it by itself; Reset positions puts it back. The library shows the names that are on the drawing, in your look.` : 'Pick a set under Reference names to show the small names of the controls.');
+  const refSet=el('div',{className:'seg'}), refMode=el('div',{className:'seg'});
+  fillRefSegs(refSet, refMode);
+  form.append(el('div',{className:'grp'}, el('span',{className:'cap',textContent:'Reference names'}), refSet));
+  if(nameSet) form.append(el('div',{className:'grp'}, el('span',{className:'cap',textContent:'Show'}), refMode));
   if(nameSet){
     const N=m=>design.names[m], g=el('div',{className:'dgrid'});
     g.append(inColumns());
