@@ -323,7 +323,7 @@ const GROUPS = [
   {title:'Knobs and faders', kinds:['knob','fader'], mods:true},
   {title:'Pads', kinds:['pad'], mods:true},
   {title:'Switches', hint:'Line 2 is a good place for the positions, e.g. "off / on / latch".', kinds:['switch'], mods:false},
-  {title:'Jacks and LED', kinds:['jack','led'], mods:false},
+  {title:'Jacks and LED', hint:'Type - in Line 1 of any control the firmware does not use. The main view then leaves out its label and its reference name.', kinds:['jack','led'], mods:false},
 ];
 /* in a mode, a label field holds the mode's own text; empty, the print set's shows through */
 function setPath(path,v){
@@ -332,7 +332,7 @@ function setPath(path,v){
   const o=m.labels[path[1]] ||= {};
   if(v.trim()) o[path[2]]=v; else { delete o[path[2]]; if(!Object.keys(o).length) delete m.labels[path[1]]; }
 }
-function getPath(path){ if(path[0]==='firmware') return doc.firmware[path[1]]||''; const m=curMode(); return m? ((m.labels[path[1]]||{})[path[2]]||'') : val(path[1],path[2]); }
+function getPath(path){ if(path[0]==='firmware') return doc.firmware[path[1]]||''; const m=curMode(); return ((m? m.labels : doc.labels)[path[1]]||{})[path[2]]||''; }
 function el(tag,props={},...kids){ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; }
 function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
   const m=path[0]==='labels' && curMode(), base=m? ((doc.labels[path[1]]||{})[path[2]]||'') : '';
@@ -494,7 +494,7 @@ function buildForm(){
     grid.style.gridTemplateColumns=`64px ${g.mods?'30px ':''}repeat(${cols.length-1},minmax(0,1fr)) minmax(0,1.4fr)`;   // the last is MIDI
     grid.append(el('div',{className:'colhead'}));
     if(g.mods) grid.append(el('div',{className:'colhead',textContent:'Mod',title:'Modifier'}));
-    cols.forEach(c=>{ const d=el('div',{className:'colhead',textContent:c.t}); if(c.mod) d.style.color=`var(--m${modIndex(c.mod)+1})`; grid.append(d); });
+    cols.forEach(c=>{ const d=el('div',{className:'colhead',textContent:c.t,title:c.k==='main'?'A - leaves the control out of the main view':''}); if(c.mod) d.style.color=`var(--m${modIndex(c.mod)+1})`; grid.append(d); });
     for(const s of SLOTS.filter(s=>g.kinds.includes(s.kind))){
       const row=el('div',{className:'rowline',id:'row-'+s.id}), r=refOf(s.id);
       const id=el('div',{className:'rowid',title:s.name||KIND_NAME[s.kind]},el('span',{textContent:lab(s)}));

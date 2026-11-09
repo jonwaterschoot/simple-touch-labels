@@ -65,6 +65,7 @@ Both pages:
 
 The designer adds:
 
+- **Hiding a control**: `-` in Line 1 leaves the control out of the main view: no label box, reference name or name on the drawing, and no row in the control table unless it has modifier text or MIDI. Its modifier text stays on the secondary view. A mode can set `-` or its own text for that mode. Saved as `"main":"-"`.
 - **Labels tab**: firmware name and description, line 1 / line 2 per control, modifier columns, a MIDI column (e.g. `CC 20`, `note 36 ch 10 · CC 31`, `CC 30 ≥ 64`: several separated by `·` or a comma, channels from 1, none = any channel; shown in the control table and saved as `midi` per label), reference names as captions or fill-ins, extra free labels, drag to nudge any label, Markdown notes, control table (filled or blank rows).
 - **Style tab**: faceplate upload (SVG or image; it is left out inside the knobs, faders and jacks, and is saved as a file at a path in your repository: an image as the image, e.g. `img/faceplate.jpg`, an SVG as `img/faceplate.svg`; its placement stays in the label file) with area (whole panel or top plate), blend mode, opacity, position and scale, plus a layered SVG template and a PNG template; the drawing and its colours per theme; modifier colours; label boxes (sizes, reference caption size, fill opacity, drop shadow or glow, separate pad colours); secondary-view style.
 - **Modes**: when a switch changes what the other controls do (a playmode switch), name its positions. Each becomes a button in the Mode row.

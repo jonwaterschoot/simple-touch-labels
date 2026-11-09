@@ -448,7 +448,11 @@ function buildHosted(wasm, repo){
 const safeHttps = url => /^https:\/\/[^\s"'<>]+$/.test(url||'') ? url : '';
 
 /* a label as drawn: the mode's own (V.mode), else the print set's */
-const val = (id,k) => { const o=curMode()?.labels[id], v=o&&o[k]; if(v&&v.trim()) return v.trim()==='-'? '' : v; return (doc.labels[id]||{})[k]||''; };
+/* "-" in a field means no text. A mode's own value wins over the print set's. */
+const rawVal = (id,k) => { const o=curMode()?.labels[id], v=o&&o[k]; return v&&v.trim()? v : (doc.labels[id]||{})[k]||''; };
+const val = (id,k) => { const v=rawVal(id,k); return v.trim()==='-'? '' : v; };
+/* Line 1 is "-": the control is left out of the main view, with its reference name and its name on the drawing */
+const isOff = id => rawVal(id,'main').trim()==='-';
 const has = (id,k) => val(id,k).trim()!=='';
 const slotName = id => has(id,'main')? val(id,'main').trim() : (SLOT[id]?lab(SLOT[id]):id);
 
@@ -499,7 +503,7 @@ const fillAttr=(lines,col)=>`fill="${col||(lines&&lines.pal?lines.pal.box:T.box)
 function withRef(s,L,mode){
   const r=refOf(s.id); if(!r || namesOn(mode)) return L;
   if(!L.length){
-    if(V.refMode==='caption') return L;
+    if(V.refMode==='caption' || isOff(s.id)) return L;
     const R=[];
     if(mode==='desktop' && r[1] && measure(capsT(r[0]+' '+r[1]),T.size1)<=DESK.maxLine) R.push({text:r[0]+' · '+r[1],color:T.text,size:1});
     else { R.push({text:r[0],color:T.text,size:1}); if(r[1]) R.push({text:r[1],color:T.ref,size:2}); }
@@ -519,6 +523,7 @@ function slotLines0(s, mode='phone'){
     if(inMod(soloMod,s.id)){ add(a||slotName(s.id),modColor(soloMod),1); return L; }
     if(MODDABLE.includes(s.kind) && has(s.id,'m_'+soloMod)){ add(val(s.id,'m_'+soloMod),modColor(soloMod),1); return L; }
   }
+  if(curPart==='main' && isOff(s.id)) return L;
   // main view: a modifier with no function of its own (only its name, e.g. "P10") is left out
   if(curPart==='main' && isModPart(s.id) && (!a || a===lab(SLOT[s.id])) && !b) return L;
   if(curPart==='second'){
@@ -786,7 +791,7 @@ function nameSpot(s,mode,sz,box){
 function namesSVG(mode, boxOf){
   if(curPart!=='main' || !namesOn(mode)) return '';
   const n=design.names[mode], sz=T.size3, f=v=>v.toFixed(1);
-  return SLOTS.map(s=>{ const t=nameOf(s.id); if(!t) return '';
+  return SLOTS.map(s=>{ const t=nameOf(s.id); if(!t || isOff(s.id)) return '';
     const p=nameSpot(s,mode,sz,boxOf&&boxOf(s.id)), d=userOffset(mode,'n:'+s.id)||{x:0,y:0}, cx=p.x+n.x+d.x, cy=p.y+n.y+d.y, r=rotOf(mode,'n:'+s.id);
     return boxG('n:'+s.id,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}" text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
 }
@@ -794,7 +799,7 @@ function namesSVG(mode, boxOf){
 /* The faceplate labels (doc.fpLabels): text on the panel itself, like print on the hardware. It follows the print set,
    because a faceplate does not change with a mode. Above the knobs, below the faders, where the label boxes leave room. */
 const fplOn=mode=>{ const q=doc.fpLabels; return q && q.on && q[mode].show!=='off'? q[mode].show : ''; };
-const fplText=id=>{ const own=doc.fpLabels?.text[id]; return arrows(own!=null? (own.trim()==='-'? '' : own) : ((doc.labels[id]||{}).main||'')); };
+const fplText=id=>{ const t=doc.fpLabels?.text[id] ?? (doc.labels[id]||{}).main ?? ''; return t.trim()==='-'? '' : arrows(t); };
 /* 'instead': the faceplate says it, so the box goes. Not while a modifier is in use or a mode has its own text. */
 const fplHidesBox=(mode,id)=> curPart==='main' && fplOn(mode)==='instead' && !soloMod && !!fplText(id) && !curMode()?.labels[id];
 function fplSpot(s,mode,sz){
@@ -1339,7 +1344,7 @@ function tableHTML(blank){
     const s=SLOT[id], r=refOf(id), mi=midi? val(id,'midi').trim() : '';
     const fn=blank? '' : [val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
     const mc=blank? '' : ms.map(m=>`<td>${inMod(m,id)?'<em>modifier</em>':esc(val(id,'m_'+m))}</td>`).join('');
-    if(!blank && !fn && !mc.replace(/<td><\/td>/g,'') && !r && !mi) return '';
+    if(!blank && !fn && !mc.replace(/<td><\/td>/g,'') && (!r || isOff(id)) && !mi) return '';
     return `<tr data-id="${id}"${blank?' class="blank"':''}><td><b>${esc(lab(s))}</b> <span class="k">${KIND_NAME[s.kind]}</span></td>${refLabel?`<td>${r?esc(r[0]):''}</td>`:''}<td>${esc(fn)}</td>${mc}${midi?`<td class="midi">${mi.split(/\s*·\s*/).map(x=>`<span>${esc(x)}</span>`).join(' · ')}</td>`:''}</tr>`;
   }).join('');
   return `<table class="ctab"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
