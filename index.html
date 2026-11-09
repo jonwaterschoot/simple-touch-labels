@@ -22,6 +22,9 @@
 <script src="core.js"></script>
 <script src="community.js"></script>
 <script src="play.js"></script>
+<script src="vendor/webdfu/dfu.js"></script>
+<script src="vendor/webdfu/dfuse.js"></script>
+<script src="flash.js"></script>
 </head>
 <body class="ui-dark">
 <div class="wrap">
@@ -33,7 +36,7 @@
     </div>
     <div class="export">
       <span class="cap">Export</span>
-      <div class="btns"><button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button><span class="status" id="busy"></span></div>
+      <div class="btns"><button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button><button type="button" id="flashBtn" title="Checks a firmware .bin and flashes it over USB" hidden>Upload to device…</button><span class="status" id="busy"></span></div>
     </div>
   </header>
 
@@ -231,6 +234,8 @@ function update(){
   $('title').textContent= pv? 'Preview · '+(fw.name||'your manual') : P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';
   $('intro').textContent= isFw()? [fw.description, fw.author&&'By '+fw.author+'.'].filter(Boolean).join(' ')||'Firmware for the Simple Touch.' : INTRO[UI.src];
   const repo= P? P.repo : pv? (REPO_RE.test(fw.repo||'')? fw.repo : '') : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
+  $('flashBtn').hidden=!isFw();
+  $('flashBtn').onclick=()=>openFlash({name:fw.name||'', repo});
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
   // labels by the creator need no warning: that note waits behind the i beside the name
   const byCreator=!!P && UI.read?.source==='file', nt=$('notice');

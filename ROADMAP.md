@@ -56,7 +56,7 @@ What can drift between the repos, and where it stands (2026-10-28):
 | TouchVink workflow | `@v1` | its approved build is from the first `v1`. The next push builds with `v1.2` (LED queue in the board), so expect a new hash; the approved one stays pinned and on the branch until it is re-approved |
 | Library `vendor/simple-touch-web/` | same as `web/` at `v1.2` | |
 | TouchPlaited approved build | none yet; newest is `8acf93d464ec` (v1.2) | `00503220fe68` (v1.1) has no LED blinks |
-| Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop` or `fpLabels`, until the web app is exported again |
+| Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop` or `fpLabels`, until the web app is exported again. They also have no **Upload to device…** until then |
 
 ## The shared standard
 
@@ -76,6 +76,12 @@ What can drift between the repos, and where it stands (2026-10-28):
 
 ## Library
 
+- [x] Added **Upload to device…** (2026-11-09): library and web app. Pulls the latest release's `.bin`, warns when the firmware needs the Daisy bootloader, checks the Daisy's mode and writes over WebUSB. No field in the label file: the `.bin` says where it runs.
+- [x] Deployed `proxy/` and set `FIRMWARE_PROXY` in `flash.js` (2026-11-09).
+- [ ] Test case for the web app exporter: export TouchSpore with **Upload to device…**, host it on its own GitHub Pages and flash from there. No web app has been exported and run on a firmware yet.
+- [x] Flashed internal firmwares from the dialog on hardware (2026-11-09): TouchFX and TouchSpore.
+- [x] Installed the Daisy bootloader from the dialog on hardware (2026-11-09).
+- [x] Flashed firmwares that need the Daisy bootloader from the dialog on hardware (2026-11-09).
 - [ ] `officials.json` (`id, label, repo, example, lab`) instead of the list in `core.js` (line 297). Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback.
 - [ ] Front page in two sections: Official, then Community. Each card: name, platform, and Play / Open in Synthux Lab ↗ / Manual.
 - [ ] Lab links (`embed: link-only` with a `url`) for the officials, once Synthux gives deep links and agrees.

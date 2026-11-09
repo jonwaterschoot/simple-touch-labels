@@ -1231,7 +1231,8 @@ $('kitZip').onclick=async()=>{
    GitHub Pages. Online it reads the repository's own simple-touch-labels.json, so a build approved
    later shows without a new export; the copy in the .zip is for trying it out and as a fallback.
    ============================================================ */
-const APP_FILES=['core.js','community.js','play.js','ui.css','styles.css','assets/panel_blank.svg','assets/favicon.svg','assets/apple-touch-icon.png',
+const APP_FILES=['core.js','community.js','play.js','flash.js','ui.css','styles.css','assets/panel_blank.svg','assets/favicon.svg','assets/apple-touch-icon.png',
+  'vendor/webdfu/dfu.js','vendor/webdfu/dfuse.js','vendor/webdfu/LICENSE','vendor/libdaisy/dsy_bootloader_v6_4-intdfu-2000ms.bin','vendor/libdaisy/LICENSE',
   'vendor/simple-touch-web/simple-touch.js','vendor/simple-touch-web/simple-touch-processor.js','vendor/simple-touch-web/oled.js','vendor/simple-touch-web/device-panel.js','vendor/simple-touch-web/device-link.js','vendor/simple-touch-web/README.md'];
 /* where GitHub or Codeberg Pages serves a repository */
 function pagesUrl(repo){
@@ -1276,8 +1277,8 @@ function appUpdate(){
   $('appWarn').replaceChildren(...(k.warn.length? [el('ul',{className:'dirmsg'},...k.warn.map(t=>el('li',{textContent:t})))] : []));
   $('appUrl').textContent= k.url? 'it will be at '+k.url : '';
   $('appSteps').innerHTML=md2html(pagesMD(k));
-  const files=[['index.html','the page'],['core.js, community.js, play.js, ui.css, styles.css','what it runs on, from Simple Touch labels'],['assets/','the panel drawing and icons'],
-    ['vendor/simple-touch-web/','the runtime that plays the browser build'],[LABEL_FILE,'a copy of your labels'], ...fpFiles().map(f=>[f.path,'your faceplate']),
+  const files=[['index.html','the page'],['core.js, community.js, play.js, flash.js, ui.css, styles.css','what it runs on, from Simple Touch labels'],['assets/','the panel drawing and icons'],
+    ['vendor/simple-touch-web/','the runtime that plays the browser build'],['vendor/webdfu/, vendor/libdaisy/','the code that writes firmware over USB, and the Daisy bootloader'],[LABEL_FILE,'a copy of your labels'], ...fpFiles().map(f=>[f.path,'your faceplate']),
     ['HOW-TO-PAGES.md','the steps above'],['LICENSE-simple-touch-labels.txt, .nojekyll','the license, and a note for GitHub Pages']];
   $('appFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
 }
