@@ -71,12 +71,15 @@ async function repoReadme(repo){
   for(const n of ['README.md','readme.md','Readme.md']){ const f=await repoFile(repo,n); if(f) return f; }
   return null;
 }
-/* relative links to Markdown files that look like the manual (Creek keeps its controls in daisy/README.md) */
+/* relative links to Markdown files that look like the manual, going by the link's text, its path and the words
+   before it in the same clause of the line (Creek: "**Firmware and manual**: [daisy/README.md](daisy/README.md)";
+   "Manual: [a.html](a.html) · Report: [REPORT.md](REPORT.md)" is two clauses, so the report doesn't count) */
 function manualLinks(md){
   const out=[];
-  for(const [,text,href] of md.matchAll(/\[([^\]]*)\]\(([^)\s]+)\)/g)){
+  for(const m of md.matchAll(/\[([^\]]*)\]\(([^)\s]+)\)/g)){
+    const [,text,href]=m, before=md.slice(md.lastIndexOf('\n',m.index)+1, m.index).split(/\s[·|]\s|[.;]\s/).pop();
     const path=href.split('#')[0];
-    if(!path || /^[a-z][a-z0-9+.-]*:|^\//i.test(path) || !/\.md$/i.test(path) || !/manual|controls|usage|guide/i.test(text+' '+path)) continue;
+    if(!path || /^[a-z][a-z0-9+.-]*:|^\//i.test(path) || !/\.md$/i.test(path) || !/manual|controls|usage|guide/i.test(text+' '+path+' '+before)) continue;
     let resolved; try{ resolved=decodeURIComponent(new URL(path,'https://r/').pathname.slice(1)); }catch(e){ continue; }
     if(!/^readme\.md$/i.test(resolved) && !out.includes(resolved)) out.push(resolved);
   }
