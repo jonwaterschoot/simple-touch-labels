@@ -445,7 +445,8 @@ const Play = (()=>{
   /* A modifier in use: the drawing's labels show what it does (soloMod, core.js). A hold modifier while held,
      else the toggle tapped last. Only the labels are drawn again, so the controls being held stay held. */
   function relabel(force){
-    const want= showing() && part==='main' ? (S.held.at(-1) || S.mode) : null;
+    const combo=mods().find(m=>isCombo(m) && modParts(m).every(p=>S.held.includes(p)));   // all of a combo's controls down beats any one of them
+    const want= showing() && part==='main' ? (combo || S.held.filter(m=>isMod(m) && !isToggle(m)).at(-1) || S.mode) : null;
     if(want===soloMod && !force) return;
     soloMod=want;
     const over=S.svg?.querySelector(':scope > g.over'); if(!over) return;
@@ -455,9 +456,9 @@ const Play = (()=>{
   /* a modifier pad pressed or let go; a toggle switches on release. Toggles are a set of modes (TouchVink's
      OSC / DIST), so tapping the one in use keeps it, unless it is the only toggle: then it switches off. */
   function modPad(id, down){
-    if(!isMod(id)) return;
-    if(isToggle(id)){ if(down) return; S.mode= S.mode===id && mods().filter(isToggle).length===1? null : id; }
-    else { S.held=S.held.filter(m=>m!==id); if(down) S.held.push(id); }
+    if(!isModPart(id)) return;
+    S.held=S.held.filter(m=>m!==id); if(down) S.held.push(id);   // a toggle too: it can be part of a combo
+    if(isToggle(id) && !down) S.mode= S.mode===id && mods().filter(isToggle).length===1? null : id;
     relabel();
   }
   /* ---------------------------------------------------------- hover and use, shown together: on the drawing the control's own

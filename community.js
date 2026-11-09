@@ -91,14 +91,14 @@ function labelFileDoc(d, repo){
   const labels={};
   for(const [id,o] of Object.entries(s.labels||{})){
     if(!SLOT[id] || !o || typeof o!=='object') continue;
-    const c={}; for(const [k,v] of Object.entries(o)) if(/^(main|main_2|m_[PS]\d\d|midi)$/.test(k)) c[k]=str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2);
+    const c={}; for(const [k,v] of Object.entries(o)) if(LABEL_KEY.test(k)) c[k]=str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2);
     labels[id]=c;
   }
   const fw={}; for(const [k,n] of Object.entries({name:LIMITS.name,author:LIMITS.author,version:LIMITS.version,description:LIMITS.desc,notes:LIMITS.notes,repo:200,authorUrl:200})) fw[k]=str(s.firmware[k],n);
   const num=v=>Number.isFinite(v)? v : 0;
   const offs=o=>Object.fromEntries(Object.entries(o||{}).filter(([k,v])=>v&&typeof v==='object').map(([k,v])=>[k,{x:num(v.x),y:num(v.y)}]));
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
-    modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
+    modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), combos:s.combos, modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y)})),
     offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo), modes:s.modes, device:s.device,
     // the creator's look, and their faceplate: a file in the repository (read by readRepoNow) or, in older files, the SVG itself
@@ -134,7 +134,7 @@ async function readRepoNow(p){
   if(!rd) return {doc:base, source:'none', files:[]};
   const {files, ex}=rd;
   if(!ex.found.length) return {doc:base, source:'none', files};
-  base.labels=ex.labels; base.modifiers=ex.modifiers; base.modes=modesFrom(ex);
+  base.labels=ex.labels; base.modifiers=ex.modifiers; base.combos=ex.combos; base.modes=modesFrom(ex);
   return {doc:base, source:'readme', files, found:ex.found, modes:ex.modes};
 }
 
@@ -234,6 +234,14 @@ function extractLabels(files){
         const a=tk[n], b=tk[n+1];
         if(!isPad(a.id) || a.id===b.id || !/^\s*\*{0,2}\s*\+\s*\*{0,2}\s*$/.test(raw.slice(a.j,b.i))) continue;
         let end=b.j; const c=tk[n+2];
+        // pads held together: "P10 + P11 + S36 – Volume", "P10 + P11 hold, move S36 | Volume", "**Volume** (P10 + P11 + S36)"
+        if(c && isPad(b.id) && c.id!==a.id && c.id!==b.id && /^\s*(?:\*{0,2}\s*\+\s*\*{0,2}|hold(?:ing)?\s*,?\s*(?:and\s+)?(?:move|turn|touch|tap|press)?)\s*$/i.test(raw.slice(b.j,c.i))){
+          const d=tk[n+3], tail=d && d.id===c.id && /^\s*\(\s*$/.test(raw.slice(c.j,d.i))? d.j+1 : c.j;   // "right fader (S37)"
+          let t= setOff(raw.slice(tail))? labelFrom(raw.slice(tail)) : '';
+          if(!t){ const m=raw.slice(0,a.i).match(/\*\*([^*]{1,40})\*\*\s*\(\s*(?:hold\s+)?$/i); if(m) t=labelFrom('**'+m[1]+'**'); }
+          put(c.id,'m_'+comboId([a.id,b.id]),t,raw.startsWith('|')? 1 : 2);
+          n++; continue;
+        }
         // "P0 + P10 / P11 | Root semitone down / up": two pairs, a name each
         if(c && isPad(b.id) && isPad(c.id) && c.id!==a.id && /^\s*\/\s*$/.test(raw.slice(b.j,c.i)) && !/^\s*\+/.test(raw.slice(c.j))){
           const [x,y]=twoNames(raw.slice(c.j)), tier=raw.startsWith('|')? 1 : 2;
@@ -285,7 +293,7 @@ function labelsOf(ex, mode){
     if(b.key==='main'){ const [l1,l2]=fitWords(b.text,LIMITS.line); o.main=l1; if(l2 && !NO_LINE2.includes(b.id)) o.main_2=fitWords(l2,LIMITS.line2)[0]; }
     else { o[b.key]=fitWords(b.text,LIMITS.line2)[0]; used.add(b.key.slice(2)); }
   }
-  return {labels, modifiers:ex.modSeen.filter(id=>SLOT[id] && used.has(id)).slice(0,MOD_MAX)};
+  return {labels, modifiers:ex.modSeen.filter(id=>SLOT[id] && used.has(id)).slice(0,MOD_MAX), combos:ex.modSeen.filter(id=>comboOk(id) && used.has(id))};
 }
 /* | S30 | **Main** — mix level |, | P03 | Press | **Saturation** burst |, | 22 | S31 **Scale** | */
 function tableRow(raw, put){

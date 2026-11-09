@@ -43,7 +43,7 @@ Both pages:
 
 - **Themes**: Light, Dark and Visualiser (the simplified drawing), Synthux panel, Synthux gold and Print (the Synthux drawing). Each theme can use either drawing.
 - **Layouts**: phone (label boxes on the controls) and desktop (side columns with leader lines). Labels lay themselves out; knob labels hang just below their knob.
-- **Main and secondary functions**: up to four modifiers, held (P10 + knob) or tapped (a mode switch, as in TouchVink), shown side by side or stacked, with a legend and a black-and-white print style.
+- **Main and secondary functions**: up to four modifiers, held (P10 + knob), tapped (a mode switch, as in TouchVink) or held together (P10 + P11 + knob, as in TouchSpore, saved as `combos`), shown side by side or stacked, with a legend and a black-and-white print style.
 - **Export**: a preview popup where you drag the drawing to the size you want (or fit it to A4 / Letter), set the margin, panel gap, table gap and text size with sliders, then download a PNG or PDF (panel, table and notes) or print it; the export minimap in the header shows what is included.
 
 The designer adds:

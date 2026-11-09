@@ -61,6 +61,8 @@ const SLOT = Object.fromEntries(SLOTS.map(s=>[s.id,s]));
 const lab = s => s.label||s.id;
 const NO_LINE2 = ['P00','P01','P02','IN','OUT'];   // pads: modifier text takes line 2; jacks: one line
 const MODDABLE = ['mod','knob','fader','pad'];
+const COMBO_MAX = 3;   // controls held together as one modifier
+const LABEL_KEY = /^(main|main_2|m_[PS]\d\d(\+[PS]\d\d){0,2}|midi)$/;   // what a label holds; m_P10+P11 is a combo's column
 const TABLE_ORDER = ['S30','S31','S32','S33','S34','S35','S36','S37','S09_S10','S07_S08','IN','OUT','LED','P00','P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11'];
 const KIND_NAME = {mod:'pad', knob:'knob', fader:'fader', pad:'pad', switch:'switch', jack:'jack', led:'LED'};
 
@@ -186,7 +188,7 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null}; }
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -201,6 +203,7 @@ function normalise(d){
   s.emulator = emulatorOf(d.emulator, (d.firmware||{}).repo);
   s.modes = cleanModes(d.modes);
   s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
+  s.combos = Array.isArray(d.combos)? [...new Set(d.combos.filter(comboOk))] : [];
   if(Array.isArray(d.modifiers)) s.modifiers=d.modifiers.slice(0,MOD_MAX);
   else {   // older files: P10 and P11 were the fixed modifiers
     s.modifiers=['P10','P11'];
@@ -278,7 +281,8 @@ function cleanData(){
   }
   // Fabio's five firmware fields are always written; this editor's extras (repo, authorUrl) only when filled in
   const fw={}; for(const [k,v] of Object.entries(doc.firmware)){ const t=String(v||'').trim(); if(t||FW_FIELDS.includes(k)) fw[k]=t; }
-  const out={format:'simple-touch-manual/3', firmware:fw, labels, modifiers:mods()};
+  const out={format:'simple-touch-manual/3', firmware:fw, labels, modifiers:mods().filter(m=>!isCombo(m))};
+  if(mods().some(isCombo)) out.combos=mods().filter(isCombo);   // next to modifiers, so readers of the format that don't know combos skip them
   if(doc.faceplate) out.faceplate=doc.faceplate;
   if(doc.faceplate && !doc.faceplateRef && doc.faceplateFile) out.faceplateFile=doc.faceplateFile;
   if(doc.faceplateRef) out.faceplateRef=doc.faceplateRef;
@@ -305,7 +309,7 @@ function cleanModes(m){
     const labels={};
     for(const [id,o] of Object.entries(x.labels||{})){
       if(!SLOT[id] || !o || typeof o!=='object') continue;
-      const c={}; for(const [k,v] of Object.entries(o)){ const t=/^(main|main_2|m_[PS]\d\d|midi)$/.test(k) && str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2); if(t) c[k]=t; }
+      const c={}; for(const [k,v] of Object.entries(o)){ const t=LABEL_KEY.test(k) && str(v, k==='main'? LIMITS.line : k==='midi'? LIMITS.midi : LIMITS.line2); if(t) c[k]=t; }
       if(Object.keys(c).length) labels[id]=c;
     }
     list.push({pos:x.pos, name:str(x.name,LIMITS.line), labels});
@@ -390,12 +394,29 @@ const slotName = id => has(id,'main')? val(id,'main').trim() : (SLOT[id]?lab(SLO
 /* ============================================================
    LINES PER SLOT  →  [{text,color,size}]   size 1 | 2 | 3 (reference caption)
    ============================================================ */
-const mods = () => (doc.modifiers||[]).filter(id=>SLOT[id]).slice(0,MOD_MAX);
+/* A modifier is one control ("P10") or a combo, controls held together ("P10+P11", doc.combos). A combo is a
+   modifier like any other: its own column (m_P10+P11), colour and legend line. Its controls need not be modifiers
+   themselves (in TouchSpore P10 and P11 alone are taps), and a control can be both. */
+const modParts = m => String(m).split('+');
+const isCombo = m => modParts(m).length>1;
+const comboOk = m => { const p=modParts(m); return typeof m==='string' && p.length>1 && p.length<=COMBO_MAX && new Set(p).size===p.length && p.every(id=>SLOT[id] && MODDABLE.includes(SLOT[id].kind)); };
+const comboId = ids => [...ids].sort((a,b)=>SLOTS.indexOf(SLOT[a])-SLOTS.indexOf(SLOT[b])).join('+');
+const mods = () => [...(doc.modifiers||[]).filter(id=>SLOT[id]), ...(doc.combos||[]).filter(comboOk)].slice(0,MOD_MAX);
 const modIndex = id => mods().indexOf(id);
 const modColor = id => T.mods[modIndex(id)] || T.text;
 const isMod = id => modIndex(id) >= 0;
+const inMod = (m,id) => modParts(m).includes(id);
+const isModPart = id => mods().some(m=>inMod(m,id));
+const modLab = m => modParts(m).map(p=>lab(SLOT[p])).join(' + ');     // P10 + P11
+const modName = m => modParts(m).map(slotName).join(' + ');           // what the controls are called
 /* A modifier is held by default; a 'toggle' modifier is tapped to switch the other controls into its mode */
 const isToggle = id => ((doc.modTypes||{})[id]==='toggle');
+/* the modifier a control is drawn as: the one in use while playing; in the secondary view its own, else a combo it is part of */
+const modFor = id => {
+  if(curPart==='main') return soloMod && inMod(soloMod,id)? soloMod : null;
+  if(isMod(id) && usesMod(id)) return id;
+  return mods().find(m=>isCombo(m) && inMod(m,id) && usesMod(m)) || (isMod(id)? id : null);
+};
 
 function slotLines(s, mode='phone'){
   const pad=T.padBox && (s.kind==='pad'||s.kind==='mod'), keep=[T.box,T.text];
@@ -403,7 +424,8 @@ function slotLines(s, mode='phone'){
   try{
     let L=slotLines0(s,mode);
     if(curPart==='main') L=withRef(s,L,mode);
-    if(L.length && isMod(s.id) && (curPart!=='main' || s.id===soloMod)){ L.modBox=modColor(s.id); L.modIdx=modIndex(s.id); }
+    const mine=modFor(s.id);
+    if(L.length && mine){ L.modBox=modColor(mine); L.modIdx=modIndex(mine); }
     if(pad) L.pal={box:T.box, text:T.text};
     return L;
   } finally { [T.box,T.text]=keep; }
@@ -428,21 +450,21 @@ function withRef(s,L,mode){
 const arrows=t=>t.trim().replace(/\s\+$/,' \u2191').replace(/\s[-\u2212\u2013]$/,' \u2193');
 function slotLines0(s, mode='phone'){
   const L=[]; const add=(text,color,n)=>{ text=arrows(text); if(text) L.push({text,color,size:n}); };
-  const own = isMod(s.id) && curPart!=='main' ? modColor(s.id) : T.text;
+  const mine = curPart!=='main' ? modFor(s.id) : null, own = mine ? modColor(mine) : T.text;
   const a=arrows(val(s.id,'main')), b=NO_LINE2.includes(s.id)?'':arrows(val(s.id,'main_2'));
   // main view with a modifier in use (Play): the modifier shows its name, the controls it changes what they do with it
   if(curPart==='main' && soloMod && isMod(soloMod)){
-    if(s.id===soloMod){ add(a||slotName(s.id),modColor(s.id),1); return L; }
+    if(inMod(soloMod,s.id)){ add(a||slotName(s.id),modColor(soloMod),1); return L; }
     if(MODDABLE.includes(s.kind) && has(s.id,'m_'+soloMod)){ add(val(s.id,'m_'+soloMod),modColor(soloMod),1); return L; }
   }
   // main view: a modifier with no function of its own (only its name, e.g. "P10") is left out
-  if(curPart==='main' && isMod(s.id) && (!a || a===lab(SLOT[s.id])) && !b) return L;
+  if(curPart==='main' && isModPart(s.id) && (!a || a===lab(SLOT[s.id])) && !b) return L;
   if(curPart==='second'){
     // secondary: a modifier in use shows its name; other controls show only what the modifiers do
     const tag=i=>{ if(L.length) L.at(-1).mk=i; };
-    if(isMod(s.id) && usesMod(s.id)){ add(a||slotName(s.id),own,1); tag(modIndex(s.id)); }
+    if(mine && usesMod(mine)){ add(a||slotName(s.id),own,1); tag(modIndex(mine)); }
     if(MODDABLE.includes(s.kind))
-      for(const m of mods()) if(m!==s.id && has(s.id,'m_'+m)){ add(val(s.id,'m_'+m),modColor(m),1); tag(modIndex(m)); }
+      for(const m of mods()) if(!inMod(m,s.id) && has(s.id,'m_'+m)){ add(val(s.id,'m_'+m),modColor(m),1); tag(modIndex(m)); }
     const mks=[...new Set(L.map(l=>l.mk))];
     L.mods= mks.filter(i=>i!==undefined);
     L.split= splitOn() && mks.length>1;
@@ -451,12 +473,12 @@ function slotLines0(s, mode='phone'){
   if(mode==='desktop' && a && b && measure(a+' '+b,T.size1)<=DESK.maxLine) add(a+' '+b,own,1);
   else { add(a,own,1); add(b,own,2); }
   if(curPart==='main' || !MODDABLE.includes(s.kind)) return L;
-  for(const m of mods()) if(m!==s.id && has(s.id,'m_'+m)) add(val(s.id,'m_'+m),modColor(m),2);
+  for(const m of mods()) if(!inMod(m,s.id) && has(s.id,'m_'+m)) add(val(s.id,'m_'+m),modColor(m),2);
   return L;
 }
 const customLines = c => { const L=[]; if((c.text||'').trim()) L.push({text:c.text.trim(),color:T.text,size:1}); if((c.sub||'').trim()) L.push({text:c.sub.trim(),color:T.text,size:2}); return L; };
-const boxStyle = s => s && isMod(s.id) && (curPart!=='main' || s.id===soloMod) ? {stroke:modColor(s.id),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{});
-const usesMod = m => SLOTS.some(s=>s.id!==m && has(s.id,'m_'+m));
+const boxStyle = s => { const m=s && modFor(s.id); return m ? {stroke:modColor(m),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{}); };
+const usesMod = m => SLOTS.some(s=>!inMod(m,s.id) && has(s.id,'m_'+m));
 const hasSecondary = () => mods().some(usesMod);
 const splitOn = () => curPart==='second' && mods().filter(usesMod).length>1;
 const bwSec = () => bw && curPart==='second';
@@ -572,17 +594,20 @@ function legendSVG(left, top, maxW){
   const groups=[];
   const txt=t=>({t, w:measure(t,T.size1)});
   const box=(text,color,style,mb,mi)=>{ const l=[{text,color,size:1}]; if(mb) l.modBox=mb; if(mi!==undefined) l.mods=[mi]; return {box:l, ...boxSize(l), style}; };
+  const sp=T.size1*0.35, gGap=T.size1*2, gw=g=>g.reduce((s,p)=>s+p.w,0)+sp*(g.length-1);
   for(const m of mods()){
     if(!usesMod(m)) continue;
-    const col=modColor(m), name=has(m,'main')?val(m,'main').trim():lab(SLOT[m]);
-    const rest=SLOT[m].kind==='mod'||SLOT[m].kind==='pad'?'pad/knob':'pad';
-    groups.push(isToggle(m)
-      ? [box('Function',col,{},null,modIndex(m)), txt('= tap'), box(name,col,{stroke:col,sw:T.outline},col,modIndex(m)), txt(', then '+rest)]
-      : [box('Function',col,{},null,modIndex(m)), txt('='), box(name,col,{stroke:col,sw:T.outline},col,modIndex(m)), txt('+ '+rest)]);
+    const col=modColor(m), i=modIndex(m), parts=modParts(m), kind=SLOT[parts[0]].kind;
+    const rest=kind==='mod'||kind==='pad'?'pad/knob':'pad';
+    const held=names=>names.flatMap((n,k)=>[...(k?[txt('+')]:[]), box(n,col,{stroke:col,sw:T.outline},col,i)]);
+    const group=names=>isToggle(m)
+      ? [box('Function',col,{},null,i), txt('= tap'), ...held(names), txt(', then '+rest)]
+      : [box('Function',col,{},null,i), txt('='), ...held(names), txt('+ '+rest)];
+    const g=group(parts.map(p=>has(p,'main')?val(p,'main').trim():lab(SLOT[p])));
+    groups.push(isCombo(m) && gw(g)>maxW? group(parts.map(p=>lab(SLOT[p]))) : g);   // several long names don't fit on a line: P10 + P11
   }
   if(!groups.length) return {svg:'',text:'',h:0};
-  const sp=T.size1*0.35, gGap=T.size1*2;
-  groups.forEach(g=>{ g.w=g.reduce((s,p)=>s+p.w,0)+sp*(g.length-1); g.h=Math.max(...g.filter(p=>p.box).map(p=>p.h)); });
+  groups.forEach(g=>{ g.w=gw(g); g.h=Math.max(...g.filter(p=>p.box).map(p=>p.h)); });
   const lines=[[]]; let lw=0;
   for(const g of groups){ const add=(lines.at(-1).length?gGap:0)+g.w;
     if(lines.at(-1).length && lw+add>maxW){ lines.push([g]); lw=g.w; } else { lines.at(-1).push(g); lw+=add; } }
@@ -1157,11 +1182,11 @@ function midiMap(text){
 function tableHTML(blank){
   const ms=mods().filter(usesMod), refLabel=V.ref&&REF_SETS[V.ref]? REF_SETS[V.ref].label : '';
   const midi=!blank && TABLE_ORDER.some(id=>val(id,'midi').trim());
-  const head=`<tr><th>Control</th>${refLabel?`<th>${esc(refLabel)}</th>`:''}<th>Function</th>${blank?'':ms.map(m=>`<th class="m" style="color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(slotName(m))}</th>`).join('')}${midi?'<th class="midi">MIDI</th>':''}</tr>`;
+  const head=`<tr><th>Control</th>${refLabel?`<th>${esc(refLabel)}</th>`:''}<th>Function</th>${blank?'':ms.map(m=>`<th class="m" style="color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(modName(m))}</th>`).join('')}${midi?'<th class="midi">MIDI</th>':''}</tr>`;
   const rows=TABLE_ORDER.map(id=>{
     const s=SLOT[id], r=refOf(id), mi=midi? val(id,'midi').trim() : '';
     const fn=blank? '' : [val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
-    const mc=blank? '' : ms.map(m=>`<td>${m===id?'<em>modifier</em>':esc(val(id,'m_'+m))}</td>`).join('');
+    const mc=blank? '' : ms.map(m=>`<td>${inMod(m,id)?'<em>modifier</em>':esc(val(id,'m_'+m))}</td>`).join('');
     if(!blank && !fn && !mc.replace(/<td><\/td>/g,'') && !r && !mi) return '';
     return `<tr data-id="${id}"${blank?' class="blank"':''}><td><b>${esc(lab(s))}</b> <span class="k">${KIND_NAME[s.kind]}</span></td>${refLabel?`<td>${r?esc(r[0]):''}</td>`:''}<td>${esc(fn)}</td>${mc}${midi?`<td class="midi">${mi.split(/\s*·\s*/).map(x=>`<span>${esc(x)}</span>`).join(' · ')}</td>`:''}</tr>`;
   }).join('');
@@ -1173,7 +1198,7 @@ function modesTableHTML(list){
   const ms=mods().filter(usesMod), name=p=> p? modeList().find(m=>m.pos===p)?.name||p : 'All modes';
   const cells=id=>list.map(p=>withMode(p,()=>{
     const fn=[val(id,'main'),NO_LINE2.includes(id)?'':val(id,'main_2')].map(x=>x.trim()).filter(Boolean).join(' · ');
-    const mm=ms.filter(m=>m!==id && val(id,'m_'+m).trim()).map(m=>`<span class="k" style="display:block;color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(slotName(m))}: ${esc(val(id,'m_'+m))}</span>`).join('');
+    const mm=ms.filter(m=>!inMod(m,id) && val(id,'m_'+m).trim()).map(m=>`<span class="k" style="display:block;color:var(--m${modIndex(m)+1})">${isToggle(m)?'after ':'+ '}${esc(modName(m))}: ${esc(val(id,'m_'+m))}</span>`).join('');
     return fn||mm? `${esc(fn)}${mm}` : '';
   }));
   const rows=TABLE_ORDER.map(id=>{ const c=cells(id); if(c.every(x=>!x)) return '';
