@@ -279,6 +279,11 @@ g[data-key].hl-use { filter:drop-shadow(0 0 7px rgba(255,122,26,.95)); }
 .playov [data-led] .glow { fill:url(#playGlow); }
 .playov .oled { pointer-events:none; }
 .playov .oled .bezel { fill:#05070a; stroke:var(--pline,#888); stroke-width:2; }
+#stage .oledframe { cursor:move; }
+#stage .oledframe .bezel { fill:#05070a; stroke:var(--pline,#888); stroke-width:2; }
+#stage .oledframe .screen { fill:#101418; stroke:#ff7a1a; stroke-width:2; stroke-dasharray:8 6; }
+#stage .oledframe text { fill:#ff9a4d; pointer-events:none; }
+#stage .oledframe .grip { fill:#ff7a1a; cursor:nwse-resize; }
 
 /* about page */
 .about { max-width:820px; font-size:15px; line-height:1.6; }

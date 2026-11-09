@@ -28,7 +28,6 @@ const PLAY_LEVERS = {
   S07_S08: {w:40, h:94, rot:25, ends:['up','down']},
 };
 const FADER_RUN = [861, 618];   // fader cap centre at 0 and at 1 (panel units)
-const OLED_BOX = {x:270, y:330, w:240, h:120};   // in the top plate's free corner; where it sits on a real build varies
 
 const Play = (()=>{
   const S = {
@@ -110,10 +109,10 @@ const Play = (()=>{
       <span class="pmeter" title="Output level"><i id="playMeter"></i></span>
       <label class="chk"><input type="checkbox" id="playOled"> OLED</label>
       <span class="status" id="playMsg" role="status"></span>
-    </div><div class="pctl b-only">
-      <label class="midi"><span class="cap">MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
-      <label class="midi"><span class="cap">MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
-      <span class="keys"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
+    </div><div class="pctl">
+      <label class="midi b-only"><span class="cap">MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
+      <label class="midi b-only"><span class="cap">MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
+      <span class="keys b-only"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
       <button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button>
       <button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>
     </div><div class="device d-only" id="playLink"></div><div class="device" id="playDevice" hidden></div><p class="hint b-only" id="playCredit"></p>`;
@@ -145,6 +144,8 @@ const Play = (()=>{
     $p('playStage')?.setAttribute('aria-pressed', String(S.stage));
     const bar=$p('stageBar'); if(!bar) return;
     bar.querySelector('[data-a="go"]').textContent= on? '■ Stop' : '▶ Play';
+    bar.querySelector('[data-a="go"]').hidden= S.source==='device';   // a board plays by itself
+    bar.querySelector('[data-a="sound"]').textContent= S.source==='device'? 'Settings' : 'Sound';
     bar.querySelector('[data-a="sound"]').setAttribute('aria-pressed', String(S.sound));
     bar.querySelector('[data-a="labels"]').setAttribute('aria-pressed', String(S.padLabels));
   }
@@ -237,7 +238,7 @@ const Play = (()=>{
     try{ S.st?.disconnect(); }catch(e){}
     S.ctx?.close().catch(()=>{});
     S.st=S.ctx=S.out=S.inGain=S.live=null;
-    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
+    S.state='idle'; S.led=false; S.oled=null; S.oledUrl=''; S.oledShown=0; S.pads={}; S.latched.clear(); S.last={}; S.sysex={}; S.mval={}; S.midiPads={}; S.runOut=0;
     S.mode=null; S.held=[]; soloMod=null;
     if(doc.modes) V.mode='';
     keys(false);
@@ -298,7 +299,7 @@ const Play = (()=>{
   /* what the drawing showed of the board */
   function clearLive(){
     for(const i in S.midiPads){ delete S.midiPads[i]; drawPad(i); hot(padId(+i),false); }
-    S.pads={}; S.glow={}; S.latched.clear(); S.held=[]; S.mode=null; soloMod=null; S.oled=null; S.oledUrl='';
+    S.pads={}; S.glow={}; S.latched.clear(); S.held=[]; S.mode=null; soloMod=null; S.oled=null; S.oledUrl=''; S.oledShown=0;
   }
   const LIVE_HANDLERS={
     pads(mask){ for(let i=0;i<12;i++){ const on=!!(mask&(1<<i)), was=S.midiPads[i]!==undefined; if(on===was) continue;
@@ -595,8 +596,8 @@ const Play = (()=>{
     let u='<g class="playov under"><defs><radialGradient id="playGlow"><stop offset="0" stop-color="#ff4a2f" stop-opacity=".85"/><stop offset="1" stop-color="#ff4a2f" stop-opacity="0"/></radialGradient></defs>';
     for(const i of PAD_ORDER) u+=`<g data-padv="${i}"><polygon class="padfill" points="${pts(i)}"/>${art? `<use class="padart" href="#padArt-${padId(i)}"/>` : ''}</g>`;
     { const l=SLOT.LED; u+=`<g data-led><circle class="glow" cx="${l.x}" cy="${l.y}" r="26"/><rect class="lit" x="${l.x-11}" y="${l.y-7}" width="22" height="14" rx="2"/></g>`; }
-    if(S.source==='device'? S.oledRows : em()?.oled && S.oledOn){ const o=OLED_BOX;
-      u+=`<g class="oled"><rect class="bezel" x="${o.x-10}" y="${o.y-10}" width="${o.w+20}" height="${o.h+20}" rx="8"/><image data-oled x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" preserveAspectRatio="xMidYMid meet"/></g>`; }
+    if(S.source==='device'? S.oledRows : em()?.oled && S.oledOn)
+      u+='<g class="oled"><rect class="bezel" rx="8"/><image data-oled preserveAspectRatio="xMidYMid meet"/></g>';
     u+='</g>';
     // On top of everything: the controls' positions and the hit areas
     let g='<g class="playov">';
@@ -620,6 +621,7 @@ const Play = (()=>{
     for(const id of Object.keys(PLAY_LEVERS)) drawLever(id);
     for(const i of PAD_ORDER) drawPad(i);
     setLed(S.led);
+    placeOled();
     if(S.oledUrl) S.mod.querySelector('[data-oled]')?.setAttribute('href',S.oledUrl);
     bind();
   }
@@ -650,6 +652,14 @@ const Play = (()=>{
     if(art) art.style.opacity= on? (0.5+0.5*f).toFixed(2) : '';
   }
   function setLed(on){ S.led=on; S.mod?.querySelector('[data-led]')?.classList.toggle('on',!!on); }
+  /* the OLED's place and shape: the firmware's own rows once it has drawn, before that what the label file says */
+  function placeOled(){
+    const g=S.mod?.querySelector('g.oled'); if(!g) return;
+    const o=oledBox(S.oledShown || (S.source==='device'? S.oledRows : 0));
+    const put=(e,x,y,w,h)=>{ e.setAttribute('x',f1(x)); e.setAttribute('y',f1(y)); e.setAttribute('width',f1(w)); e.setAttribute('height',f1(h)); };
+    put(g.querySelector('.bezel'), o.x-10, o.y-10, o.w+20, o.h+20);
+    put(g.querySelector('[data-oled]'), o.x, o.y, o.w, o.h);
+  }
   /* OLED frames come up to 60 times a second; the drawing takes the newest once per animation frame */
   let oledFrame=0;
   function showOled(ram, info){
@@ -657,7 +667,9 @@ const Play = (()=>{
     if(oledFrame) return;
     oledFrame=requestAnimationFrame(()=>{
       oledFrame=0; if(!S.oled || !S.oledLib) return;
-      const c=S.canvas ||= Object.assign(document.createElement('canvas'),{width:384, height:192});
+      const rows=S.oledLib.oledRows(S.oled.info), c=S.canvas ||= Object.assign(document.createElement('canvas'),{width:384});
+      if(c.height!==384*rows/128) c.height=384*rows/128;
+      if(rows!==S.oledShown){ S.oledShown=rows; placeOled(); }
       S.oledLib.drawOled(c, S.oled.ram, S.oled.info, {gap:0.18});
       S.oledUrl=c.toDataURL();
       S.mod?.querySelector('[data-oled]')?.setAttribute('href',S.oledUrl);

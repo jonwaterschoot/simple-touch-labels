@@ -66,6 +66,8 @@ What can drift between the repos, and where it stands (2026-10-28):
 - [ ] Live labels from hardware: one small shared SysEx (`F0 7D 53 54 01 <SW1> <SW2> <pads lo> <pads hi> [page] F7`), sent by the firmware (TouchPlaited first, next to its telemetry) and so by its browser build too; the library reads it from Web MIDI input. Spec in simple-touch-web's README.
 - [ ] Modes not tied to a switch (a tapped pad such as FM BleepBloop's P1, TouchPlaited's Recording): tapped modifiers cover them as columns today; see whether `modes` should take a pad, or a `page` from the firmware.
 - [x] Held-together modifiers (2026-11-09): `combos` next to `modifiers` (`"P10+P11"`, up to three controls), labels as `m_P10+P11`. A combo shares the four modifier colours. Designer, drawing, legend, control table, README reader and Play.
+- [x] OLED place and shape (2026-11-09): `oled` in the label file (`{x, y, w, rows}`), moved and resized in the designer. The box follows the display's real rows, so a 128 × 32 is 4:1. A firmware's label file needs saving again and pushing to carry a placement; web apps exported earlier keep the old 2:1 box until they are exported again.
+- [x] Full screen in Connect to Simple Touch (2026-11-09), with Settings in place of Sound.
 - [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs the `page` above to keep the labels up. Tapped combos have no editor control yet.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they've answered.
 
