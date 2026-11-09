@@ -232,14 +232,14 @@ function normalise(d){
 }
 /* A faceplate kept as a file in the firmware's repository, at a plain relative path: an SVG, or the image itself
    when the faceplate is an uploaded image (it is wrapped in an SVG here; its placement is in fpStyle either way) */
-const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.(svg|png|jpe?g|webp)$/i;
+const FP_PATH=/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.(svg|png|jpe?g|webp|gif|avif)$/i;
 const FP_DEFAULT_FILE='img/faceplate.svg', FP_DESKTOP_FILE='img/faceplate-desktop.svg';
-const FP_IMAGE_EXT={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
+const FP_IMAGE_EXT={'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif','image/avif':'avif'};
 function fpImage(svg=doc.faceplate){   // the image inside an uploaded image's wrapper: {mime, ext, b64}, else null
   if(!svg || svg.length<100 || !/<image\b/.test(svg)) return null;
   const root=new DOMParser().parseFromString(svg,'image/svg+xml').documentElement, kids=[...root.children];
   if(kids.length!==1 || kids[0].localName!=='image') return null;
-  const m=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(kids[0].getAttribute('href')||kids[0].getAttribute('xlink:href')||'');
+  const m=/^data:(image\/(?:png|jpeg|webp|gif|avif));base64,([A-Za-z0-9+/=\s]+)$/.exec(kids[0].getAttribute('href')||kids[0].getAttribute('xlink:href')||'');
   return m && {mime:m[1], ext:FP_IMAGE_EXT[m[1]], b64:m[2].replace(/\s+/g,'')};
 }
 const fpPathOf=(path, fallback, svg)=>{ const im=fpImage(svg); return (FP_PATH.test(path||'')? path : fallback).replace(/\.[a-z]+$/i, '.'+(im? im.ext : 'svg')); };
@@ -1220,15 +1220,15 @@ function artImageSVG(r){
 }
 const svgDataURL=s=>'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));
 
-/* An image faceplate (PNG / JPG / WebP) is wrapped in an SVG on the panel's artboard, so it is stored,
-   saved and opened exactly like an SVG faceplate. Large images are scaled down to 2× the artboard. */
+/* An image faceplate (PNG / JPG / WebP / GIF / AVIF) is wrapped in an SVG on the panel's artboard, so it is stored,
+   saved and opened exactly like an SVG faceplate. Large images are scaled down to 2× the artboard, except GIFs: the canvas would keep only their first frame. */
 const ARTBOARD={w:1080, h:1598.24};
 async function imageFaceplate(file){
   const url=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsDataURL(file); });
   const img=new Image(); img.src=url; await img.decode();
   const w=img.naturalWidth, h=img.naturalHeight, maxW=ARTBOARD.w*2;
   let src=url;
-  if(w>maxW){ const c=document.createElement('canvas'); c.width=maxW; c.height=Math.round(h*maxW/w);
+  if(w>maxW && file.type!=='image/gif'){ const c=document.createElement('canvas'); c.width=maxW; c.height=Math.round(h*maxW/w);
     c.getContext('2d').drawImage(img,0,0,c.width,c.height); src=c.toDataURL(file.type==='image/jpeg'?'image/jpeg':'image/png',.9); }
   const off=Math.abs((w/h)/(ARTBOARD.w/ARTBOARD.h)-1)>0.01;
   const ih=ARTBOARD.w*h/w;

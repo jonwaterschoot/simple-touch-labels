@@ -566,7 +566,7 @@ const PCTRL = {
     ['ctlline','Knob outlines'],['ctl','Knob fill','top'],['mid','Faders'],['jack','Jacks','mid'],['sw','Switches'],['line','Switch and LED outlines'],['led','LED'],['fp','Faceplate art'],['leader','Leader lines'],['ink','Legend text']],
 };
 const BLENDS = ['normal','multiply','screen','overlay','soft-light','hard-light','darken','lighten','color-dodge','color-burn','difference','exclusion','luminosity'];
-const FP_TYPES='.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.webp,image/webp';
+const FP_TYPES='.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg,.webp,image/webp,.gif,image/gif,.avif,image/avif';
 /* ‹ › buttons around a select, and the scroll wheel while hovering it, to step through the options.
    Options with data-skip (e.g. "Custom…") are stepped over. */
 function stepper(sel,{wheel=true}={}){
@@ -643,7 +643,7 @@ function fpDesktopControls(){
     const status=el('span',{className:'hint',textContent:q.faceplate? fpDeskMsg||'Its own faceplate.' : 'Upload the art for the desktop layout.'});
     inp.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
       try{
-        if(/^image\/(png|jpeg|webp)$/.test(f.type)){ const r=await imageFaceplate(f); q.faceplate=sanitizeFaceplate(r.svg); q.style={ratio:r.ratio}; setFpDesktop(); fpDeskMsg=r.msg; }
+        if(/^image\/(png|jpeg|webp|gif|avif)$/.test(f.type)){ const r=await imageFaceplate(f); q.faceplate=sanitizeFaceplate(r.svg); q.style={ratio:r.ratio}; setFpDesktop(); fpDeskMsg=r.msg; }
         else { q.faceplate=sanitizeFaceplate(await f.text()); q.style={}; setFpDesktop(); }
         buildForm(); render();
       }catch(err){ status.textContent='This faceplate could not be used: '+err.message; } };
@@ -692,7 +692,7 @@ function buildStyle(){
   const fpStatus=el('span',{className:'hint',textContent: doc.faceplate? (doc.faceplateRef? `From the ${EXAMPLES[doc.faceplateRef]?.label||doc.faceplateRef} example.` : fpMsg||'Custom faceplate.') : 'Blank Simple Touch faceplate.'});
   fpInput.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
     try{
-      if(/^image\/(png|jpeg|webp)$/.test(f.type)){ const r=await imageFaceplate(f); setFaceplate(sanitizeFaceplate(r.svg),'',{ratio:r.ratio}); fpMsg=r.msg; }
+      if(/^image\/(png|jpeg|webp|gif|avif)$/.test(f.type)){ const r=await imageFaceplate(f); setFaceplate(sanitizeFaceplate(r.svg),'',{ratio:r.ratio}); fpMsg=r.msg; }
       else setFaceplate(sanitizeFaceplate(await f.text()),'',{});
       buildForm(); render();
     }catch(err){ fpStatus.textContent='This faceplate could not be used: '+err.message; } };
@@ -706,7 +706,7 @@ function buildStyle(){
     const ok=()=>{ const v=path.value.trim(); path.classList.toggle('bad', !FP_PATH.test(v)); if(FP_PATH.test(v)){ doc.faceplateFile=v; autosave(); } };
     path.addEventListener('input',ok);
     form.append(el('div',{className:'dgrid'},el('label',{className:'dc'},el('span',{textContent:'File in your repository'}),path,el('span'))),
-      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg or .webp), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}),
+      el('p',{className:'hint',innerHTML:`Save file writes this path into <code>${LABEL_FILE}</code> and downloads the faceplate: an image as the image (.png, .jpg, .webp, .gif or .avif), an SVG as an SVG. Its placement (scale, position, opacity, area) stays in the label file. Put it at that path in your repository, e.g. <code>img/</code> or <code>docs/img/</code>; the Repository kit has it in place.`}),
       el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Download '+fpName(),onclick:downloadFaceplate})));
   }
   if(doc.faceplate) fpPlacement(fpStyle(), patch=>{ doc.fpStyle={...fpStyle(),...patch}; render(); }, ()=>{ doc.fpStyle={ratio:fpStyle().ratio}; buildForm(); render(); });

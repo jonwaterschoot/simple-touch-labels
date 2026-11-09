@@ -63,7 +63,7 @@ async function faceplateAt(url, path){
     const res=await fetch(url); if(!res.ok) return null;
     const blob=await res.blob(); if(blob.size>MAX_FACEPLATE) return null;
     if(/\.svg$/i.test(path)) return await blob.text();
-    const ext=path.split('.').pop().toLowerCase(), type={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'}[ext];
+    const ext=path.split('.').pop().toLowerCase(), type={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',avif:'image/avif'}[ext];
     return (await imageFaceplate(new Blob([blob],{type}))).svg;
   }catch(e){ return null; }
 }
