@@ -130,6 +130,25 @@ dialog::backdrop { background:rgba(0,0,0,.65); }
 .chips { display:flex; flex-wrap:wrap; gap:6px; }
 .chips button { font-size:12px; padding:4px 8px; border-width:1px; border-color:var(--rule); }
 .fpreview { border:1px solid var(--hair); padding:12px; display:flex; flex-direction:column; gap:6px; }
+/* upload to device: the advice for the firmware, then the buttons that write it */
+.flashgo { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.flashgo button:disabled { opacity:.45; cursor:not-allowed; }
+.flashgo progress { flex:1 1 140px; min-width:120px; }
+.flashgo .status { flex:1 1 100%; font-size:13px; }
+.flashgo .status.err { color:var(--warn); }
+.flashgo .status.ok { color:var(--ok); font-weight:700; }
+dialog.flash { --ok:#2fae7a; }
+.ui-light dialog.flash { --ok:#0a7d50; }
+dialog.flash li.done { color:var(--muted); }
+dialog.flash li.done::marker { content:"✓ "; color:var(--ok); font-weight:700; }
+dialog.flash summary { cursor:pointer; font-weight:700; font-size:14px; }
+dialog.flash details > input { margin-top:8px; }
+dialog.flash select { width:100%; }
+dialog.flash { width:min(100% - 32px,820px); max-height:calc(100vh - 32px); }
+dialog.flash ol { margin:6px 0; padding-left:1.4em; }
+dialog.flash li { margin:.3em 0; }
+.notice.warn { border-color:var(--warn); }
+.flashwarn { color:var(--warn); }
 /* community directory entry */
 dialog.dir { width:min(100% - 32px,640px); }
 /* web app: the steps to put it on GitHub Pages */

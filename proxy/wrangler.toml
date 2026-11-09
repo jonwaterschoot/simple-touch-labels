@@ -1,0 +1,3 @@
+name = "simple-touch-firmware"
+main = "firmware-proxy.js"
+compatibility_date = "2026-11-01"

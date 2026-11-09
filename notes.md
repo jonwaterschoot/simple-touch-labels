@@ -36,6 +36,23 @@ Tested 2026-10-28 with `curl -I -H "Origin: …"`:
 
 So the `.bin` stays in Releases (people download it), and the `.wasm` goes on the repository's `simple-touch-web` branch, which is what simple-touch-web's `build-firmware.yml` does. The library already accepts only those two hosts (`buildHosted` in `core.js`).
 
+## Upload to device: what a `.bin` says (2026-11-09)
+
+A `.bin` starts with the vector table: initial stack pointer, then the reset handler. libDaisy's linker scripts place the reset handler by `APP_TYPE`:
+
+| `APP_TYPE` | Reset handler | Written to |
+|---|---|---|
+| `BOOT_NONE` | `0x0800xxxx` | `0x08000000` (DFU mode) |
+| `BOOT_QSPI` | `0x9004xxxx` | `0x90040000` (Daisy bootloader) |
+| `BOOT_SRAM` | `0x2400xxxx` | `0x90040000` (Daisy bootloader) |
+
+- Checked against TouchVink, TouchBass, TouchSpore, TouchString (internal), TouchPlaited (QSPI) and TouchVink rebuilt with `BOOT_SRAM`. Files for other chips (RP2040, ESP32) read as not a Daisy firmware.
+- The USB ID can't tell the two modes apart: libDaisy's Makefile has `DAISY_PID = df11`, the same as the ROM's.
+- flash.daisy.audio sends no `X-Frame-Options` or `frame-ancestors`. In an iframe with `allow="usb"`, Chrome reports WebUSB as allowed. It has no URL parameter for a file, and it is another origin, so the page can't hand it the `.bin`. That is why the page writes the firmware itself, and the Daisy bootloader too (2026-11-09, no iframe any more).
+- The bootloader file is libDaisy's `dsy_bootloader_v6_4-intdfu-2000ms.bin`, the default `BOOT_BIN` of current libDaisy, and byte-identical across TouchVink, TouchSpore, TouchString and TouchPlaited. libDaisy's changelog says bootloader v6.0 and up needs libDaisy v5.3 and up. flash.daisy.audio defaults to v5.4 for older builds, which the page does not offer.
+- Release files need a server in between. `fetch` in Chrome (2026-11-09) is blocked for the GitHub download URL and for the API asset URL, whose redirect target has no CORS header. Codeberg downloads send none either. The release lists from both APIs are readable. [synthux.academy/firmware](https://www.synthux.academy/firmware/) works the same way: `/api/firmware-proxy` on its own server and WebUSB in the page.
+- The mode check reads the DFU interface names. The Daisy bootloader's `@Flash /0x90000000/…` is from the programmer's code. The ROM's `0x08000000` entry is the filter the old programmer used. Neither has been read from a real device through this page yet.
+
 ## Case study: TouchPlaited
 
 Why it makes a good test: large (a 228 KB main file, all of Plaits and stmlib vendored as `.cc` sources), hardware-tuned (QSPI boot, ITCM code placement, a register-level QSPI settings journal), with an OLED UI, USB and TRS MIDI, mode-dependent controls, and a web visualizer of its own. Most community firmwares will be simpler.

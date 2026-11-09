@@ -46,6 +46,11 @@ flowchart TD
   - **Highlight**: a control, its label and its table row light together: lightly while you point at any of them (also when not playing), strongly while the control is in use or MIDI moves it.
   - **Phone**: Lock scroll (on by default on touch screens) keeps touches on the drawing from scrolling the page. Full screen shows the drawing alone, with the sound controls in a sheet and the pad labels optional.
   - **Input**: a loop, the mic or a sound file of your own.
+- **Upload to device…**: on a firmware in the library and in the web app. Pulls the `.bin` of the repository's latest release, shows whether it runs from internal flash or needs the Daisy bootloader (QSPI or SRAM), with the steps for that case, and writes it with **Connect and flash**.
+  - **Source**: GitHub or Codeberg releases, through `proxy/firmware-proxy.js` (release downloads send no CORS header). GitHub's sha256 is checked in the page. Without a release or a proxy, the dialog takes a file from this computer.
+  - **Mode check**: the page reads which DFU the Daisy is in and writes nothing if it is the wrong one for the firmware.
+  - **Daisy bootloader**: when a firmware needs it, **Install bootloader** writes libDaisy's v6.4 build (built-in USB port, 2-second wait) to internal flash. It needs a firmware built with libDaisy v5.3 or newer.
+  - Uploading needs WebUSB (Chrome or Edge, over HTTPS or on localhost).
 - `editor.html`: the designer. Accepts `?start=blank|touchbass|touchfx|touchstring|audreytouch&ref=sx|ld|pd&theme=…&layout=…`, `?community=<id>` (a directory entry's name, author and repository, with the labels the library found) or `?s=<share link>`. State is kept in this browser (localStorage `simpleTouchManual.v1`).
 - `player.html`: one firmware's manual as a site of its own, with Play: the page the designer's **Web app…** exports as `index.html`. Online it reads `simple-touch-labels.json` from the root of the firmware's repository (so a newly approved build shows without a new export); on localhost, or when the repository can't be read, the copy beside it. Without a copy, `?repo=<repository URL>` picks one; `?preview` shows the designer's current state in this browser and follows its edits.
 - `guide.html`: step by step from a firmware to the library and the community directory, with checks that this browser remembers. Starts from an existing repository or from scratch, libDaisy or Plugdata; a repository URL at the top fills in the links (Releases, Actions, the raw label file, Pages).
@@ -91,13 +96,15 @@ The designer adds:
 
 - `core.js`: slots, reference names, themes, the layout engine, both drawings, faceplates, fonts, Markdown, share links and exports. Shared by both pages.
 - `play.js`: Play. The panel's controls as an interactive layer over the drawing, the audio chain (input, firmware, volume, limiter), the LED and OLED. It loads the runtime in `vendor/simple-touch-web/` (simple-touch-web's `web/`, tag `v1`, ABI `simple-touch-web/1`) on the first Play.
+- `flash.js`: **Upload to device…**. Reads the latest release, finds where a `.bin` runs from its reset vector (`firmwareKind`) and writes it with `vendor/webdfu/` (Electrosmith's Programmer, unchanged, MIT and ISC). `FIRMWARE_PROXY` holds the deployed proxy's URL.
+- `proxy/`: a Cloudflare Worker that serves release `.bin` files with a CORS header, to pages on `github.io`, `codeberg.page` and localhost. Deploy it with `npx wrangler deploy` in that folder.
 - `community.js`: the community directory (`projects.json`), reading firmware repositories on GitHub and Codeberg (`simple-touch-labels.json`, `README.md` and a linked manual), the README label extractor, and the README view (marked, then DOMPurify; mermaid in strict mode). Repository text is shown escaped or sanitised, never run, and a repository's faceplate is cleaned like an upload.
 - `ui.css`: page chrome; `styles.css`: base typography (`Archivo`) and colour tokens.
 - `examples/*.json`: firmware labels and notes, from the [TouchBass](https://github.com/Synthux-Academy/TouchBass), [TouchFX](https://github.com/Synthux-Academy/TouchFX), [TouchString](https://github.com/Synthux-Academy/TouchString), and [AudreyTouch](https://github.com/Synthux-Academy/AudreyTouch) repos. The Touch FX and Touch String faceplates go in `examples/faceplates/` (`touchfx.svg`, `touchstring.svg`), which is kept out of the repository until the artwork is cleared. Where the files are present, the pages show them; elsewhere these examples use the blank faceplate.
 - `assets/panel_blank.svg`: the Synthux panel drawing with a blank faceplate. Its colours are CSS custom properties (`--pbg`, `--pline`, `--pshape`, `--pmid`, `--ptop`, `--pctl`, …), so one file serves every theme. The simplified drawing is generated in `core.js`.
 - `assets/simple_touch_pd.png`: screenshot of `simple_touch.pd`; `assets/example_*.png`: the screenshots above; `assets/favicon.svg`, `assets/social_preview.png`: tab icon and 1280×640 social preview.
 
-External at runtime: html-to-image (jsDelivr) for PNG and PDF export, Google Fonts for the label fonts. When a README is opened: marked, DOMPurify and, for a README with a flowchart, mermaid (jsDelivr, pinned by hash), and the README's own images and videos. When Play is pressed: the approved build from the firmware's repository, and the loops from simple-touch-web's Pages.
+External at runtime: html-to-image (jsDelivr) for PNG and PDF export, Google Fonts for the label fonts. When a README is opened: marked, DOMPurify and, for a README with a flowchart, mermaid (jsDelivr, pinned by hash), and the README's own images and videos. When Play is pressed: the approved build from the firmware's repository, and the loops from simple-touch-web's Pages. When **Upload to device…** opens: the repository's release list (GitHub or Codeberg API) and its latest `.bin` through the proxy.
 
 ## Sources
 
@@ -110,6 +117,8 @@ External at runtime: html-to-image (jsDelivr) for PNG and PDF export, Google Fon
 ## License & Credits
 
 - **Repository code**: Licensed under the [MIT License](LICENSE).
+- **`vendor/webdfu/`**: from Electrosmith's [Programmer](https://github.com/daisyaudio/Programmer) (MIT), based on Devan Lai's [webdfu](https://github.com/devanlai/webdfu) (ISC). Licences in `vendor/webdfu/LICENSE`.
+- **`vendor/libdaisy/`**: the Daisy bootloader from [libDaisy](https://github.com/electro-smith/libDaisy) (MIT), copied unchanged with its licence.
 - **Layout engine and manual format**: adapted from Fabio Bartali's Simple Touch Manual Designer (build 40).
 - **Firmware faceplates (Touch FX, Touch String)**: Synthux Academy artwork, supplied via Fabio Bartali. Not in this repository until cleared, and excluded from the MIT license.
 - **Simple Touch panel drawing (`assets/panel_blank.svg`)**: Excluded from the MIT license. Original drawing created by Roey Tsemah (founder of [Synthux Academy](https://synthux.academy)), sourced and adapted via Fabio Bartali's [Touch FX manual](https://bartali.nl/touch-fx-manual.html). All rights to the original Simple Touch panel artwork and hardware design remain with Roey Tsemah / Synthux Academy.

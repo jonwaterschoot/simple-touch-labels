@@ -15,6 +15,9 @@
 <script src="core.js"></script>
 <script src="community.js"></script>
 <script src="play.js"></script>
+<script src="vendor/webdfu/dfu.js"></script>
+<script src="vendor/webdfu/dfuse.js"></script>
+<script src="flash.js"></script>
 </head>
 <body class="ui-dark">
 <!--
@@ -31,6 +34,7 @@
       <h1 id="title">Simple Touch</h1>
       <p id="intro"></p>
     </div>
+    <div class="export"><div class="btns"><button type="button" id="flashBtn" title="Checks a firmware .bin and flashes it over USB">Upload to device…</button></div></div>
   </header>
 
   <div class="bar">
@@ -138,6 +142,7 @@ function update(){
   const repo=UI.repo, name=fw.name||'Simple Touch firmware';
   document.title=name;
   $('title').textContent=name;
+  $('flashBtn').onclick=()=>openFlash({name:fw.name||'', repo});
   $('intro').textContent=[fw.description, fw.author&&'By '+fw.author+(fw.version?' · v'+fw.version:'')+'.'].filter(Boolean).join(' ')||'Firmware for the Synthux Simple Touch.';
   $('nav').innerHTML=(repo? `<a href="${escAttr(repo)}" target="_blank">Repository ↗</a>` : '')+`<a href="${LIBRARY}" target="_blank">Simple Touch library ↗</a>`;
   const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
