@@ -95,7 +95,7 @@ function onModeChange(){ buildBars(); const t=$('sideTable'); if(t){ t.innerHTML
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
 function syncLook(){
   const L= UI.theme==='creator' && doc.look;
-  design= L? L.design : LIB_DESIGN;
+  design= L? L.design : LIB_DESIGN; ownStyles=!!L;
   V.theme= L? L.theme : UI.libTheme;
   setLabelFont(L? L.font : 'Archivo'); applyDesign();
   if(L && L.font!=='Archivo' && !lookFonts.has(L.font)){ lookFonts.add(L.font); ensureFontLoaded(L.font).then(()=>{ if(doc.look===L) update(); }); }

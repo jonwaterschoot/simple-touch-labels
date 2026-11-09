@@ -534,7 +534,9 @@ function buildForm(){
     const t=el('input',{value:c.text||'',placeholder:'Label',maxLength:LIMITS.line}), s=el('input',{value:c.sub||'',placeholder:'Line 2',maxLength:LIMITS.line2});
     t.oninput=()=>{ c.text=t.value; render(); }; s.oninput=()=>{ c.sub=s.value; render(); };
     t.id='custom-'+c.id;
-    cg.append(t,s,el('button',{type:'button',className:'tight',textContent:'Remove',onclick:()=>{ doc.customs.splice(i,1); buildForm(); render(); }}));
+    const sb=el('button',{type:'button',className:'tight',textContent:'Style',title:'Font, size and colours of this label',onclick:()=>{ if(!styleOpen.delete(c.id)) styleOpen.add(c.id); buildForm(); }}); sb.setAttribute('aria-expanded',String(styleOpen.has(c.id)));
+    cg.append(t,s,sb,el('button',{type:'button',className:'tight',textContent:'Remove',onclick:()=>{ doc.customs.splice(i,1); buildForm(); render(); }}));
+    if(styleOpen.has(c.id)) cg.append(customStyleRow(c));
   });
   form.append(cg, el('div',{className:'btns'},el('button',{type:'button',textContent:'+ Add label',onclick:()=>{ const id=Date.now(); doc.customs.push({id,text:'New label',sub:'',x:540,y:300}); buildForm(); render(); $('custom-'+id)?.select(); }})));
 
@@ -582,6 +584,32 @@ function slider(label,min,max,step,get,set,fmt=v=>v){
   return el('label',{className:'dc'},el('span',{textContent:label}),inp,out);
 }
 /* Phone and Desktop columns */
+/* cur: {family, url, weight} or nothing. set gets what changed, null to clear it. */
+function fontRow(label,cur,inherit,set){
+  const fam=cur?.family||'', list=!fam||FONTS.includes(fam)? FONTS : [...FONTS,fam];
+  const f=el('select',{innerHTML:`<option value="">${inherit}</option>`+list.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('')+'<option value="__custom__">Custom…</option>'});
+  const w=el('select',{innerHTML:'<option value="">Same weight</option>'+FONT_WEIGHTS.map(x=>`<option value="${x}">${x}</option>`).join('')});
+  f.value=fam; w.value=cur?.weight||''; f.setAttribute('aria-label',`${label} font`); w.setAttribute('aria-label',`${label} weight`);
+  f.onchange=()=>{ if(f.value==='__custom__'){ f.value=fam; openFontModal(cur,(family,url)=>set({family,url})); } else set({family:f.value||null,url:null}); };
+  w.onchange=()=>set({weight:+w.value||null});
+  return el('div',{className:'dcol'},el('span',{textContent:label==='Label'? 'Font' : label}),f,w);
+}
+const patched=(o,patch)=>{ const n={...o,...patch}; for(const k in n) if(n[k]==null) delete n[k]; return Object.keys(n).length? n : null; };
+/* An extra label's own look (c.style, core.js). Colours start from the theme and are stored once changed. */
+const styleOpen=new Set();
+function customStyleRow(c){
+  const q=()=>c.style||{}, pal=palOf(V.layout), put=patch=>{ const n=patched(c.style,patch); if(n) c.style=n; else delete c.style; render(); };
+  const g=el('div',{className:'dgrid cstyle'});
+  g.append(fontRow('Label',c.style,'Same as the other labels',patch=>{ put(patch); buildForm(); }));
+  g.append(slider('Line 1 size',10,80,1,()=>q().size1||design.size1,v=>put({size1:v})));
+  g.append(slider('Line 2 size',10,80,1,()=>q().size2||design.size2,v=>put({size2:v})));
+  for(const [k,label] of [['text','Text colour'],['box','Box colour'],['line','Outline colour']])
+    g.append(el('div',{className:'dc'},el('span',{textContent:label}),colorInput(q()[k]||pal[k],`${label}, ${c.text||'extra label'}`,v=>put({[k]:v})),el('span')));
+  g.append(slider('Outline thickness',0,12,0.5,()=>q().lineW??pal.ow,v=>put({lineW:v})));
+  g.append(el('p',{className:'hint',textContent:'Print and B&W leave out these colours. The library uses this style in the Creator theme.'}));
+  g.append(el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset style',onclick:()=>{ delete c.style; buildForm(); render(); }})));
+  return g;
+}
 const inColumns=()=>el('div',{className:'dhead',innerHTML:'<span></span><span>Phone</span><span>Desktop</span>'});
 const perLayout=(label,cell)=>el('div',{className:'dcol'},el('span',{textContent:label}),...LAYOUTS.map(cell));
 const range=(aria,min,max,get,set,off)=>{ const i=el('input',{type:'range',min,max,step:1,value:get(),title:String(get()),disabled:!!off}); i.setAttribute('aria-label',aria); i.oninput=()=>{ set(+i.value); i.title=i.value; }; return i; };
@@ -733,6 +761,13 @@ function buildStyle(){
     mrow.append(el('label',{},el('span',{textContent:`Modifier ${i}`}),inp));
   }
   form.append(mrow);
+
+  section('Fonts','Font at the top sets the font of all labels. A part set here uses its own font and weight. The library and web app load Google Fonts only: another font falls back to their label font there.');
+  const fontSet=(k,patch)=>{ const n=patched(design.fonts[k],patch); if(n) design.fonts[k]=n; else delete design.fonts[k]; buildForm(); changed(); };
+  const fontGrid=el('div',{className:'dgrid'});
+  for(const [k,label] of [['line1','Line 1'],['line2','Line 2'],['names','Control names'],...(doc.fpLabels?.on? [['faceplate','Faceplate labels']] : [])])
+    fontGrid.append(fontRow(label,design.fonts[k],'Same as Font',patch=>fontSet(k,patch)));
+  form.append(fontGrid);
 
   section('Label boxes',`Sizes and effect for every theme; colours for the ${themeName} theme.`);
   const box=el('div',{className:'dgrid'});
@@ -925,8 +960,12 @@ function useFont(family,url){
 }
 $('fontSel').onchange=e=>{ if(e.target.value==='__custom__'){ e.target.value=UI.font; openFontModal(); } else useFont(e.target.value,null); };
 $('fontCustom').onclick=()=>openFontModal();
-function openFontModal(){
-  $('fontQuery').value= FONTS.includes(UI.font)? '' : (UI.fontUrl||UI.font); $('fontFamily').value='';
+/* done(family, url): for a part of a label or an extra label; without it, the Font row */
+let fontDone=null;
+function openFontModal(cur,done){
+  fontDone=done||null; $('fontModal').returnValue='';
+  const fam=done? cur?.family||'' : UI.font, url=done? cur?.url : UI.fontUrl;
+  $('fontQuery').value= !fam||FONTS.includes(fam)? '' : (url||fam); $('fontFamily').value='';
   updateFontModal(); $('fontModal').showModal(); $('fontQuery').focus();
 }
 function updateFontModal(){
@@ -941,7 +980,7 @@ function updateFontModal(){
 }
 $('fontQuery').oninput=updateFontModal; $('fontFamily').oninput=updateFontModal;
 $('fontModal').addEventListener('close',()=>{ if($('fontModal').returnValue!=='ok') return;
-  const p=parseFontInput($('fontQuery').value,$('fontFamily').value); useFont(p.family,p.url); });
+  const p=parseFontInput($('fontQuery').value,$('fontFamily').value); (fontDone||useFont)(p.family,p.url); });
 
 /* ============================================================
    EXPORT / FILES / SHARE

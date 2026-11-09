@@ -102,7 +102,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .rowline.hi > * { background:var(--hair); }
 .rowmsg { grid-column:1/-1; font-size:12px; color:var(--warn); margin:-2px 0 4px; }
 .rowmsg:empty { display:none; }
-.cgrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto; gap:6px 8px; align-items:center; margin-bottom:8px; }
+.cgrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto auto; gap:6px 8px; align-items:center; margin-bottom:8px; }
+.cgrid .cstyle { grid-column:1/-1; padding:4px 0 14px; }
 .notesgrid { display:grid; gap:12px; }
 textarea.notes { min-height:220px; resize:vertical; font:13px/1.5 ui-monospace,Menlo,monospace; width:100%; }
 .notesprev { border:1px solid var(--hair); padding:12px 14px; }

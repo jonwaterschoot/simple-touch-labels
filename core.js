@@ -136,6 +136,7 @@ const DESIGN_DEFAULT = {
   fx:'none', fxColor:'#000000', fxSize:6,   // label effect: none | shadow | glow
   caps:{phone:false, desktop:false},   // the labels on the drawing in capitals, per layout; what was typed stays as typed
   names:{phone:{place:'label',size:null,x:0,y:0}, desktop:{place:'label',size:null,x:0,y:0}},   // the control names (P1, S36) per layout: in the text labels or on the drawing
+  fonts:{},              // a part's own font, {family, url, weight}: line1, line2, names, faceplate. Missing: the label font
   themes: THEME_DEFAULT,
 };
 const DESIGN_KEYS = ['size1','size2','size3','padX','padY','radius','gap','weight','modStyle','multiMod','boxOpacity','fx','fxColor','fxSize','leaderW'];
@@ -156,7 +157,7 @@ function mergeDesign(d){
   const out = cloneDesign(DESIGN_DEFAULT);
   if(!d || typeof d!=='object') return out;
   for(const k of DESIGN_KEYS) if(k in d) out[k]=d[k];
-  out.names=namesOf(d.names); out.caps=capsOf(d.caps);
+  out.names=namesOf(d.names); out.caps=capsOf(d.caps); out.fonts=fontsOf(d.fonts);
   let themes = d.themes;
   if(themes && d.v!==DESIGN_V) themes = { panel:themes.dark, print:themes.light, gold:themes.gold };
   if(themes){ for(const th in out.themes) for(const p of ['phone','desktop','panel']) Object.assign(out.themes[th][p], (themes[th]||{})[p]||{}); }
@@ -176,6 +177,7 @@ function resolveVars(svg, m){ let prev; do{ prev=svg; svg=svg.replace(/var\(--([
 const T = { font:"'Archivo', system-ui, sans-serif" };
 let design = cloneDesign(DESIGN_DEFAULT);
 let part = 'main', curPart = 'main', bw = false;
+let ownStyles = true;   // extra labels in their own style: the library's own themes leave it out, as they do the creator's font
 let soloMod = null;   // while playing: the modifier held or tapped; the main view then shows what it does
 function applyDesign(d=design){
   for(const k of ['size1','size2','padX','padY','radius','gap','weight']) T[k]=d[k];
@@ -183,6 +185,7 @@ function applyDesign(d=design){
   T.lh1 = Math.round(T.size1*1.19); T.lh2 = Math.round(T.size2*1.18); T.lh3 = Math.round(T.size3*1.25);
 }
 const SZ = n => T['size'+n], LH = n => T['lh'+n];
+const szOf = l => l.px||SZ(l.size), lhOf = l => l.px? Math.round(l.px*(l.size===1? 1.19 : 1.18)) : LH(l.size);   // px: an extra label's own size
 const palOf = (mode, th=V.theme) => design.themes[th][mode];
 function usePalette(mode, th=V.theme){
   const p=palOf(mode,th), q=design.themes[th].panel;
@@ -209,7 +212,7 @@ function normalise(d){
   s.faceplate = d.faceplate||''; s.faceplateRef = d.faceplateRef||'';
   if(FP_PATH.test(s.faceplate)){ s.faceplateFile=s.faceplate; s.faceplate=''; }   // a label file names its faceplate's file
   else if(typeof d.faceplateFile==='string' && FP_PATH.test(d.faceplateFile)) s.faceplateFile=d.faceplateFile;
-  s.customs = Array.isArray(d.customs)? structuredClone(d.customs) : [];
+  s.customs = Array.isArray(d.customs)? d.customs.filter(c=>c&&typeof c==='object').map(c=>{ const {style,...o}=structuredClone(c), st=customStyleOf(style); return st? {...o,style:st} : o; }) : [];
   s.offsets = {phone:{...((d.offsets||{}).phone||{})}, desktop:{...((d.offsets||{}).desktop||{})}};
   s.modTypes = {...(d.modTypes||{})};
   s.fpStyle = {...(d.fpStyle||{})};
@@ -261,6 +264,7 @@ function safeDesign(d){
     : typeof dv==='number'? typeof v==='number' && Number.isFinite(v) && Math.abs(v)<=1000
     : typeof v==='string' && SAFE_COLOUR.test(v.trim());
   for(const k of DESIGN_KEYS) if(!ok(k,out[k],def[k])) out[k]=def[k];
+  out.fonts=fontsOf(out.fonts,true);
   for(const th in out.themes) for(const part of ['phone','desktop','panel']){
     const o=out.themes[th][part], dflt=def.themes[th][part];
     for(const k of Object.keys(o)){
@@ -272,6 +276,27 @@ function safeDesign(d){
   return out;
 }
 const GOOGLE_FAMILY=/^[A-Za-z0-9][A-Za-z0-9 ]{0,60}$/;
+/* Own fonts and extra-label styles end up in SVG attributes, so only plain values pass. strict (a label file shown in the
+   library): Google Fonts only, as for the creator's main font. */
+const FONT_ROLES=['line1','line2','names','faceplate'], FONT_WEIGHTS=[400,500,600,700], CSS_FAMILY=/^[^"'<>&;{}\\]{1,80}$/;
+function fontSpecOf(o, strict){
+  if(!o || typeof o!=='object') return null;
+  const out={}, google=/^https:\/\/fonts\.googleapis\.com\//;
+  if(strict? GOOGLE_FAMILY.test(o.family||'') && (!o.url || google.test(o.url)) : CSS_FAMILY.test(o.family||'')){
+    out.family=o.family; if(!strict && /^https?:\/\//.test(o.url||'')) out.url=o.url; }
+  if(FONT_WEIGHTS.includes(o.weight)) out.weight=o.weight;
+  return Object.keys(out).length? out : null;
+}
+function fontsOf(o, strict){ const out={}; for(const k of FONT_ROLES){ const f=fontSpecOf(o?.[k],strict); if(f) out[k]=f; } return out; }
+/* an extra label's style: {family, url, weight, size1, size2, text, box, line, lineW}; what is missing follows the theme */
+function customStyleOf(o, strict){
+  if(!o || typeof o!=='object') return null;
+  const out={...fontSpecOf(o,strict)}, num=(v,lo,hi)=>typeof v==='number' && Number.isFinite(v) && v>=lo && v<=hi;
+  for(const k of ['size1','size2']) if(num(o[k],8,120)) out[k]=o[k];
+  if(num(o.lineW,0,20)) out.lineW=o.lineW;
+  for(const k of ['text','box','line']) if(typeof o[k]==='string' && SAFE_COLOUR.test(o[k].trim())) out[k]=o[k].trim();
+  return Object.keys(out).length? out : null;
+}
 function lookOf(d){
   if(!d || typeof d.design!=='object' || !d.design || !('size1' in d.design)) return null;
   const theme= d.view && THEME_NAMES.some(t=>t[0]===d.view.theme)? d.view.theme : 'panel';
@@ -497,7 +522,7 @@ function slotLines(s, mode='phone'){
   } finally { [T.box,T.text]=keep; }
 }
 /* box fill: the theme's (or a pad's own) colour, at the label opacity */
-const fillAttr=(lines,col)=>`fill="${col||(lines&&lines.pal?lines.pal.box:T.box)}"${T.boxOp<1?` fill-opacity="${T.boxOp}"`:''}`;
+const fillAttr=(lines,col)=>`fill="${col||lines?.ownBox||(lines&&lines.pal?lines.pal.box:T.box)}"${T.boxOp<1 && !lines?.ownBox?` fill-opacity="${T.boxOp}"`:''}`;
 /* Reference names (V.refMode): 'empty' = an unlabelled control shows its reference name,
    'caption' = a labelled control gets the reference name as a small first line, 'both' = both */
 function withRef(s,L,mode){
@@ -505,8 +530,8 @@ function withRef(s,L,mode){
   if(!L.length){
     if(V.refMode==='caption' || isOff(s.id)) return L;
     const R=[];
-    if(mode==='desktop' && r[1] && measure(capsT(r[0]+' '+r[1]),T.size1)<=DESK.maxLine) R.push({text:r[0]+' · '+r[1],color:T.text,size:1});
-    else { R.push({text:r[0],color:T.text,size:1}); if(r[1]) R.push({text:r[1],color:T.ref,size:2}); }
+    if(mode==='desktop' && r[1] && measure(capsT(r[0]+' '+r[1]),T.size1,sectionFont('names'))<=DESK.maxLine) R.push({text:r[0]+' · '+r[1],color:T.text,size:1,role:'names'});
+    else { R.push({text:r[0],color:T.text,size:1,role:'names'}); if(r[1]) R.push({text:r[1],color:T.ref,size:2,role:'names'}); }
     return R;
   }
   if(V.refMode!=='empty') L.unshift({text:r[0],color:T.ref,size:3});
@@ -537,13 +562,25 @@ function slotLines0(s, mode='phone'){
     L.split= splitOn() && mks.length>1;
     return L;
   }
-  if(mode==='desktop' && a && b && measure(capsT(a+' '+b),T.size1)<=DESK.maxLine) add(a+' '+b,own,1);
+  if(mode==='desktop' && a && b && sameFont(sectionFont('line1'),sectionFont('line2')) && measure(capsT(a+' '+b),T.size1,sectionFont('line1'))<=DESK.maxLine) add(a+' '+b,own,1);   // two fonts stay two lines
   else { add(a,own,1); add(b,own,2); }
   if(curPart==='main' || !MODDABLE.includes(s.kind)) return L;
   for(const m of mods()) if(!inMod(m,s.id) && has(s.id,'m_'+m)) add(val(s.id,'m_'+m),modColor(m),2);
   return L;
 }
-const customLines = c => { const L=[]; if((c.text||'').trim()) L.push({text:capsT(c.text.trim()),color:T.text,size:1}); if((c.sub||'').trim()) L.push({text:capsT(c.sub.trim()),color:T.text,size:2}); return L; };
+const ownStyle = c => (ownStyles && c.style) || {};
+const paintOn = () => !bw && T.theme!=='print';   // Print and B&W keep an extra label's font and size, not its colours
+function customLines(c){
+  const q=ownStyle(c), L=[], color=(paintOn() && q.text)||T.text;
+  const add=(t,size,px)=>{ t=(t||'').trim(); if(t) L.push({text:capsT(t),color,size,px,family:q.family,weight:q.weight}); };
+  add(c.text,1,q.size1); add(c.sub,2,q.size2);
+  if(paintOn() && q.box) L.ownBox=q.box;
+  return L;
+}
+function customBoxStyle(c){
+  const q=ownStyle(c), col=paintOn() && q.line, sw=q.lineW ?? (col && !(T.boxOutline>0)? 2 : T.boxOutline);
+  return sw>0? {stroke:col||T.line, sw} : {};
+}
 const boxStyle = s => { const m=s && modFor(s.id); return m ? {stroke:modColor(m),sw:T.outline} : (T.boxOutline>0?{stroke:T.line,sw:T.boxOutline}:{}); };
 const usesMod = m => SLOTS.some(s=>!inMod(m,s.id) && has(s.id,'m_'+m));
 const hasSecondary = () => mods().some(usesMod);
@@ -569,20 +606,26 @@ function bwRect(x,y,w,h,mod,idx){
    ============================================================ */
 const ctx=document.createElement('canvas').getContext('2d');
 const capsT=t=> T.caps? t.toUpperCase() : t;
-const measure=(t,size)=>{ ctx.font=`${T.weight} ${size}px ${T.font}`; return ctx.measureText(t).width; };
+/* {css, weight} of a part of a label (design.fonts), or of one line, which may have an extra label's own font */
+const LINE_ROLE={1:'line1',2:'line2',3:'names'};
+const sectionFont=role=>{ const f=design.fonts[role]||{}; return {css:f.family? `'${f.family}', ${T.font}` : T.font, weight:f.weight||T.weight}; };
+const lineFont=l=>{ const s=sectionFont(l.role||LINE_ROLE[l.size]); return {css:l.family? `'${l.family}', ${T.font}` : s.css, weight:l.weight||s.weight}; };
+const sameFont=(a,b)=>a.css===b.css && a.weight===b.weight;
+const fontAttrs=f=>(f.css!==T.font? ` font-family="${escAttr(f.css)}"` : '')+(f.weight!==T.weight? ` font-weight="${f.weight}"` : '');   // on top of the label layer's
+const measure=(t,size,f={css:T.font,weight:T.weight})=>{ ctx.font=`${f.weight} ${size}px ${f.css}`; return ctx.measureText(t).width; };
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const escAttr=t=>esc(t).replace(/"/g,'&quot;');
 function groupsOf(lines){ const g=[]; for(const l of lines){ const last=g.at(-1); if(last&&last.mk===l.mk) last.lines.push(l); else g.push({mk:l.mk,lines:[l]}); } return g; }
 const subGap=()=>Math.max(4,T.gap*0.6);
-const linesH=ls=>ls.reduce((s,l)=>s+LH(l.size),0);
+const linesH=ls=>ls.reduce((s,l)=>s+lhOf(l),0);
 function boxSize(lines){
   if(lines.split){
     const gs=groupsOf(lines); let w=0;
-    lines.forEach(l=>{ w=Math.max(w,measure(l.text,SZ(l.size))); });
+    lines.forEach(l=>{ w=Math.max(w,measure(l.text,szOf(l),lineFont(l))); });
     const h=gs.reduce((s,g)=>s+linesH(g.lines)+2*T.padY,0)+((design.multiMod==='separate'&&!bwSec())?subGap()*(gs.length-1):0);
     return {w:Math.ceil(w)+2*T.padX, h};
   }
-  let w=0,h=0; lines.forEach(l=>{ w=Math.max(w,measure(l.text,SZ(l.size))); h+=LH(l.size); });
+  let w=0,h=0; lines.forEach(l=>{ w=Math.max(w,measure(l.text,szOf(l),lineFont(l))); h+=lhOf(l); });
   const cap=holdCap(lines);
   if(cap) w=Math.max(w,measure(capText(lines),cap.size)-2*T.padX);
   return {w:Math.ceil(w)+2*T.padX, h:h+2*T.padY+(cap?cap.h:0)};
@@ -604,8 +647,8 @@ const colourHex=([r,g,b,a])=>'#'+[r,g,b,...(a<1?[Math.round(a*255)]:[])].map(x=>
 function onColour(col){ const p=parseColour(col); if(!p) return '#ffffff';
   const c=p.slice(0,3).map(v=>{v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
   return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2] > 0.4 ? '#1c1c1b' : '#ffffff'; }
-const textEl=(l,tx,cy,align,fill)=>{ const sz=SZ(l.size), lh=LH(l.size);
-  return `<text x="${tx.toFixed(1)}" y="${(cy+lh/2+sz*0.35).toFixed(1)}" font-size="${sz}" text-anchor="${align}" fill="${fill}">${esc(l.text)}</text>`; };
+const textEl=(l,tx,cy,align,fill)=>{ const sz=szOf(l), lh=lhOf(l);
+  return `<text x="${tx.toFixed(1)}" y="${(cy+lh/2+sz*0.35).toFixed(1)}" font-size="${sz}"${fontAttrs(lineFont(l))} text-anchor="${align}" fill="${fill}">${esc(l.text)}</text>`; };
 /* x,y = top-left of box; align start|middle|end within box */
 function boxSVG(lines,x,y,w,h,align='middle',style={}){
   const tx= align==='start'? x+T.padX : align==='end'? x+w-T.padX : x+w/2;
@@ -614,7 +657,7 @@ function boxSVG(lines,x,y,w,h,align='middle',style={}){
   if(bwSec() && lines.mods && lines.mods.length){
     const idx=lines.mods[0], ink=lines.modBox? onColour(T.text) : null;
     let out=bwRect(x,y,w,h,!!lines.modBox,idx), cy=y+T.padY;
-    for(const l of lines){ out+=textEl(l,tx,cy,align,ink||l.color); cy+=LH(l.size); }
+    for(const l of lines){ out+=textEl(l,tx,cy,align,ink||l.color); cy+=lhOf(l); }
     return out;
   }
   const ms= lines.modBox && !bwSec() ? modStyle() : '', mc=lines.modBox;
@@ -629,7 +672,7 @@ function boxSVG(lines,x,y,w,h,align='middle',style={}){
   if(ms==='double'){ const d=Math.max(4,(sw||1)*3), iw=Math.max(sw*0.8,0.8);
     out+=`<rect x="${(x+d).toFixed(1)}" y="${(y+d).toFixed(1)}" width="${(w-2*d).toFixed(1)}" height="${(h-2*d).toFixed(1)}" rx="${Math.max(2,T.radius-d*0.6).toFixed(1)}" fill="none" stroke="${mc}" stroke-width="${iw.toFixed(2)}"/>`; }
   let cy=y+T.padY;
-  for(const l of lines){ out+=textEl(l,tx,cy,align,ink||l.color); cy+=LH(l.size); }
+  for(const l of lines){ out+=textEl(l,tx,cy,align,ink||l.color); cy+=lhOf(l); }
   return out;
 }
 /* Black and white, control with 2+ modifiers: one box of stacked sections, each with its
@@ -660,7 +703,7 @@ function splitBoxSVG(lines,x,y,w,align,tx,sw,st){
     let cy=yy+T.padY;
     for(const l of g.lines){
       const filled= mono && lines.modBox && isModIdx(g.mk,lines);
-      out+=textEl(l,tx,cy,align,filled?onColour(T.text):l.color); cy+=LH(l.size);
+      out+=textEl(l,tx,cy,align,filled?onColour(T.text):l.color); cy+=lhOf(l);
     }
     yy+=hh+(sep?subGap():0);
   });
@@ -671,7 +714,7 @@ const DEVICE_LEFT = 94.67;   // left edge of the faceplate outline
 function legendSVG(left, top, maxW){
   if(curPart==='main') return {svg:'',text:'',h:0};
   const groups=[];
-  const txt=t=>({t, w:measure(t,T.size1)});
+  const txt=t=>({t, w:measure(t,T.size1,sectionFont('line1'))});
   const box=(text,color,style,mb,mi)=>{ const l=[{text:capsT(text),color,size:1}]; if(mb) l.modBox=mb; if(mi!==undefined) l.mods=[mi]; return {box:l, ...boxSize(l), style}; };
   const sp=T.size1*0.35, gGap=T.size1*2, gw=g=>g.reduce((s,p)=>s+p.w,0)+sp*(g.length-1);
   for(const m of mods()){
@@ -697,7 +740,7 @@ function legendSVG(left, top, maxW){
       const base=y+lh/2+T.size1*0.35;
       for(const p of g){
         if(p.box) svg+=boxSVG(p.box,x,y+(lh-p.h)/2,p.w,p.h,'middle',p.style);
-        else text+=`<text x="${x.toFixed(1)}" y="${base.toFixed(1)}" font-size="${T.size1}" fill="${T.ink}">${esc(p.t)}</text>`;
+        else text+=`<text x="${x.toFixed(1)}" y="${base.toFixed(1)}" font-size="${T.size1}"${fontAttrs(sectionFont('line1'))} fill="${T.ink}">${esc(p.t)}</text>`;
         x+=p.w+sp;
       }
       x+=gGap-sp;
@@ -793,7 +836,7 @@ function namesSVG(mode, boxOf){
   const n=design.names[mode], sz=T.size3, f=v=>v.toFixed(1);
   return SLOTS.map(s=>{ const t=nameOf(s.id); if(!t || isOff(s.id)) return '';
     const p=nameSpot(s,mode,sz,boxOf&&boxOf(s.id)), d=userOffset(mode,'n:'+s.id)||{x:0,y:0}, cx=p.x+n.x+d.x, cy=p.y+n.y+d.y, r=rotOf(mode,'n:'+s.id);
-    return boxG('n:'+s.id,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}" text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
+    return boxG('n:'+s.id,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}"${fontAttrs(sectionFont('names'))} text-anchor="middle" fill="${T.ink}" stroke="${T.bg}" stroke-width="${f(Math.max(2,sz*0.25))}" stroke-linejoin="round" paint-order="stroke">${esc(capsT(t))}</text>`); }).join('');
 }
 
 /* The faceplate labels (doc.fpLabels): text on the panel itself, like print on the hardware. It follows the print set,
@@ -817,7 +860,7 @@ function fpLabelsSVG(mode){
   const ink=s=>T.fpl || (q.drawing==='simple' && !['knob','fader','jack'].includes(s.kind)? q.shape : q.fp) || T.ink;
   return SLOTS.map(s=>{ const t=fplText(s.id); if(!t) return '';
     const key='f:'+s.id, p=fplSpot(s,mode,sz), d=userOffset(mode,key)||{x:0,y:0}, cx=p.x+d.x, cy=p.y+d.y, r=rotOf(mode,key);
-    return boxG(key,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}" text-anchor="middle" fill="${ink(s)}">${esc(capsT(t))}</text>`); }).join('');
+    return boxG(key,`<text x="${f(cx)}" y="${f(cy+sz*0.35)}"${r?` transform="rotate(${r} ${f(cx)} ${f(cy)})"`:''} font-size="${sz}"${fontAttrs(sectionFont('faceplate'))} text-anchor="middle" fill="${ink(s)}">${esc(capsT(t))}</text>`); }).join('');
 }
 
 /* ============================================================
@@ -857,7 +900,7 @@ function layoutPhone(){
   for(const o of items){ const d=userOffset('phone',o.s.id); if(d){ o.cx+=d.x; o.cy+=d.y; } }
   if(curPart==='main') for(const c of doc.customs||[]){
     const lines=customLines(c); if(!lines.length) continue;
-    items.push({s:{id:'c'+c.id,kind:'custom',x:c.x,y:c.y},lines,...turnedSize(lines,'phone','c'+c.id),cx:c.x,cy:c.y,custom:true});
+    items.push({s:{id:'c'+c.id,kind:'custom',x:c.x,y:c.y},lines,...turnedSize(lines,'phone','c'+c.id),cx:c.x,cy:c.y,custom:c});
   }
   const warns={};
   for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++){
@@ -880,9 +923,9 @@ function frameOf(build,th,pt){
 /* Returns {vb, art, over, th, panelVars, warns, bounds}; svgOf() joins it into one <svg> */
 function buildPhone(forExport,th=V.theme,pt=part,frame){
   if(frame===undefined) frame=frameOf(buildPhone,th,pt);
-  curPart=pt; usePalette('phone',th);
+  curPart=pt; usePalette('phone',th); wantFonts();
   const {items,warns}=layoutPhone();
-  let g=items.map(o=>boxG(o.s.id,placedBox(o,'middle',boxStyle(o.s)))).join('');
+  let g=items.map(o=>boxG(o.s.id,placedBox(o,'middle',o.custom? customBoxStyle(o.custom) : boxStyle(o.s)))).join('');
   const named=namesSVG('phone',id=>items.find(o=>o.s.id===id));
   let x0=PANEL_BOX.x, y0=PANEL_BOX.y, x1=PANEL_BOX.x+PANEL_BOX.w, y1=PANEL_BOX.y+PANEL_BOX.h;
   for(const o of items){ x0=Math.min(x0,o.x-12); x1=Math.max(x1,o.x+o.w+12); y0=Math.min(y0,o.y-12); y1=Math.max(y1,o.y+o.h+12); }
@@ -917,7 +960,7 @@ const OB_MARGIN=12;
 
 function buildDesktop(forExport,th=V.theme,pt=part,frame){
   if(frame===undefined) frame=frameOf(buildDesktop,th,pt);
-  curPart=pt; usePalette('desktop',th);
+  curPart=pt; usePalette('desktop',th); wantFonts();
   const L=PANEL_BOX.x, R=PANEL_BOX.x+PANEL_BOX.w, lx=L-DESK.gap, rx=R+DESK.gap;
   const gap=Math.max(T.gap,12);
   const side={L:[],R:[]}, topRow=[];
@@ -1026,7 +1069,7 @@ function buildDesktop(forExport,th=V.theme,pt=part,frame){
   }
   if(curPart==='main') for(const c of doc.customs||[]){
     const cl=customLines(c); if(!cl.length) continue;
-    const t=turnedSize(cl,'desktop','c'+c.id); boxes+=boxG('c'+c.id,placedBox({lines:cl,...t,x:c.x-t.w/2,y:c.y-t.h/2},'middle',boxStyle(null)));
+    const t=turnedSize(cl,'desktop','c'+c.id); boxes+=boxG('c'+c.id,placedBox({lines:cl,...t,x:c.x-t.w/2,y:c.y-t.h/2},'middle',customBoxStyle(c)));
   }
   const pad=24;
   let x0=lx-maxW.L-pad, x1=rx+maxW.R+pad;
@@ -1257,7 +1300,7 @@ function parseFontInput(raw, famInput) {
    font dialog) waits for the same load instead of resolving before the font is there. Resolves once
    the label weight of the family is usable. */
 const fontSheets = {};
-function ensureFontLoaded(family, url) {
+function ensureFontLoaded(family, url, weight) {
   if (!family || family === 'Archivo') return Promise.resolve();
   const href = url || fontHref(family);
   if (!fontSheets[href]) fontSheets[href] = new Promise(res => {
@@ -1265,7 +1308,7 @@ function ensureFontLoaded(family, url) {
     l.onload = l.onerror = res; l.href = href;
     document.head.appendChild(l);
   });
-  return fontSheets[href].then(() => document.fonts.load(`${T.weight||400} 32px '${family}'`)).catch(() => {});
+  return fontSheets[href].then(() => document.fonts.load(`${weight||T.weight||400} 32px '${family}'`)).catch(() => {});
 }
 /* Label boxes are measured with the label font; whenever a font face finishes loading
    (another weight, a slow network, a font set by a saved file), the page draws again. */
@@ -1273,6 +1316,10 @@ let onFontsLoaded = null, fontsTimer = null;
 document.fonts.addEventListener('loadingdone', () => { clearTimeout(fontsTimer); fontsTimer = setTimeout(() => onFontsLoaded && onFontsLoaded(), 50); });
 function setLabelFont(family){ T.font = `'${family||'Archivo'}', 'Archivo', system-ui, sans-serif`; }
 const labelFontHref = (family, url) => url || (family && family!=='Archivo' ? fontHref(family) : null);
+/* The fonts of label parts and extra labels. Each is asked for once; the page draws again on loadingdone. */
+const usedFonts = () => [...Object.values(design.fonts), ...(ownStyles? (doc.customs||[]).map(c=>c.style||{}) : [])].filter(f=>f.family);
+const fontsAsked = new Set();
+function wantFonts(){ for(const f of usedFonts()){ const k=[f.family,f.url,f.weight].join('|'); if(!fontsAsked.has(k)){ fontsAsked.add(k); ensureFontLoaded(f.family,f.url,f.weight); } } }
 
 /* ============================================================
    MARKDOWN: # headings, **bold**, *em*, `code`, [links](url), - / 1. lists, | tables |, ---
@@ -1776,7 +1823,7 @@ function manualHTML({font, fontUrl, withTable}){
   bw=keepBW;
   const tables= withTable? modes.map((m,i)=>`<section class="md-${i}">${withMode(m.pos,()=>tableHTML(false))}</section>`).join('\n') : '';
   const modeCss= ml.length? modes.map((m,i)=>`html:not(.md-${i}) .md-${i}`).join(',')+'{display:none!important}' : '';
-  const dk=pageInk(screenTh), lt=pageInk('print'), fHref=labelFontHref(font,fontUrl);
+  const dk=pageInk(screenTh), lt=pageInk('print'), fHrefs=[...new Set([labelFontHref(font,fontUrl), ...usedFonts().map(f=>labelFontHref(f.family,f.url))].filter(Boolean))];
   const modVars=[1,2,3,4].map(i=>`--m${i}:${palOf('phone',screenTh)['m'+i]}`).join(';');
   const html=`<!DOCTYPE html>
 <html lang="en" class="${V.theme==='print'?'light':''} md-${cur}"><head><meta charset="utf-8">
@@ -1784,7 +1831,7 @@ function manualHTML({font, fontUrl, withTable}){
 <meta name="generator" content="Simple Touch Manual Designer (build ${BUILD}), after Fabio Bartali's Manual Designer">
 <title>${esc(fw.name||'Simple Touch')} manual</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">
-${fHref?`<link rel="stylesheet" href="${escAttr(fHref)}">`:''}
+${fHrefs.map(h=>`<link rel="stylesheet" href="${escAttr(h)}">`).join('\n')}
 <style>
 *{box-sizing:border-box}
 html{--bg:${dk.bg};--fg:${dk.fg};--muted:${dk.muted};--rule:${dk.rule};--hair:${dk.hair};${modVars}}

@@ -150,7 +150,7 @@ function buildCommunity(list){
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
 function syncLook(){
   const L= UI.theme==='creator' && doc.look;
-  design= L? L.design : LIB_DESIGN;
+  design= L? L.design : LIB_DESIGN; ownStyles=!!L;
   V.theme= L? L.theme : UI.libTheme;
   setLabelFont(L? L.font : 'Archivo'); applyDesign();
   // the font once; the boxes are measured again when it is in
