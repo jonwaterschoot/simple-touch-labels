@@ -6,7 +6,7 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 
 ## Where it stands
 
-- **Library**: officials (TouchBass, Touch FX, Touch String, Audrey II Touch) from `examples/*.json`, community firmwares from the Synthux directory, README view, creator themes, Play.
+- **Library**: officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) from `examples/*.json`, community firmwares from the Synthux directory, README view, creator themes, Play.
 - **Playable**: TouchVink (from its own repository, sha256-pinned). TouchPlaited builds and passes the smoke test locally (not published yet).
 - **Asked Synthux** (Discord, 2026-10-28; Fabio, Roey, Vlad): how Lab is built, whether its code is public, and whether official repos could carry the `.wasm`, `simple-touch-labels.json` and the faceplate.
 
