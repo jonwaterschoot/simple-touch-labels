@@ -41,11 +41,12 @@
 
   <div class="bar">
     <div class="grp pick"><div class="seg" id="tabSeg" role="group" aria-label="Kind of map"></div><select id="srcSel" aria-label="Firmware or map"></select></div>
-    <div class="grp view">
+    <div class="grp view" id="viewGrp">
       <label class="grp"><span class="cap">Theme</span><select id="themeSel"></select></label>
       <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
-      <div class="grp"><span class="cap">Labels</span><button type="button" id="lblBtn" class="tight lbl" title="Switches which labels show on the drawing">All labels</button></div>
     </div>
+    <div class="grp lblgrp"><span class="cap">Labels</span><button type="button" id="lblBtn" class="tight lbl" title="Switches which labels show on the drawing">All labels</button></div>
+    <button type="button" id="viewBtn" class="tight viewbtn" aria-expanded="false" aria-controls="viewGrp">View ▾</button>
     <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
@@ -168,6 +169,8 @@ $('srcSel').onchange=e=>{
 };
 $('themeSel').onchange=e=>{ const v=e.target.value; UI.theme=v; if(v!=='creator') UI.libTheme=v; update(); };
 $('lblBtn').onclick=()=>Play.nextLabels();
+/* phones: theme and layout fold away behind View */
+$('viewBtn').onclick=()=>{ const open=$('viewBtn').closest('.bar').classList.toggle('view-open'); $('viewBtn').setAttribute('aria-expanded',String(open)); };
 /* The Creator theme: the label file's own colours, sizes, font and drawing (doc.look); the other themes are the library's */
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
 function syncLook(){

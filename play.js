@@ -111,22 +111,26 @@ const Play = (()=>{
   function build(box){
     box.innerHTML=`<div class="pctl" id="playSrcRow" hidden>
       <span class="cap">Mode</span><span class="seg" id="playSrc"></span>
-    </div><div class="pctl b-only">
-      <button type="button" id="playGo" class="primary">▶ Play</button>
-      <button type="button" id="playInfo" class="info" title="How to play" aria-label="How to play">i</button>
-      <label><span class="cap">Input</span><select id="playIn" aria-label="Audio input"></select></label>
-      <input type="file" id="playFile" accept="audio/*" hidden>
-      <label><span class="cap">In level</span><input type="range" id="playInLevel" min="0" max="1.5" step="0.01"></label>
-      <label><span class="cap">Volume</span><input type="range" id="playVol" min="0" max="1" step="0.01"></label>
-      <span class="pmeter" title="Output level"><i id="playMeter"></i></span>
-      <label class="chk"><input type="checkbox" id="playOled"> OLED</label>
-      <span class="status" id="playMsg" role="status"></span>
-    </div><div class="pctl">
-      <label class="midi b-only"><span class="cap">MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
-      <label class="midi b-only"><span class="cap">MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
-      <span class="keys b-only"><span class="cap">Keys</span><span class="seg" id="playKeys"></span></span>
-      <button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button>
-      <button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>
+    </div><div class="pgrid">
+      <div class="pgroup pgo b-only">
+        <div class="prow"><button type="button" id="playGo" class="primary">▶ Play</button><button type="button" id="playInfo" class="info" title="How to play" aria-label="How to play">i</button></div>
+        <span class="status" id="playMsg" role="status"></span>
+      </div>
+      <div class="pgroup b-only"><span class="cap">Sound</span>
+        <label><span>Input</span><select id="playIn" aria-label="Audio input"></select></label>
+        <input type="file" id="playFile" accept="audio/*" hidden>
+        <label><span>In level</span><input type="range" id="playInLevel" min="0" max="1.5" step="0.01"></label>
+        <label><span>Volume</span><input type="range" id="playVol" min="0" max="1" step="0.01"><span class="pmeter" title="Output level"><i id="playMeter"></i></span></label>
+      </div>
+      <div class="pgroup b-only"><span class="cap">MIDI and keys</span>
+        <label class="midi"><span>MIDI in</span><select id="playMidiIn" aria-label="MIDI input"></select></label>
+        <label class="midi"><span>MIDI out</span><select id="playMidiOut" aria-label="MIDI output"></select></label>
+        <div class="keys"><span>Keys</span><span class="seg" id="playKeys"></span></div>
+      </div>
+      <div class="pgroup"><span class="cap">View</span>
+        <div class="prow"><button type="button" id="playLock" class="tight" title="Touches on the drawing never scroll the page">Lock scroll</button><button type="button" id="playStage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button></div>
+        <label class="chk b-only"><input type="checkbox" id="playOled"> OLED</label>
+      </div>
     </div><div class="device d-only" id="playLink"></div><div class="device" id="playDevice" hidden></div>`;
     $p('playLock').onclick=()=>{ S.lock=!S.lock; try{ localStorage.setItem(PLAY_LOCK_PREF, S.lock?'1':'0'); }catch(err){} body(); };
     $p('playStage').onclick=()=>stage(!S.stage);
@@ -348,10 +352,21 @@ const Play = (()=>{
     const device=deviceMod.parseDevice(doc.device); if(!device) return;
     S.panel=deviceMod.mountDevicePanel(box, device, {send:deviceSend,
       idle:()=> S.source==='device'? 'Not sent: plug in the Simple Touch and choose its MIDI port.' : 'Not sent: press Play first, or choose Connect to Simple Touch.'});
+    keyboards(box);
     S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }, live:LIVE_HANDLERS});
     S.follows=S.link.follows; S.oledRows=device.live?.oled?.rows||0;
     box.hidden=false;
     if(S.source==='device') refresh();
+  }
+  /* a setting with the 12 note names as buttons (a root note) is drawn as one octave of keys (ui.css .keyboard) */
+  function keyboards(box){
+    const NOTE_RE=/^([A-G])([#♯b♭]?)$/;
+    for(const g of box.querySelectorAll('.device-choices')){
+      const bs=[...g.querySelectorAll('button')];
+      if(bs.length!==12 || !bs.every(b=>NOTE_RE.test(b.textContent.trim()))) continue;
+      g.classList.add('keyboard');
+      for(const b of bs){ b.title=b.textContent.trim(); if(NOTE_RE.exec(b.title)[2]) b.classList.add('k-black'); }
+    }
   }
   function bindMidi(){
     if(!S.midi) return;
@@ -470,7 +485,7 @@ const Play = (()=>{
   /* after the labels were drawn again: which hide under "No pad labels", and the marks on them */
   function tagLabels(){
     labelClasses();
-    document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^[nf]:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
+    document.querySelectorAll('#fig g[data-key], #fig g[data-lead]').forEach(g=>{ const k=SLOT[(g.dataset.key||g.dataset.lead).replace(/^[nf]:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     for(const id of S.hot) paintRow(id);
     const h=hovId; hovId=null; setHover(h);
   }
