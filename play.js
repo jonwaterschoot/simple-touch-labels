@@ -29,7 +29,7 @@ const PLAY_LEVERS = {
 };
 const FADER_RUN = [861, 618];   // fader cap centre at 0 and at 1 (panel units)
 
-const STAGE_LABELS = {all:'All labels', nopads:'No pad labels', faceplate:'Faceplate', clean:'No labels'};   // the full screen button's views, in order
+const STAGE_LABELS = {all:'All labels', nopads:'No pad labels', faceplate:'Faceplate', clean:'No labels'};   // the Labels button's views, in order (page toolbar and full screen)
 
 const Play = (()=>{
   const S = {
@@ -49,7 +49,7 @@ const Play = (()=>{
     midi:null, midiIn:'', midiOut:'', runOut:0, last:{}, sysex:{}, mval:{}, midiPads:{}, ccOut:{},   // Web MIDI: access, chosen ports ('*' = all inputs); last message and SysEx per table row; last value per control; the firmware's last value per CC
     hot:new Set(), cool:{},   // table rows of the controls in use
     mode:null, held:[],       // the toggle modifier tapped last, the hold modifiers held: the labels follow them
-    lock:matchMedia('(pointer: coarse)').matches, stage:false, sound:false, labels:'all',   // touch: scroll lock; full screen, its sound sheet and label view (STAGE_LABELS)
+    lock:matchMedia('(pointer: coarse)').matches, stage:false, sound:false, labels:'all',   // touch: scroll lock; full screen and its sound sheet; label view (STAGE_LABELS), in and out of full screen
   };
   try{ const k=localStorage.getItem(PLAY_KEYS_PREF); if(PLAY_LAYOUTS[k]){ S.layout=k; S.layoutSet=true; } }catch(e){}
   try{ const l=localStorage.getItem(PLAY_LOCK_PREF); if(l) S.lock= l==='1'; }catch(e){}
@@ -152,8 +152,7 @@ const Play = (()=>{
     b.classList.toggle('play-lock', on && S.lock);
     b.classList.toggle('play-stage', S.stage);
     b.classList.toggle('stage-sound', S.stage && S.sound);
-    const view=labelView();
-    for(const k of ['nopads','faceplate','clean']) b.classList.toggle('stage-'+k, S.stage && view===k);
+    labelClasses();
     $p('playLock')?.setAttribute('aria-pressed', String(S.lock));
     $p('playStage')?.setAttribute('aria-pressed', String(S.stage));
     const bar=$p('stageBar'); if(!bar) return;
@@ -161,7 +160,12 @@ const Play = (()=>{
     bar.querySelector('[data-a="go"]').hidden= S.source==='device';   // a board plays by itself
     bar.querySelector('[data-a="sound"]').textContent= S.source==='device'? 'Settings' : 'Sound';
     bar.querySelector('[data-a="sound"]').setAttribute('aria-pressed', String(S.sound));
-    bar.querySelector('[data-a="labels"]').textContent=STAGE_LABELS[view];
+    bar.querySelector('[data-a="labels"]').textContent=STAGE_LABELS[labelView()];
+  }
+  function labelClasses(){
+    const view=labelView();
+    for(const k of ['nopads','faceplate','clean']) document.body.classList.toggle('lbl-'+k, view===k);
+    const btn=$p('lblBtn'); if(btn) btn.textContent=STAGE_LABELS[view];
   }
   /* Faceplate is offered when the file has faceplate labels, also on a layout that has them off */
   const labelViews=()=>Object.keys(STAGE_LABELS).filter(k=>k!=='faceplate' || (doc.fpLabels?.on && SLOTS.some(s=>fplText(s.id))));
@@ -170,7 +174,7 @@ const Play = (()=>{
     const v=labelViews(); S.labels=v[(v.indexOf(labelView())+1)%v.length];
     const force=S.labels==='faceplate';
     if(force!==fplForce){ fplForce=force; if(S.svg) relabel(true); else refresh(); }   // while playing only the labels are drawn again, so held controls stay held
-    body();
+    body(); labelClasses();
   }
   function stage(on){
     S.stage=on; S.sound=false;
@@ -186,7 +190,6 @@ const Play = (()=>{
       document.body.append(bar);
     }
     if(!on) bar?.remove();
-    fplForce= on && labelView()==='faceplate';
     const fs=document.fullscreenElement;
     if(on && !fs) document.documentElement.requestFullscreen?.().catch(()=>{});
     if(!on && fs) document.exitFullscreen?.().catch(()=>{});
@@ -466,6 +469,7 @@ const Play = (()=>{
   }
   /* after the labels were drawn again: which hide under "No pad labels", and the marks on them */
   function tagLabels(){
+    labelClasses();
     document.querySelectorAll('#fig g[data-key]').forEach(g=>{ const k=SLOT[g.dataset.key.replace(/^[nf]:/,'')]?.kind; if(k==='pad'||k==='mod'||k==='switch') g.classList.add('padlabel'); });
     for(const id of S.hot) paintRow(id);
     const h=hovId; hovId=null; setHover(h);
@@ -613,7 +617,7 @@ const Play = (()=>{
   }
 
   function attach(fig){
-    S.svg=null; S.mod=null;
+    S.svg=null; S.mod=null; labelClasses();   // the page set body's class anew
     if(!showing()) return;
     const svg=fig.querySelector('svg'); if(!svg) return;
     const art= design.themes[V.theme].panel.drawing!=='simple' && tagPadArt();
@@ -797,7 +801,7 @@ const Play = (()=>{
   }
 
   return {
-    strip, attach, table, reset, stop,
+    strip, attach, table, reset, stop, nextLabels,
     get on(){ return showing(); },
     get stage(){ return S.stage; },
   };

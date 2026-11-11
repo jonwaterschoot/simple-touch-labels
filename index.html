@@ -35,19 +35,17 @@
       <p id="intro"></p>
     </div>
     <div class="export">
-      <span class="cap">Export</span>
-      <div class="btns"><button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button><button type="button" id="flashBtn" title="Checks a firmware .bin and flashes it over USB" hidden>Upload to device…</button><span class="status" id="busy"></span></div>
+      <div class="btns"><button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button><button type="button" id="flashBtn" title="Checks a firmware .bin and flashes it over USB" hidden>Upload to device…</button><span class="status" id="busy"></span></div>
     </div>
   </header>
 
   <div class="bar">
-    <div class="grp"><span class="cap">Label set</span><div class="seg" id="setSeg"></div></div>
-    <div class="grp"><span class="cap">Firmware</span><div class="seg" id="fwSeg"></div></div>
-    <div class="grp" id="commGrp" hidden><span class="cap">Community</span><select id="commSel" aria-label="Community firmware"></select></div>
-  </div>
-  <div class="bar">
-    <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div><button type="button" id="themeMore" class="tight" hidden>Other themes</button></div>
-    <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
+    <div class="grp pick"><div class="seg" id="tabSeg" role="group" aria-label="Kind of map"></div><select id="srcSel" aria-label="Firmware or map"></select></div>
+    <div class="grp view">
+      <label class="grp"><span class="cap">Theme</span><select id="themeSel"></select></label>
+      <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
+      <div class="grp"><span class="cap">Labels</span><button type="button" id="lblBtn" class="tight lbl" title="Switches which labels show on the drawing">All labels</button></div>
+    </div>
     <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
@@ -110,7 +108,8 @@ const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null, mode:''};
-const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', allThemes:false, arrange:'side', exWhat:'panel', exLook:'color'};
+const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', arrange:'side', exWhat:'panel', exLook:'color',
+  tab:'fw', last:{}, community:null};   // tab: fw | comm | wire, the list the picker shows; last: the entry opened last per tab
 const $=id=>document.getElementById(id);
 let ready=false;
 
@@ -118,15 +117,39 @@ function seg(el, opts, isOn, pick){
   el.innerHTML='';
   for(const [v,l] of opts){ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.setAttribute('aria-pressed',String(!!isOn(v))); b.onclick=()=>pick(v); el.append(b); }
 }
+/* The picker: three lists, one shown at a time. A firmware is in one list only (loadCommunity leaves out the official ones). */
+const TABS = {
+  fw:   {label:'Official',   title:'Synthux Academy firmware for the Simple Touch'},
+  comm: {label:'Community',  title:'Simple Touch firmware from the Synthux community directory'},
+  wire: {label:'DIY wiring', title:'The bare PCB: pin and code names, for building the kit or writing firmware'},
+};
+const tabOf = src => src==='community'? 'comm' : REF_SETS[src]? 'wire' : FIRMWARE.includes(src)? 'fw' : '';
+function tabItems(t){
+  if(t==='fw') return FIRMWARE.map(k=>[k,EXAMPLES[k].label]);
+  if(t==='wire') return Object.entries(REF_SETS).map(([k,r])=>[k,r.label+' names']);
+  return (UI.community||[]).map(p=>[p.id,p.name]);
+}
+function pickTab(t){
+  UI.tab=t; const items=tabItems(t), last=UI.last[t];
+  if(tabOf(UI.src)===t){ buildBars(); return; }
+  if(t==='comm'){ const p=(UI.community||[]).find(x=>x.id===last); p? pick('community',p) : buildBars(); return; }
+  pick(items.some(([k])=>k===last)? last : items[0][0]);
+}
 function buildBars(){
-  seg($('setSeg'), Object.entries(REF_SETS).map(([k,r])=>[k,r.label]), v=>UI.src===v, pick);
-  seg($('fwSeg'), FIRMWARE.map(k=>[k,EXAMPLES[k].label]), v=>UI.src===v, pick);
-  $('commSel').value= UI.proj? UI.proj.id : '';
-  // a creator's look: that one alone, with the others one click away
-  const lookOnly=doc.look && UI.theme==='creator' && !UI.allThemes;
-  $('themeMore').hidden=!lookOnly;
-  seg($('themeSeg'), lookOnly? [['creator','Creator']] : [...(doc.look? [['creator','Creator']] : []), ...THEME_NAMES], v=>v===(doc.look? UI.theme : UI.libTheme),
-    v=>{ UI.theme=v; if(v==='creator') UI.allThemes=false; else UI.libTheme=v; update(); });
+  const cur=tabOf(UI.src);
+  if(cur && (UI.tab!=='comm' || cur==='comm')) UI.tab=cur;   // the community tab stays open while its list waits for a choice
+  if(UI.src==='preview') UI.tab='';
+  const tabs=Object.keys(TABS).filter(k=>k!=='comm' || UI.community?.length);
+  seg($('tabSeg'), tabs.map(k=>[k,TABS[k].label]), v=>UI.tab===v, pickTab);
+  $('tabSeg').querySelectorAll('button').forEach((b,i)=>b.title=TABS[tabs[i]].title);
+  const sel=$('srcSel'), items=tabItems(UI.tab), on= UI.proj? UI.proj.id : UI.src;
+  sel.hidden=!UI.tab;
+  sel.replaceChildren(...(UI.tab==='comm' && !items.some(([k])=>k===on)? [new Option(`Choose (${items.length})…`,'')] : []), ...items.map(([k,l])=>new Option(l,k)));
+  sel.value= items.some(([k])=>k===on)? on : '';
+  // the creator's look first; the library's themes below it
+  const ts=$('themeSel');
+  ts.replaceChildren(...(doc.look? [new Option('Creator','creator')] : []), ...THEME_NAMES.map(([k,l])=>new Option(l,k)));
+  ts.value= doc.look? UI.theme : UI.libTheme;
   seg($('layoutSeg'), [['phone','Phone'],['desktop','Desktop']], v=>V.layout===v, v=>{ V.layout=v; update(); });
   seg($('arrangeSeg'), [['side','Side by side'],['stack','Stacked']], v=>UI.arrange===v, v=>{ UI.arrange=v; update(); });
   // modes (doc.modes, core.js): all of them (the print set) or one; while playing, the lever picks
@@ -138,14 +161,13 @@ function buildBars(){
   $('arrangeSeg').hidden=!sec;
   $('arrangeSeg').querySelectorAll('button').forEach(b=>b.disabled=Play.on||Play.stage);
 }
-/* entries from the Synthux community directory; listed ones have no label file yet */
-function buildCommunity(list){
-  const s=$('commSel');
-  s.replaceChildren(new Option(`Choose (${list.length})…`,''), ...list.map(p=>new Option(p.name,p.id)));
-  s.value= UI.proj? UI.proj.id : '';
-  s.onchange=()=>{ const p=list.find(x=>x.id===s.value); if(p) pick('community',p); };
-  $('commGrp').hidden=!list.length;
-}
+$('srcSel').onchange=e=>{
+  const v=e.target.value; if(!v) return;
+  if(UI.tab==='comm'){ const p=UI.community.find(x=>x.id===v); if(p) pick('community',p); }
+  else pick(v);
+};
+$('themeSel').onchange=e=>{ const v=e.target.value; UI.theme=v; if(v!=='creator') UI.libTheme=v; update(); };
+$('lblBtn').onclick=()=>Play.nextLabels();
 /* The Creator theme: the label file's own colours, sizes, font and drawing (doc.look); the other themes are the library's */
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
 function syncLook(){
@@ -159,8 +181,9 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
-  Play.reset(); V.mode=''; UI.allThemes=false;
+  Play.reset(); V.mode='';
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
+  const t=tabOf(src); if(t){ UI.tab=t; UI.last[t]= proj? proj.id : src; }
   if(REF_SETS[src]){ doc=emptyDoc(); V.ref=src; }
   else if(src==='preview'){
     const p=await previewDoc();
@@ -271,7 +294,6 @@ $('libSplit').addEventListener('pointerdown',e=>{
   addEventListener('pointermove',move); addEventListener('pointerup',up);
 });
 $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(figKey()); }catch(e){} sizeFig(); });
-$('themeMore').onclick=()=>{ UI.allThemes=true; buildBars(); };
 
 (async()=>{
   const q=new URLSearchParams(location.search);
@@ -282,7 +304,7 @@ $('themeMore').onclick=()=>{ UI.allThemes=true; buildBars(); };
   buildBars();
   try{ await loadPanelArt(); }catch(e){ $('fig').innerHTML='<p class="hint">The panel drawing could not be loaded. Open this page from a web server (GitHub Pages or a local server), not as a file.</p>'; return; }
   ready=true; onFontsLoaded=update;
-  const community=loadCommunity().then(list=>{ buildCommunity(list); return list; }).catch(()=>[]);
+  const community=loadCommunity().catch(()=>[]).then(list=>{ UI.community=list; buildBars(); return list; });
   const P= q.get('community') && (await community).find(p=>p.id===q.get('community'));
   await (P? pick('community',P,q.has('theme')) : pick(UI.src,null,q.has('theme')));
   document.fonts.ready.then(update);

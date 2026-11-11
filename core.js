@@ -124,7 +124,7 @@ const THEME_DEFAULT = {
     desktop: { mw:2,   ow:1, box:'#ffffff', text:'#1c1c1b', line:'#1c1c1b', ref:'#7d7979', ...MODS_DEF },
     panel:   { bg:'#ffffff', line:'#1c1c1b', shape:'#1c1c1b', mid:'#8a8a87', fp:'#1c1c1b', leader:'#1c1c1b', ink:'#1c1c1b' } },
 };
-const THEME_NAMES = [['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold'],['print','Print']];
+const THEME_NAMES = [['light','Light'],['dark','Dark'],['vis','Visualiser'],['panel','Synthux panel'],['gold','Synthux gold'],['print','Synthux light']];
 const DESIGN_V = 2;
 const DESIGN_DEFAULT = {
   v: DESIGN_V,
@@ -418,6 +418,7 @@ const EXAMPLES = {
   touchfx:     { label:'Touch FX',        file:'examples/touchfx.json',     repo:'https://github.com/Synthux-Academy/TouchFX', faceplateFile:'examples/faceplates/touchfx.svg' },
   touchstring: { label:'Touch String',    file:'examples/touchstring.json', repo:'https://github.com/Synthux-Academy/TouchString', faceplateFile:'examples/faceplates/touchstring.svg' },
   audreytouch: { label:'Audrey II Touch', file:'examples/audreytouch.json', repo:'https://github.com/Synthux-Academy/AudreyTouch' },
+  touchbloop:  { label:'TouchBloop',      file:'examples/touchbloop.json',  repo:'https://github.com/Synthux-Academy/TouchBloop' },
 };
 const exampleCache = {};
 async function loadExample(key){
@@ -569,7 +570,7 @@ function slotLines0(s, mode='phone'){
   return L;
 }
 const ownStyle = c => (ownStyles && c.style) || {};
-const paintOn = () => !bw && T.theme!=='print';   // Print and B&W keep an extra label's font and size, not its colours
+const paintOn = () => !bw && T.theme!=='print';   // Synthux light (also the Print export) and B&W keep an extra label's font and size, not its colours
 function customLines(c){
   const q=ownStyle(c), L=[], color=(paintOn() && q.text)||T.text;
   const add=(t,size,px)=>{ t=(t||'').trim(); if(t) L.push({text:capsT(t),color,size,px,family:q.family,weight:q.weight}); };
@@ -853,7 +854,7 @@ function fplSpot(s,mode,sz){
   if(s.kind==='led') return {x:s.x, y:s.y+14+sz*0.5};
   return {x:s.x, y:s.y-(mode==='phone'? 46 : 14)-sz*0.5};   // pads: clear of the box or the leader's dot on them
 }
-let fplForce = false;   // full screen's Faceplate view (play.js): draws them on a layout set to off too
+let fplForce = false;   // the Labels button's Faceplate view (play.js): draws them on a layout set to off too
 function fpLabelsSVG(mode){
   if(!fplOn(mode) && !(fplForce && doc.fpLabels?.on)) return '';
   const sz=doc.fpLabels[mode].size, q=design.themes[T.theme].panel, f=v=>v.toFixed(1);

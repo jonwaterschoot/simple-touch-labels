@@ -33,7 +33,7 @@
     <div class="export">
       <span class="cap">Export</span>
       <div class="btns">
-        <button type="button" class="primary" id="pngBtn" title="Choose what to include, colour or print, and the paper size in the export window">Export PNG…</button>
+        <button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
         <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
         <button type="button" id="shareBtn">Copy share link</button>
@@ -606,7 +606,7 @@ function customStyleRow(c){
   for(const [k,label] of [['text','Text colour'],['box','Box colour'],['line','Outline colour']])
     g.append(el('div',{className:'dc'},el('span',{textContent:label}),colorInput(q()[k]||pal[k],`${label}, ${c.text||'extra label'}`,v=>put({[k]:v})),el('span')));
   g.append(slider('Outline thickness',0,12,0.5,()=>q().lineW??pal.ow,v=>put({lineW:v})));
-  g.append(el('p',{className:'hint',textContent:'Print and B&W leave out these colours. The library uses this style in the Creator theme.'}));
+  g.append(el('p',{className:'hint',textContent:'Synthux light, the Print export and B&W leave out these colours. The library uses this style in the Creator theme.'}));
   g.append(el('div',{className:'btns'},el('button',{type:'button',className:'tight',textContent:'Reset style',onclick:()=>{ delete c.style; buildForm(); render(); }})));
   return g;
 }
