@@ -32,6 +32,14 @@ function communityDoc(p){
   return d;
 }
 
+/* A repository as a directory entry: its own entry if the directory lists it, else its name and owner from the URL */
+async function repoEntry(repo){
+  const listed=(await loadDirectory().catch(()=>[])).find(p=>p.repo===repo);
+  if(listed) return listed;
+  const [owner, name]=repoShort(repo).split('/');
+  return {id:name.toLowerCase(), name, repo, author:{name:owner}};
+}
+
 /* ============================================================
    FILES IN A REPOSITORY: default branch, GitHub (raw) or Codeberg (API, which sends CORS)
    ============================================================ */

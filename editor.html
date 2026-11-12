@@ -42,6 +42,7 @@
       <div class="btns">
         <button type="button" id="openBtn">Open file…</button>
         <input type="file" id="openFile" accept=".json,application/json" hidden>
+        <button type="button" id="repoBtn" title="Reads a GitHub or Codeberg repository's label file, or the labels in its README">Open repository…</button>
         <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
         <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
         <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
@@ -87,6 +88,17 @@
     <div class="chips" id="fontPicks"></div>
     <div class="fpreview"><span class="cap" id="fontPrevName"></span><div id="fontPrev">Delay time · Reverb mix · 0123456789</div></div>
     <div class="mfoot"><button value="cancel">Cancel</button><button value="ok" class="primary" id="fontApply">Use font</button></div>
+  </form>
+</dialog>
+
+<dialog id="repoModal">
+  <form method="dialog" class="modal" id="repoForm">
+    <div class="mhead"><span>Open repository</span><button value="cancel" class="tight">Close</button></div>
+    <label class="cap" for="repoUrl">GitHub or Codeberg repository</label>
+    <input id="repoUrl" type="url" placeholder="https://github.com/you/your-firmware" autocomplete="off" spellcheck="false">
+    <p class="hint">Reads <code>simple-touch-labels.json</code> from the root of the default branch. Without it, a script fills in the labels from the README and a manual it links to. The repository does not have to be in the community directory.</p>
+    <p class="hint" id="repoStatus"></p>
+    <div class="mfoot"><button value="cancel">Cancel</button><button type="submit" value="ok" class="primary" id="repoGo">Open</button></div>
   </form>
 </dialog>
 
@@ -1046,6 +1058,40 @@ $('openFile').onchange=async e=>{
     applyChrome(); buildBars(); buildForm(); render();
   }catch(err){ alert('This file could not be opened: '+err.message); }
 };
+/* a repository's label file or README labels as the manual (readRepoNow, repoEntry: community.js); the message to show */
+function repoMessage(r){
+  const ml=modeList();
+  return r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}${ml.length? `, with ${ml.length} modes; the print set is the ${r.modes[0].name} mode's, so widen it where the modes differ` : ''}. Check every one.`
+    : r.source==='file'? `Opened ${LABEL_FILE} from the repository.`
+    : `No ${LABEL_FILE} and no labels in the README of ${repoShort(r.doc.firmware.repo)}: the labels are blank.`;
+}
+function useRepo(r){
+  doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx'; V.mode=''; V.focusId=null;
+  return repoMessage(r);
+}
+$('repoBtn').onclick=()=>{
+  $('repoUrl').value= REPO_RE.test(normRepo(doc.firmware.repo))? normRepo(doc.firmware.repo) : '';
+  $('repoStatus').textContent=''; $('repoModal').showModal(); $('repoUrl').focus();
+};
+$('repoUrl').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); $('repoGo').click(); } };   // Enter would press Close, the form's first button
+$('repoForm').onsubmit=async e=>{
+  if(e.submitter?.value!=='ok') return;
+  e.preventDefault();
+  const repo=normRepo($('repoUrl').value), st=$('repoStatus');
+  if(!REPO_RE.test(repo)){ st.textContent='Not a repository address. Use https://github.com/owner/name or https://codeberg.org/owner/name.'; return; }
+  if(hasContent() && !confirm(`Replace the current labels with ${repoShort(repo)}? Ctrl+Z brings them back.`)) return;
+  st.textContent='Reading '+repoShort(repo)+'…'; $('repoGo').disabled=true;
+  let r;
+  try{ r=await readRepoNow(await repoEntry(repo)); }   // not readRepo: read again, the author may have pushed since
+  catch(err){ st.textContent=`${repoShort(repo)} could not be read. Check that it is public and the address is right.`; $('repoGo').disabled=false; return; }
+  $('repoGo').disabled=false;
+  if(r.source==='none' && !r.files.length){ st.textContent=`${repoShort(repo)} has no ${LABEL_FILE} and no README.md on its default branch, or is not public.`; return; }
+  histRecord();
+  const msg=useRepo(r);
+  setFaceplate(doc.faceplate, doc.faceplateRef);
+  applyChrome(); buildBars(); buildForm(); render();
+  $('repoModal').close(); flash(msg);
+};
 $('shareBtn').onclick=async()=>{
   const s=snapshot(true), lost=(doc.faceplate&&!doc.faceplateRef)||customFpDesk();
   const url=new URL(location.href); url.search='?s='+await encodeShareState(s); url.hash='';
@@ -1347,18 +1393,15 @@ $('appZip').onclick=async()=>{
   if(start && EXAMPLES[start] && !q.get('s') && (start!==UI.start || !hasContent()) && (!hasContent() || confirm(`Replace your saved labels with ${EXAMPLES[start].label}?`))){
     try{ doc=await loadExample(start); UI.start=start; if(start!=='blank') V.ref=''; }catch(e){}
   }
-  /* a directory entry from the library: its name, author and repository, with the labels the library found */
-  const comm=q.get('community'); let commMsg='';
-  if(comm && !q.get('s')){
-    const p=(await loadCommunity().catch(()=>[])).find(p=>p.id===comm);
+  /* a directory entry from the library (?community=<id>) or any repository (?repo=<URL>): its name, author and
+     repository, with the labels the library finds */
+  const comm=q.get('community'), qrepo=normRepo(q.get('repo')); let commMsg='';
+  if((comm || REPO_RE.test(qrepo)) && !q.get('s')){
+    const p= comm? (await loadCommunity().catch(()=>[])).find(p=>p.id===comm) : await repoEntry(qrepo);
     if(p && doc.firmware.repo!==p.repo && (!hasContent() || confirm(`Replace your saved labels with a new manual for ${p.name}?`))){
       $('busy').textContent='Reading '+repoShort(p.repo)+'…';
       const r=await readRepo(p);
-      doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx';
-      V.mode='';
-      const ml=modeList();
-      commMsg= r.source==='readme'? `Labels filled in by a script from ${r.files.map(f=>f.path).join(' and ')}${ml.length? `, with ${ml.length} modes; the print set is the ${r.modes[0].name} mode's, so widen it where the modes differ` : ''}. Check every one.`
-        : r.source==='file'? `Opened ${LABEL_FILE} from the repository.` : '';
+      commMsg=useRepo(r);
     }
   }
   if(q.has('ref')) V.ref= REF_SETS[q.get('ref')]? q.get('ref') : '';
