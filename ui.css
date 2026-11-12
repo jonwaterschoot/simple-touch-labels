@@ -257,6 +257,8 @@ body.play-stage.stage-sound #play { display:block; }
 /* the Labels button (toolbar and full screen): which labels show on the drawing */
 body.lbl-nopads #fig .padlabel { display:none; }
 body.lbl-faceplate #fig svg > g.over > :not(.fplabels), body.lbl-clean #fig svg > g.over { display:none; }
+.figbar { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+body.fig-tools .bar .lblgrp, body.fig-tools #playStage { display:none; }
 .stagebar { position:fixed; left:0; right:0; bottom:0; z-index:903; display:flex; gap:8px; justify-content:center; padding:8px; background:var(--page); border-top:1px solid var(--hair); }
 .stagebar button { min-width:0; padding:8px 12px; }
 .stagebar button[data-a="labels"] { min-width:8.5em; text-align:center; }   /* the same width for every view, so the buttons stay under the thumb */

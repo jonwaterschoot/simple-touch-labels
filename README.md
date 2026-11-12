@@ -61,7 +61,7 @@ flowchart TD
 Both pages:
 
 - **Themes**: Light, Dark and Visualiser (the simplified drawing), Synthux panel (the default), Synthux gold and Synthux light (the Synthux drawing). Each theme can use either drawing. The library and web app pick one from the **Theme** dropdown.
-- **Labels** (library and web app, also in full screen): one button steps through **All labels**, **No pad labels** (pads and switches, with their leader lines), **Faceplate** (only the faceplate labels, when the file has them, also on a layout set to off) and **No labels**.
+- **Labels** (library and web app, also in full screen): in the toolbar, and under the drawing with **⛶ Full screen** while it plays or follows a board. One button steps through **All labels**, **No pad labels** (pads and switches, with their leader lines), **Faceplate** (only the faceplate labels, when the file has them, also on a layout set to off) and **No labels**.
 - **Layouts**: phone (label boxes on the controls) and desktop (side columns with leader lines). Labels lay themselves out; knob labels hang just below their knob.
 - **Main and secondary functions**: up to four modifiers, held (P10 + knob), tapped (a mode switch, as in TouchVink) or held together (P10 + P11 + knob, as in TouchSpore, saved as `combos`), shown side by side or stacked, with a legend and a black-and-white print style.
 - **Export / print…**: a preview popup where you drag the drawing to the size you want (or fit it to A4 / Letter), set the margin, panel gap, table gap and text size with sliders, then download a PNG or PDF (panel, table and notes) or print it; the export minimap in the header shows what is included.

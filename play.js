@@ -170,6 +170,23 @@ const Play = (()=>{
     const view=labelView();
     for(const k of ['nopads','faceplate','clean']) document.body.classList.toggle('lbl-'+k, view===k);
     const btn=$p('lblBtn'); if(btn) btn.textContent=STAGE_LABELS[view];
+    figBar(view);
+  }
+  /* while the drawing is live, Labels and Full screen sit under it (as in full screen) and leave the toolbar and the Play box.
+     The page writes #fig anew on every draw, so the bar is added back each time. */
+  function figBar(view){
+    const fig=$p('fig'), on=showing() && !S.stage;
+    document.body.classList.toggle('fig-tools', on);
+    let bar=fig?.querySelector(':scope > .figbar');
+    if(!on){ bar?.remove(); return; }
+    if(!fig) return;
+    if(!bar){
+      bar=document.createElement('div'); bar.className='figbar';
+      bar.innerHTML=`<button type="button" data-a="labels" class="tight lbl" title="Switches which labels show on the drawing"></button><button type="button" data-a="stage" class="tight" title="The drawing alone, filling the screen">⛶ Full screen</button>`;
+      bar.onclick=e=>{ const a=e.target.closest('button')?.dataset.a; if(a==='labels') nextLabels(); else if(a==='stage') stage(true); };
+      fig.append(bar);
+    }
+    bar.querySelector('[data-a="labels"]').textContent=STAGE_LABELS[view];
   }
   /* Faceplate is offered when the file has faceplate labels, also on a layout that has them off */
   const labelViews=()=>Object.keys(STAGE_LABELS).filter(k=>k!=='faceplate' || (doc.fpLabels?.on && SLOTS.some(s=>fplText(s.id))));
