@@ -32,8 +32,8 @@
     </div>
     <div class="export">
       <div class="btns"><span class="cap">File</span>
-        <button type="button" id="openBtn">Open file…</button>
-        <input type="file" id="openFile" accept=".json,application/json" hidden>
+        <button type="button" id="openBtn" title="A label file (.json), or a README (.md) to read the labels from">Open file…</button>
+        <input type="file" id="openFile" accept=".json,application/json,.md,.markdown,text/markdown" hidden>
         <button type="button" id="repoBtn" title="Reads a GitHub or Codeberg repository's label file, or the labels in its README">Open repository…</button>
         <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
         <button type="button" id="shareBtn">Copy share link</button>
@@ -1033,6 +1033,7 @@ $('previewBtn').onclick=()=>{ saveNow(); window.open(`index.html?preview&theme=c
 $('openBtn').onclick=()=>$('openFile').click();
 $('openFile').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  if(/\.(md|markdown)$/i.test(f.name)){ openReadme(f); return; }
   try{
     const d=JSON.parse(await f.text()), hasData=!!(d.labels&&d.firmware), dz=d.design&&typeof d.design==='object'&&('size1' in d.design)? d.design : null;
     if(!hasData && !dz) throw new Error('no labels or design found');
@@ -1069,6 +1070,20 @@ function repoMessage(r){
 function useRepo(r){
   doc=r.doc; UI.start='blank'; V.ref= r.source==='file'? '' : 'sx'; V.mode=''; V.focusId=null;
   return repoMessage(r);
+}
+/* a README on this computer: the labels and modes a script reads from it (extractLabels, modesFrom: community.js).
+   The firmware fields and the design stay; an empty name takes the README's first # heading */
+async function openReadme(f){
+  const file={path:f.name, text:await f.text()}, ex=extractLabels([file]);
+  if(!ex.found.length){ alert(`No control names found in ${f.name}. The script reads names such as S30, P03 or Knob 1 in tables, lists and headings.`); return; }
+  if(hasContent() && !confirm(`Replace the current labels with the ones in ${f.name}? Ctrl+Z brings them back.`)) return;
+  histRecord();
+  const h1=file.text.match(/^#\s+(.+?)\s*#*\s*$/m);
+  if(!doc.firmware.name.trim() && h1) doc.firmware.name=h1[1].replace(/[*_`]/g,'').slice(0,LIMITS.name);
+  Object.assign(doc, {labels:ex.labels, modifiers:ex.modifiers, combos:ex.combos, modes:modesFrom(ex)});
+  UI.start=''; V.ref='sx'; V.mode=''; V.focusId=null;
+  applyChrome(); buildBars(); buildForm(); render();
+  flash(repoMessage({source:'readme', files:[file], modes:ex.modes}));
 }
 $('repoBtn').onclick=()=>{
   $('repoUrl').value= REPO_RE.test(normRepo(doc.firmware.repo))? normRepo(doc.firmware.repo) : '';
