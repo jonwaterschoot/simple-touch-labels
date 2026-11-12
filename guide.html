@@ -32,7 +32,8 @@
     <div class="gsetup">
       <div class="grp"><span class="cap">Where do you start?</span><div class="seg" id="gPath"><button type="button" data-v="have">I already have a repository</button><button type="button" data-v="scratch">I'm starting from scratch</button></div></div>
       <div class="grp"><span class="cap">Built with</span><div class="seg" id="gBuild"><button type="button" data-v="daisy">libDaisy (C++)</button><button type="button" data-v="pd">Plugdata</button></div></div>
-      <label class="grp grepo"><span class="cap">Your repository</span><input id="gRepo" type="url" placeholder="https://github.com/you/your-firmware" spellcheck="false"></label>
+      <div class="grp grepo"><label class="cap" for="gRepo">Your repository</label><div class="grow"><input id="gRepo" type="url" placeholder="https://github.com/you/your-firmware" spellcheck="false"><button type="button" id="gCheck" title="Reads the repository and ticks the checks it can confirm">Check</button></div></div>
+      <div class="gcheck" id="gResult" hidden></div>
       <p class="hint" id="gProgress"></p>
     </div>
 
@@ -256,6 +257,48 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
   }
   for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S[k]=b.dataset.v; save(); draw(); };
   $('gRepo').value=S.repo; $('gRepo').oninput=e=>{ S.repo=e.target.value; save(); links(); };
+  $('gRepo').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } };
+  $('gCheck').onclick=check;
+  /* What the repository shows from outside: GitHub's API (60 requests an hour without signing in) and raw files
+     from the default branch. Ticks the checks it confirms and never clears one. */
+  async function check(){
+    const box=$('gResult'), repo=String(S.repo).trim().replace(/\/+$/,'').replace(/\.git$/,'');
+    const m=repo.match(/^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+    box.hidden=false;
+    if(!m){ box.innerHTML= /^https:\/\/codeberg\.org\//.test(repo)? '<p class="hint">The check reads GitHub repositories only. A Codeberg repository opens in the designer with <b>Open repository…</b>.</p>'
+      : '<p class="hint">Not a repository address. Use <code>https://github.com/owner/name</code>.</p>'; return; }
+    const [,o,n]=m, gh=`https://github.com/${o}/${n}`, api=`https://api.github.com/repos/${o}/${n}`, raw=`https://raw.githubusercontent.com/${o}/${n}/HEAD/`;
+    const get=u=>fetch(u,{cache:'no-store'}).then(r=>r.ok? r : Promise.reject(r.status));
+    box.innerHTML='<p class="hint">Reading '+esc(o+'/'+n)+'…</p>'; $('gCheck').disabled=true;
+    const [info, readme, rel, lf, web, dir]=await Promise.all([
+      get(api).then(r=>r.json()).catch(e=>e),
+      get(raw+'README.md').then(r=>r.text()).catch(()=>null),
+      get(api+'/releases/latest').then(r=>r.json()).catch(()=>null),
+      get(raw+'simple-touch-labels.json').then(r=>r.json()).catch(e=>e===404? null : 'bad'),
+      get(`https://raw.githubusercontent.com/${o}/${n}/simple-touch-web/latest.json`).then(r=>r.json()).catch(()=>null),
+      get('https://synthux-academy.github.io/community-instruments/projects.json').then(r=>r.json()).catch(()=>null)]);
+    $('gCheck').disabled=false;
+    if(info===403){ box.innerHTML='<p class="hint">GitHub allows 60 checks an hour without signing in. Try again later.</p>'; return; }
+    if(!info?.full_name){ box.innerHTML=`<p class="hint">No public repository at <a href="${esc(gh)}" target="_blank">${esc(o+'/'+n)}</a>. Check the address, and that the repository is public (Settings › General › Danger Zone › Change visibility).</p>`; return; }
+    const table= !!readme && /^\s*\|.*\b(S3[0-7]|P(1[01]|0?\d)|[Kk]nob\s?[1-6])\b.*\|/m.test(readme.replace(/```[\s\S]*?```/g,''));
+    const bin=rel && (rel.assets||[]).find(a=>/\.bin$/i.test(a.name));
+    const labels= lf && lf!=='bad' && lf.labels && lf.firmware;
+    const entry= dir && (dir.projects||[]).find(p=>String(p.repo||'').replace(/\/+$/,'')===gh);
+    const rows=[
+      [true, `Public, default branch <code>${esc(info.default_branch||'')}</code>`, ['public','h-public']],
+      [!!readme, readme? '<code>README.md</code> at the root' : 'No <code>README.md</code> at the root', ['readme']],
+      [table, table? 'The README has a table with control names' : 'No table row in the README names a control (S30, P03, Knob 1)', ['readmetable']],
+      [!!bin, bin? `Latest release <b>${esc(rel.tag_name)}</b> has <code>${esc(bin.name)}</code>` : rel? `Latest release <b>${esc(rel.tag_name)}</b> has no .bin` : 'No release yet', ['release']],
+      [!!labels, labels? `<code>simple-touch-labels.json</code> at the root${lf.emulator? ', with a browser build' : ''}` : lf==='bad'? '<code>simple-touch-labels.json</code> is not a label file (no labels, or not valid JSON)' : 'No <code>simple-touch-labels.json</code> yet', ['committed']],
+      [!!web, web? `Browser build <code>${esc(web.file||'')}</code> on the <code>simple-touch-web</code> branch` : 'No browser build on a <code>simple-touch-web</code> branch', []],
+      [!!entry, entry? `Listed in the community directory as <code>${esc(entry.id)}</code>` : dir? 'Not in the community directory yet' : 'The community directory could not be read', []]];
+    let ticked=0;
+    for(const [ok,,cs] of rows) if(ok) for(const c of cs) if(!S.done[c]){ S.done[c]=true; ticked++; }
+    save(); draw();
+    box.innerHTML='<ul>'+rows.map(([ok,t])=>`<li class="${ok?'ok':'no'}">${ok?'✓':'✗'} ${t}</li>`).join('')+'</ul>'
+      +`<p class="hint">${ticked? `Ticked ${ticked} check${ticked>1?'s':''} below. ` : ''}<a href="editor.html?repo=${encodeURIComponent(gh)}" target="_blank">Open it in the designer ↗</a></p>`;
+  }
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   document.addEventListener('change',e=>{ const c=e.target.closest('[data-c]'); if(!c) return; S.done[c.dataset.c]=c.checked; save(); draw(); });
   $('gReset').onclick=()=>{ if(confirm('Clear all your ticks?')){ S.done={}; save(); draw(); } };
   draw();
