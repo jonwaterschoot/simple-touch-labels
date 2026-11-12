@@ -163,6 +163,7 @@
         <p>In the designer, under Browser build, <b>Find builds in the repository</b> lists the builds with a <b>Test bench</b> link. Listen there. If it sounds like your firmware, tick "drives the OLED" if it has one, then <b>Use this build</b>, <b>Save file</b>, and commit the label file again.</p>
         <label class="chk"><input type="checkbox" data-c="bench"> On the test bench it plays like the hardware: knobs, pads, LED<span data-build="daisy">, OLED</span></label>
         <label class="chk"><input type="checkbox" data-c="approved"> The new label file is on the default branch, and Preview in library shows Play</label>
+        <p class="hint">Without the designer, copy the <code>emulator</code> block from your repository's <b>Actions</b> › <b>Browser build</b> › the newest run › its summary into the label file. <code>"embed": "allowed"</code> lets the library play the build. <code>"link-only"</code> with a <code>"url"</code> only links to your own page. The block pins the build by its hash, so a later build plays only once you approve it.</p>
       </div></li>
     </ol>
 
@@ -172,6 +173,7 @@
         <div class="head"><b>Web app</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub Pages</span></span></div>
         <p><b>Web app…</b> packs your manual as a site: copy the folder into <code>docs/</code> on the default branch, then <a data-link="pages" target="_blank">Settings › Pages</a>: Deploy from a branch, your default branch, <code>/docs</code>. It works whether or not the firmware is listed. Link it from your README.</p>
         <label class="chk"><input type="checkbox" data-c="pages"> The page is live at <a data-link="site" target="_blank">your Pages address</a></label>
+        <p class="hint">Online, the page reads the label file from your repository, so a build you approve later shows without a new export. Served from your computer (<code>python -m http.server</code> in the folder) it uses the copy beside it. If Pages already serves something else, any subfolder works, such as <code>docs/play/</code>.</p>
       </div></li>
     </ol>
 
@@ -253,8 +255,16 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
     </ul>
     <h3>Worth adding</h3>
     <p>A picture of the panel with its labels, a table of MIDI CCs, a demo recording, what changed in each version, and how to build from source.</p>
-    <h3>On this site</h3>
-    <p>The library reads a table like this as auto-extracted labels. <a href="about.html#readme-format">The format</a> lists what the script understands. A label file from the designer replaces those labels (<a href="#labels">step 3</a>), and <b>Repository kit…</b> writes a README from your labels.</p>
+    <h3 id="readme-format">On this site</h3>
+    <p>The library reads a table like this as auto-extracted labels. A label file from the designer replaces them (<a href="#labels">step 3</a>), and <b>Repository kit…</b> writes a README from your labels. The script understands:</p>
+    <ul>
+      <li><b>Names:</b> knobs S30–S35 (or knob1–knob6), faders S36 and S37 (or left / right fader), pads P00–P11 (or P0–P11), switches S09–S10 and S07–S08 (or Switch A / B, SW1 / SW2, left / right switch).</li>
+      <li><b>The label:</b> bold text, or the words after a separator (<code>-</code>, <code>:</code>, <code>|</code>, <code>·</code>). Table rows count most, then lists and headings, then bold control names in sentences.</li>
+      <li><b>Modifiers</b> as a pair: <code>P10 + S30</code>, <code>P11 + left fader</code>.</li>
+      <li><b>Ranges</b> with one name per pad: <code>P03–P09: kick, snare, hat, …</code>. Pairs too: <code>| P10 / P11 | Octave down / up |</code>.</li>
+      <li><b>Modes:</b> a heading per switch position that names it, such as <code>### Seq (SW2 Up)</code>, with that mode's table under it. Labels from different modes are never mixed, and everything outside the mode sections counts for all of them.</li>
+      <li>Code blocks are skipped.</li>
+    </ul>
   </main>
 </div>
 <script>

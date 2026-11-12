@@ -182,7 +182,7 @@ $('viewBtn').onclick=()=>{ const open=$('viewBtn').closest('.bar').classList.tog
   const r=await loadDoc();
   UI.repo=r.repo; UI.from=r.from;
   if(r.doc){ doc=r.doc; if(doc.look && (!th || th==='creator')) UI.theme='creator'; }   // the creator's own look first
-  else { $('notice').hidden=false; $('notice').innerHTML=`<p><b>No labels found.</b> This page shows a firmware's <code>${LABEL_FILE}</code>: put it beside this page, or at the root of the repository this page is for${UI.repo? ` (<a href="${escAttr(UI.repo)}" target="_blank">${esc(repoShort(UI.repo))}</a>)` : ''}. <a href="${LIBRARY}about.html#step-5" target="_blank">How this works</a></p>`; V.ref='sx'; }
+  else { $('notice').hidden=false; $('notice').innerHTML=`<p><b>No labels found.</b> This page shows a firmware's <code>${LABEL_FILE}</code>: put it beside this page, or at the root of the repository this page is for${UI.repo? ` (<a href="${escAttr(UI.repo)}" target="_blank">${esc(repoShort(UI.repo))}</a>)` : ''}. <a href="${LIBRARY}guide.html#page" target="_blank">How this works</a></p>`; V.ref='sx'; }
   setFaceplate(doc.faceplate, doc.faceplateRef);
   ready=true; onFontsLoaded=update;
   update();

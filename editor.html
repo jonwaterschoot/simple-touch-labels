@@ -120,7 +120,7 @@
 <dialog id="kitModal" class="kit">
   <form method="dialog" class="modal">
     <div class="mhead"><span>Repository kit</span><button value="cancel" class="tight">Close</button></div>
-    <p class="hint">Everything for your firmware's repository in one .zip: a README with the control map, your label file and the community directory entry. The install and build steps are suggestions; check them and fill in what is marked TODO. <code>HOW-TO.txt</code> in the .zip says where each file goes. Commit them to your <b>default branch</b> (usually <code>main</code>): the library reads nothing else. <a href="about.html#creators" target="_blank">How this works</a></p>
+    <p class="hint">Everything for your firmware's repository in one .zip: a README with the control map, your label file and the community directory entry. The install and build steps are suggestions; check them and fill in what is marked TODO. <code>HOW-TO.txt</code> in the .zip says where each file goes. Commit them to your <b>default branch</b> (usually <code>main</code>): the library reads nothing else. <a href="guide.html#labels" target="_blank">How this works</a></p>
     <div class="kitopts">
       <div class="grp"><span class="cap">Built with</span><div class="seg" id="kitBuild"></div></div>
       <div class="grp"><span class="cap">Flashing</span><div class="seg" id="kitFlash"></div></div>
@@ -139,7 +139,7 @@
 <dialog id="appModal" class="app">
   <form method="dialog" class="modal">
     <div class="mhead"><span>Web app</span><button value="cancel" class="tight">Close</button></div>
-    <p class="hint">Your manual as a page of its own, for GitHub Pages: the drawing in your look, the control table, your notes and README, and <b>Play</b> when your label file approves a browser build. It is the library's page for this one firmware. <a href="about.html#step-5" target="_blank">Where this fits</a></p>
+    <p class="hint">Your manual as a page of its own, for GitHub Pages: the drawing in your look, the control table, your notes and README, and <b>Play</b> when your label file approves a browser build. It is the library's page for this one firmware. <a href="guide.html#page" target="_blank">Where this fits</a></p>
     <div id="appWarn"></div>
     <div class="kithead"><span class="cap">How to put it online</span><span class="hint" id="appUrl"></span></div>
     <div class="md kitmd" id="appSteps"></div>
@@ -454,7 +454,7 @@ function buildForm(){
     links.append(el('label',{},el('span',{textContent:t}),inp));
   }
   const lh=el('p',{className:'hint'});
-  lh.innerHTML=`Optional. The repository is linked from the downloaded manual; both go into the community directory entry (Directory entry… at the top). To show these labels in the library, use Save file and add the file to the root of the repository as <code>${LABEL_FILE}</code>. <a href="about.html#creators" target="_blank">How this works</a>`;
+  lh.innerHTML=`Optional. The repository is linked from the downloaded manual; both go into the community directory entry (Directory entry… at the top). To show these labels in the library, use Save file and add the file to the root of the repository as <code>${LABEL_FILE}</code>. <a href="guide.html#labels" target="_blank">How this works</a>`;
   form.append(links, lh);
   // a browser build (simple-touch-web): the emulator block from the build's run summary, as the author approves it
   const emu=el('div',{className:'meta links'});
@@ -1268,7 +1268,7 @@ function howTo(k){
       : k.listed? [`4. Already listed in the community directory as projects/${k.id}.json. community-entry/${k.id}.json is only`, '   needed if the entry changed.']
       : [`4. List the firmware in the Synthux community directory: add community-entry/${k.id}.json as projects/${k.id}.json`,
          `   in a pull request to ${COMMUNITY.repo}, or use Directory entry... in the designer.`]),
-    '', `More: ${SITE}about.html#creators`,''].join('\n');
+    '', `More: ${SITE}guide.html#labels`,''].join('\n');
 }
 let kitImg={key:'', url:''}, kitImgReq=0;
 async function kitImage(o){

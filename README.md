@@ -15,20 +15,16 @@ To run it locally, serve the folder over HTTP (e.g. `python -m http.server`). Th
 
 ## The whole route
 
-The [about page](https://jonwaterschoot.github.io/simple-touch-labels/about.html#route) has the same route with the details of each step.
+The [guide](https://jonwaterschoot.github.io/simple-touch-labels/guide.html) has each step with its checks.
 
 ```mermaid
 flowchart TD
-    S0["0 · Set up<br/>VS Code, Git, Daisy Toolchain"] --> S1["1 · Build or fork a firmware<br/>in your own GitHub / Codeberg repository"]
-    S1 --> A["2 · List it first<br/>Designer › Directory entry… → pull request"]
-    S1 --> B["2 · or manual first<br/>Designer: labels, notes, look<br/>Repository kit… → README + label file"]
-    A --> AX["Library reads your README<br/>(auto-extracted labels)"]
-    AX --> AC["Check them in the Designer"]
-    B --> BD["Designer › Directory entry…"]
-    AC --> S3
-    BD --> S3["3 · See it in the library<br/>simple-touch-labels.json in the repo root:<br/>your labels, look, faceplate and README"]
-    S3 --> S4["4 · Make it playable<br/>simple-touch-web workflow → emulator block<br/>→ Designer › Browser build → Play"]
-    S4 --> S5["5 · A page of your own<br/>Designer › Web app… → docs/ → GitHub Pages"]
+    S1["1 · Your repository<br/>public, README with a controls table, release with the .bin"] --> S2["2 · Pull request to the community directory<br/>Designer › Open repository… › Directory entry…"]
+    S2 --> W["While it's reviewed"]
+    W --> S3["3 · Labels<br/>Designer › Repository kit… → simple-touch-labels.json"]
+    W --> S4["4 · Make it playable<br/>simple-touch-web workflow → Browser build → Play"]
+    W --> S5["5 · A page of your own<br/>Designer › Web app… → docs/ → GitHub Pages"]
+    S2 --> S6["6 · Merged: listed under Community<br/>with whatever is on the default branch"]
 ```
 
 ## Pages
