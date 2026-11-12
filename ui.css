@@ -623,6 +623,22 @@ button.cswatch[data-open] { outline:2px solid var(--active); outline-offset:1px;
 .guide .chk input { margin-top:3px; flex:none; }
 .guide .chk.done { border-color:var(--kicker); color:var(--muted); }
 .guide .chk + .hint, .guide .card > .hint { margin-top:8px; }
+/* guide: the detailed steps, folded; values filled in from the repository at the top are marked */
+.guide .gex { margin:0 0 1em; }
+.guide details.more { margin:8px 0 0; padding-top:6px; border-top:1px solid var(--hair); }
+.guide details.more > summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--kicker); }
+.guide details.more[open] > summary { margin-bottom:6px; }
+.guide details.more ol, .guide details.more ul { margin:0 0 .5em; padding-left:1.4em; }
+.guide details.more li { margin:0 0 .4em; }
+.guide details.more ul li { margin:0; }
+.guide details.more pre { margin:.3em 0 .5em; padding:8px 10px; font-size:12px; }
+.guide details.more .hint { margin:0 0 .3em; }
+.guide details.more li > code, .guide details.more p > code { overflow-wrap:anywhere; }
+.guide .gentry { display:block; box-sizing:border-box; width:100%; min-height:190px; margin:.3em 0 .3em; padding:8px 10px; border:1px solid var(--hair); background:var(--field); color:var(--text); font:12px/1.5 ui-monospace,Consolas,monospace; resize:vertical; }
+.guide .gentrybar { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin:0 0 .8em; }
+.guide details.more ul.fields { margin:0 0 .6em; font-size:13px; color:var(--muted); }
+.guide details.more ul.fields li { margin:0 0 .2em; }
+.guide pre span[data-f], .guide code[data-f], .guide code span[data-f] { color:var(--kicker); }
 .guide a:not([href]) { text-decoration:underline dotted; cursor:help; }
 .guide [hidden] { display:none !important; }
 @media (max-width:600px){ .gsetup { position:static; } }

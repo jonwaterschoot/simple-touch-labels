@@ -36,6 +36,7 @@
       <p class="hint" id="gProgress"></p>
     </div>
     <div class="gcheck" id="gResult" hidden></div>
+    <p class="hint gex" data-cap="ex"></p>
 
     <h2 id="order">The order</h2>
     <ol class="order">
@@ -49,22 +50,88 @@
     <ol class="route">
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1a</span><div class="card">
         <div class="head"><b>Set up</b><span class="tools"><span class="tool">Editor</span><span class="tool">Git</span><span class="tool">GitHub</span></span></div>
-        <p>An editor (VS Code, say), Git and a GitHub account. <span data-build="daisy">For libDaisy, the <a href="https://daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes.</span><span data-build="pd"> For Plugdata, <a href="https://plugdata.org" target="_blank">Plugdata</a> with its Daisy export, and the Simple Touch board file <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json" target="_blank"><code>simple_touch.json</code></a>.</span></p>
+        <p>An editor (VS Code, say), Git and a GitHub account. <span data-build="daisy">For libDaisy, the <a href="https://docs.daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy Toolchain</a> builds and flashes.</span><span data-build="pd"> For Plugdata, <a href="https://plugdata.org" target="_blank">Plugdata</a> with its Daisy export, and the Simple Touch board file <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json" target="_blank"><code>simple_touch.json</code></a>.</span></p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li><b>Help</b> (optional): an AI chat assistant can walk you through these installs and explain an error. Give it the command you ran and its full output. For example <a href="https://claude.ai/download" target="_blank">Claude</a> (its app, or Claude Code inside VS Code), the Copilot chat built into VS Code (free with a GitHub account), or <a href="https://antigravity.google" target="_blank">Antigravity</a>, an editor with an assistant of its own. Read what it asks you to run before you run it.</li>
+          <li><b>GitHub:</b> make an account at <a href="https://github.com/signup" target="_blank">github.com/signup</a>.</li>
+          <li><b>Git</b>, for the repositories:
+            <ul>
+              <li>Windows: <a href="https://gitforwindows.org" target="_blank">Git for Windows</a>, with the installer's defaults. It brings <b>Git Bash</b>, the terminal the Daisy tools expect.</li>
+              <li>macOS: in Terminal, <code>xcode-select --install</code>. It installs Git and make, not Xcode.</li>
+              <li>Linux: <code>sudo apt install git</code>, or your distribution's package.</li>
+            </ul></li>
+          <li data-build="daisy"><b>The Daisy Toolchain:</b> the ARM compiler (<code>arm-none-eabi-gcc</code>), <code>make</code> and <code>dfu-util</code>. The <a href="https://docs.daisy.audio/tutorials/cpp-dev-env/" target="_blank">Daisy docs</a> have a page per system:
+            <ul>
+              <li>Windows: the <a href="https://docs.daisy.audio/tutorials/toolchain-windows/" target="_blank">Daisy Toolchain installer</a>.</li>
+              <li>macOS: the <a href="https://docs.daisy.audio/tutorials/toolchain-mac/" target="_blank">Daisy Toolchain .pkg</a> (right-click › <b>Open</b> if macOS blocks it), or with Homebrew: <code>brew install make gcc-arm-embedded dfu-util</code>.</li>
+              <li>Linux: <code>build-essential</code> and <code>dfu-util</code> from the package manager, and the Arm GNU toolchain on your PATH, as the <a href="https://docs.daisy.audio/tutorials/toolchain-linux/" target="_blank">Linux page</a> shows.</li>
+            </ul></li>
+          <li><b>Python</b> 3.8 or later, from <a href="https://www.python.org/downloads/" target="_blank">python.org</a>. On Windows, not the Microsoft Store version, and tick <b>Add python.exe to PATH</b> in the installer. <span data-build="daisy">libDaisy's <code>helper.py</code> needs it to make a new project. </span>It also serves a folder as a local website (<code>python -m http.server</code>) to try a web app before you push it.</li>
+          <li><b>VS Code:</b> download it from <a href="https://code.visualstudio.com" target="_blank">code.visualstudio.com</a> and run the installer. Start it from the Start menu (Windows) or Applications (macOS). <b>Source Control</b> in its left bar shows Git once Git is installed. If it doesn't, restart VS Code.
+            <ul>
+              <li data-build="daisy">Windows: make Git Bash its terminal. Open a terminal (<b>Terminal › New Terminal</b>), then the <b>⌄</b> beside the <b>+</b> › <b>Select Default Profile</b> › <b>Git Bash</b>. In PowerShell, <code>make</code> can stop with <code>CreateProcess(NULL, mkdir build, ...) failed</code>.</li>
+              <li data-build="daisy">Extensions (<b>View › Extensions</b>, Ctrl+Shift+X): <b>C/C++</b> by Microsoft marks errors in the code and jumps to libDaisy's definitions (F12). <b>Cortex-Debug</b> by marus25 is only for a debug probe.</li>
+            </ul></li>
+          <li data-build="daisy"><b>Check the tools:</b> in a new terminal, each of these prints a version. If one says "command not found", its install didn't reach your PATH: restart VS Code, or the computer, and try again.<pre>git --version
+make --version
+arm-none-eabi-gcc --version
+dfu-util --version
+python --version</pre>On macOS and Linux the last one is <code>python3 --version</code>.</li>
+          <li><b>Sign in:</b> the <b>Accounts</b> icon at the bottom of VS Code's left bar › <b>Sign in with GitHub</b>. Your browser asks you to allow it. VS Code can then push to your repositories.</li>
+          <li><b>Your name in commits:</b> Git writes a name and email into every commit, and on GitHub they are public. Use the private address from GitHub's <a href="https://github.com/settings/emails" target="_blank">Settings › Emails</a>, which ends in <code>@users.noreply.github.com</code>. In VS Code's terminal, once per computer:<pre>git config --global user.name "Your Name"
+git config --global user.email "12345678+you@users.noreply.github.com"</pre>GitHub Desktop (below) sets both when you sign in, so with it you can skip these two lines.</li>
+          <li><b>A home for your repositories:</b> one folder that holds every repository you clone, each in a folder of its own. For example <code>Documents\GitHub</code> in your user folder on Windows, <code>~/Documents/GitHub</code> on macOS. GitHub Desktop clones into that folder by default. In VS Code's terminal:<pre>mkdir ~/Documents/GitHub</pre></li>
+          <li><b>GitHub Desktop</b> (optional): from <a href="https://desktop.github.com" target="_blank">desktop.github.com</a>. Sign in with your GitHub account when it starts. It shows every changed line before you commit, commits and pushes with a button each, and clones from a web address with <b>File › Clone repository…</b> › <b>URL</b>. <b>Open in Visual Studio Code</b> opens the repository's folder in VS Code.</li>
+          <li data-build="daisy"><b>A first flash:</b> the Daisy examples, with Blink:<pre>cd ~/Documents/GitHub
+git clone --recurse-submodules https://github.com/electro-smith/DaisyExamples</pre>In VS Code, <b>File › Open Folder…</b> › <code>DaisyExamples/seed/Blink</code>. Put the Simple Touch in its bootloader (hold BOOT while you plug in USB), then Ctrl+P (Cmd+P on macOS) and type <code>task build_and_program_dfu</code>. The first time, run <code>task build_all</code> before it: it builds libDaisy and DaisySP. The Daisy Seed's own LED blinks. A closing <code>Error 74</code> from dfu-util is normal. If dfu-util finds no device on Windows, the <a href="https://docs.daisy.audio/tutorials/zadig/" target="_blank">Zadig page</a> sets its USB driver.</li>
+          <li data-build="pd">Install <a href="https://plugdata.org" target="_blank">Plugdata</a>. Open a patch, then the compile dialog: Daisy, the custom board file <code>simple_touch.json</code>, and flash. The Simple Touch has to be in its bootloader (hold BOOT while you plug in USB).</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="setup"> I can build something and flash it to my Simple Touch</label>
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1b</span><div class="card">
         <div class="head"><b>Make the firmware</b></div>
         <p><span data-build="daisy">Start from an official firmware (<a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a>, <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>, …), a community one, or nothing.</span><span data-build="pd">Start from <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch_template.pd" target="_blank"><code>simple_touch_template.pd</code></a> in hvcc-examples-daisy. It receives every control and prints its changes, and passes audio from input to output. Compile it with <code>simple_touch.json</code>, debug printing on and patch size Big, then build your patch from there.</span> If you build on someone's code, keep their licence and credit them in the README.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li data-build="daisy">Start from an official firmware: <a href="https://github.com/Synthux-Academy/TouchBass" target="_blank">TouchBass</a> or <a href="https://github.com/Synthux-Academy/TouchString" target="_blank">Touch String</a>. Their code already sets up the Simple Touch's pads, knobs and faders. A bare template is on the way. Copy one into your repositories folder, under the name of yours:<pre>cd ~/Documents/GitHub
+git clone --recursive https://github.com/Synthux-Academy/TouchBass <span data-f="name"></span></pre></li>
+          <li data-build="daisy">Open it: in VS Code, <b>File › Open Folder…</b> › <code>Documents/GitHub/<span data-f="name"></span></code>. <b>Terminal › New Terminal</b> opens a terminal in that folder.</li>
+          <li data-build="daisy">Build and flash it as Blink in step 1a: Ctrl+P, <code>task build_all</code> the first time, then <code>task build_and_program_dfu</code> with the Simple Touch in its bootloader. In the terminal it is <code>make</code> and <code>make program-dfu</code>, in the folder with the Makefile. Then change the code, and build and flash again until it plays as you want.</li>
+          <li data-build="pd">Make a folder <code>Documents/GitHub/<span data-f="name"></span></code> with <code>simple_touch_template.pd</code> and <code>simple_touch.json</code> in it. Save your patch there under its own name.</li>
+          <li data-build="pd">Compile it with debug printing on and patch size Big. The template prints every control's changes, so you see which receive belongs to which knob, fader and pad.</li>
+          <li>Keep the original licence file, and name whose code it builds on in your README.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="runs"> It flashes and runs on the Simple Touch</label>
       </div></li>
       <li class="step" data-path="scratch"><span class="num" aria-hidden="true">1c</span><div class="card">
         <div class="head"><b>A public repository</b><span class="tools"><span class="tool">GitHub</span></span></div>
         <p>On GitHub, <b>New repository</b>, set to <b>Public</b>, then push your code. The directory needs GitHub; the library also reads Codeberg.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li>On GitHub: <b>+</b> › <b>New repository</b>. Name it <code data-f="name"></code>, set it to <b>Public</b>, and leave out the README, licence and .gitignore: they come from your folder. <b>Create repository</b>.</li>
+          <li>In your firmware's folder:<pre>git init -b main
+git add .
+git commit -m "First version"
+git remote add origin <span data-f="git"></span>
+git push -u origin main</pre></li>
+          <li>If you cloned someone's firmware in step 1b, the folder is already a Git repository that points at theirs. Skip <code>git init</code> and <code>git remote add</code>, and point it at yours:<pre>git remote set-url origin <span data-f="git"></span>
+git push -u origin main</pre></li>
+          <li>With GitHub Desktop instead of the steps above: <b>File › Add local repository…</b> › your firmware's folder. If it isn't a Git repository yet, Desktop offers to make one. Then <b>Publish repository</b>, with <b>Keep this code private</b> unticked.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="public"> The repository is public, and the code is on its default branch</label>
       </div></li>
       <li class="step" data-path="have"><span class="num" aria-hidden="true">1a</span><div class="card">
         <div class="head"><b>Check the repository</b><span class="tools"><span class="tool">GitHub</span></span></div>
         <p>Its default branch is where everything below goes: the library and the designer read nothing else. You see it on the repository's front page and under <a data-link="branches" target="_blank">Settings › Branches</a>, usually <code>main</code>. Merge work from other branches before you check anything in the library.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li>Clone it fresh into a new folder, as someone who finds it would:<pre>cd ~/Documents/GitHub
+git clone --recursive <span data-f="gh"></span> <span data-f="name"></span>-check
+cd <span data-f="name"></span>-check
+git branch --show-current</pre>The last line prints the default branch: <code data-f="branch"></code> here. With GitHub Desktop: <b>File › Clone repository…</b> › <b>URL</b>, with <code>-check</code> added to the local path.</li>
+          <li data-build="daisy">Build and flash from that folder: <code>make</code>, then <code>make program-dfu</code> with the Simple Touch in its bootloader. A missing submodule or a file that was never committed shows up here.</li>
+          <li data-build="pd">Open the patch from that folder in Plugdata and compile it. A missing abstraction or board file shows up here.</li>
+          <li>If your work is on another branch, merge it into <code data-f="branch"></code>:<pre>git checkout <span data-f="branch"></span>
+git merge my-branch
+git push origin <span data-f="branch"></span></pre></li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="h-public"> The repository is public, on GitHub</label>
         <label class="chk"><input type="checkbox" data-c="h-branch"> I know its default branch, and my work is on it</label>
         <label class="chk"><input type="checkbox" data-c="h-clone"> A fresh clone builds and flashes<span data-build="daisy"> (with <code>git clone --recursive</code>, if it has submodules)</span></label>
@@ -72,12 +139,34 @@
       <li class="step"><span class="num" aria-hidden="true" data-have="1b">1d</span><div class="card">
         <div class="head"><b>A README</b></div>
         <p>What the firmware does, how to install it, and a table of its controls. <a href="#readme-minimum">A README for any firmware</a> has the minimum and a template. The designer's <b>Repository kit…</b> can write a full one with the control map later (step 3c), which you can merge into yours. A short README is enough for the pull request.</p>
+        <details class="more"><summary>In detail</summary>
+          <p class="hint" data-cap="rowsCap"></p>
+          <pre data-f="rows"></pre>
+          <ol>
+            <li>Open <code>README.md</code> at the root of your clone, or make it.</li>
+            <li>Add a <code>## Controls</code> heading and a table with one row per control. The first column names the control as the panel does: S30–S35, S36, S37, P00–P11, SW1, SW2. <a href="#readme-format">What the script reads</a>.</li>
+            <li>Commit and push:<pre>git add README.md
+git commit -m "Added the controls table"
+git push origin <span data-f="branch"></span></pre></li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="readme"> <code>README.md</code> is at the root of the default branch</label>
         <label class="chk"><input type="checkbox" data-c="readmetable"> It has a table with one row per control</label>
       </div></li>
       <li class="step"><span class="num" aria-hidden="true" data-have="1c">1e</span><div class="card">
         <div class="head"><b>A release with the .bin</b><span class="tools"><span class="tool">GitHub</span></span></div>
         <p><a data-link="newrelease" target="_blank">Releases › Draft a new release</a>, a tag such as <code>v1.0.0</code>, and the firmware attached, named in lowercase with hyphens: <code>my-firmware-v1.0.0.bin</code>. People flash that file with the <a href="https://flash.daisy.audio/" target="_blank">Daisy Web Programmer</a>, or with <b>Upload to device…</b> on the firmware's page in the library, which takes the latest release and says whether it needs the Daisy bootloader. The directory recommends it (it warns without one) and will need it for one-click flashing later.</p>
+        <details class="more"><summary>In detail</summary>
+          <p class="hint" data-cap="relCap"></p>
+          <ol>
+            <li data-build="daisy">Build with <code>make</code>. It writes <code>build/&lt;TARGET&gt;.bin</code>, with TARGET as the Makefile names it. Copy it as <code data-f="nbin"></code>.</li>
+            <li data-build="pd">Compile in Plugdata, and copy the .bin it writes as <code data-f="nbin"></code>.</li>
+            <li><a data-link="newrelease" target="_blank">Draft a new release</a>. <b>Choose a tag</b>, type <code data-f="ntag"></code> and pick <b>Create new tag</b>.</li>
+            <li>Title it <code><span data-f="title"></span> <span data-f="ntag"></span></code>, with a line on what changed.</li>
+            <li>Drag <code data-f="nbin"></code> onto <b>Attach binaries</b>, then <b>Publish release</b>.</li>
+            <li>In the README, say whether it needs the Daisy bootloader, and link <code><span data-f="gh"></span>/releases/latest</code>: that address always opens the newest release.</li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="release"> <a data-link="releases" target="_blank">Releases</a> shows the .bin</label>
       </div></li>
     </ol>
@@ -97,12 +186,42 @@
             <p><b>Open file…</b> and pick a <code>README.md</code> on your computer: for a README you haven't pushed yet. A script reads its labels and modes, and the name from its first <code>#</code> heading. Fill in the repository under <b>Firmware</b> yourself.</p>
           </div>
         </div>
+        <details class="more"><summary>In detail</summary><ol>
+          <li><a data-link="designer" href="editor.html" target="_blank">Open it in the designer ↗</a>. Or, in the designer, <b>Open repository…</b>, paste <code data-f="gh"></code> and <b>Open</b>.</li>
+          <li>The designer reads <code>simple-touch-labels.json</code> from <code data-f="branch"></code>, or the README if there is no label file.</li>
+          <li>Under <b>Firmware</b>, check <b>Name</b> (<code data-f="title"></code>) and <b>Repository</b> (<code data-f="gh"></code>). Fill in <b>Author link</b> for the directory, such as <code>https://github.com/<span data-f="owner"></span></code>.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="opened"> The designer shows my firmware, with its repository under <b>Firmware</b></label>
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">2b</span><div class="card">
         <div class="head"><b>Directory entry</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
         <p>Under <b>Firmware</b>, fill in what's missing: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b> checks the entry the way the directory does. <b>Open pull request…</b> opens GitHub with <code>projects/&lt;id&gt;.json</code> filled in. GitHub makes a fork for you first if you need one. Commit the file, then create the pull request.</p>
-        <p class="hint">If you can write to community-instruments, GitHub offers to commit straight to <code>main</code>. Pick the option to create a new branch and start a pull request instead. Without the designer: fork the repository, add the file as <a href="https://github.com/Synthux-Academy/community-instruments/blob/main/CONTRIBUTING.md" target="_blank">CONTRIBUTING.md</a> describes, and open a pull request.</p>
+        <p class="hint">Without the designer: fork the repository, add the file as <a href="https://github.com/Synthux-Academy/community-instruments/blob/main/CONTRIBUTING.md" target="_blank">CONTRIBUTING.md</a> describes, and open a pull request.</p>
+        <details class="more"><summary>In detail</summary>
+          <p class="hint" data-cap="entryCap"></p>
+          <textarea class="gentry" id="gEntry" rows="10" spellcheck="false" aria-label="Directory entry"></textarea>
+          <div class="gentrybar"><div class="hint" id="gEntryMsg"></div><button type="button" class="tight" id="gEntryReset" title="Puts back the entry made from your repository" hidden>Start again</button></div>
+          <div data-cmp>
+            <p class="hint">To compare: a listed entry, <a href="https://github.com/Synthux-Academy/community-instruments/blob/main/projects/touchspore.json" target="_blank">projects/touchspore.json</a> in the directory.</p>
+            <pre data-f="cmp"></pre>
+          </div>
+          <ul class="fields">
+            <li><code>id</code>: the file name without <code>.json</code>. 3 to 64 lowercase letters and digits, with single hyphens between them.</li>
+            <li><code>name</code>: the name as people see it in the directory, up to 80 characters.</li>
+            <li><code>description</code>: one line, up to 200 characters. What it does, and that it runs on the Simple Touch.</li>
+            <li><code>author</code>: your name, and a <code>url</code> starting with <code>https://</code> if you want one.</li>
+            <li><code>repo</code>: the repository's address, with nothing after its name: no trailing <code>/</code>, no <code>.git</code>.</li>
+            <li><code>schema_version</code> and <code>platform</code> stay <code>1</code> and <code>"touch"</code>.</li>
+          </ul>
+          <p class="hint" id="gPR" hidden></p>
+          <ol>
+            <li><b>Directory entry…</b> makes the <b>Id</b> from the name (<code data-f="id"></code>) and takes the description from <b>Short description</b>. The id is the file name in the directory.</li>
+            <li><b>Open pull request…</b> opens GitHub's new file page in community-instruments, with <code>projects/<span data-f="id"></span>.json</code> and the JSON above. If GitHub says you need a fork, <b>Fork this repository</b>.</li>
+            <li><b>Commit changes…</b>, then <b>Propose changes</b>.</li>
+            <li>On the next page, <b>Create pull request</b>. The form opens: <b>Create pull request</b> again to send it.</li>
+            <li>The <b>Validate</b> check runs at the bottom of the pull request within a minute or two.</li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="entry"> <b>Directory entry…</b> shows no problems, and the pull request is open</label>
         <label class="chk"><input type="checkbox" data-c="validate"> The <b>Validate</b> check on the pull request is green</label>
         <p class="hint">If the check is red, the pull request's <b>Files changed</b> tab marks what's wrong in your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork, on the same branch, and push: the check runs again.</p>
@@ -111,6 +230,12 @@
         <div class="head"><b>The review</b><span class="tools"><span class="tool">GitHub</span></span></div>
         <p>A reviewer checks that the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days. Your pull request is under <a href="https://github.com/Synthux-Academy/community-instruments/pulls" target="_blank">Pull requests</a>, and GitHub emails you when someone comments. If the reviewer requests changes, edit the file in your fork, on the same branch: the pull request updates and the check runs again.</p>
         <p>Go on with step 3 now. Everything you commit to your default branch is in the library once the entry is merged.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li><a data-link="mypulls" target="_blank">Your pull requests</a> on the directory list yours with its state and checks.</li>
+          <li>The reviewer opens <code data-f="gh"></code> and compares it with the entry: name, description, a README, and that it runs on the Simple Touch.</li>
+          <li>If they request changes: in the pull request, <b>Files changed</b> › <b>…</b> › <b>Edit file</b>, then <b>Commit changes</b> to the same branch. The check runs again.</li>
+          <li>When it is merged, GitHub emails you. The directory's site and this library list it after the directory's next publish.</li>
+        </ol></details>
       </div></li>
     </ol>
 
@@ -139,6 +264,21 @@
       <li class="step"><span class="num" aria-hidden="true">3c</span><div class="card">
         <div class="head"><b>Into the repository</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
         <p><b>Repository kit…</b> downloads a .zip; its <code>HOW-TO.txt</code> says where each file goes. Put <code>simple-touch-labels.json</code> at the root, the control map at <code>docs/</code> (a new folder, even if you have a <code>doc/</code>), and your faceplate at the path the label file names. If you already have a README, keep it at the root and copy in the parts you want. Then commit to the default branch.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li><b>Repository kit…</b>: pick <b>Built with</b> and <b>Flashing</b>, then download. The .zip has a folder <code><span data-f="id"></span>-repository-kit/</code> with:
+            <ul>
+              <li><code>simple-touch-labels.json</code>, and your faceplate if you made one</li>
+              <li><code>docs/<span data-f="id"></span>-controls.png</code>: the control map</li>
+              <li><code>README.md</code></li>
+              <li><code>community-entry/<span data-f="id"></span>.json</code>: step 2b's file, which stays out of your repository</li>
+              <li><code>HOW-TO.txt</code></li>
+            </ul></li>
+          <li>Copy the label file, <code>docs/</code> and the faceplate to the root of your clone, keeping the folders. Use the README whole, or copy its control map and table into yours.</li>
+          <li>Commit and push:<pre>git add simple-touch-labels.json docs README.md
+git commit -m "Added the Simple Touch label file and control map"
+git push origin <span data-f="branch"></span></pre></li>
+          <li>Open <code data-f="raw"></code>. It shows the JSON once GitHub has it.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="committed"> The files are on the default branch: <a data-link="raw" target="_blank">the label file</a> opens</label>
         <label class="chk"><input type="checkbox" data-c="readmemap"> The README shows the control map on GitHub</label>
         <p class="hint">GitHub caches raw files for a few minutes, so a new push can take that long to show.</p>
@@ -151,16 +291,69 @@
       <li class="step"><span class="num" aria-hidden="true">4a</span><div class="card">
         <div class="head"><b>Setup and loop</b><span class="tools"><span class="tool t-web">simple-touch-web</span></span></div>
         <p>Split <code>main()</code> into <code>Setup()</code> and a <code>Loop()</code> that runs one pass, as the <a href="https://github.com/jonwaterschoot/simple-touch-web#the-one-change-in-the-firmware" target="_blank">simple-touch-web README</a> shows. Leave out what a browser can't do (flash writes, bootloader jumps) with <code>#ifdef SIMPLE_TOUCH_WEB</code>.</p>
+        <details class="more"><summary>In detail</summary>
+          <pre>static void Setup() { /* main() up to the loop */ }
+static void Loop()  { /* one pass of the loop */ }
+
+#ifdef SIMPLE_TOUCH_WEB
+#include "simple_touch_web.h"
+ST_WEB_FIRMWARE(Setup, Loop)
+#else
+int main() {
+    Setup();
+    while (true) Loop();
+}
+#endif</pre>
+          <ol>
+            <li>Move everything in <code>main()</code> before the loop into <code>Setup()</code>, and the body of the loop into <code>Loop()</code>. Variables that both use go to file level.</li>
+            <li>In the browser the clock only moves between passes, so a wait on <code>System::GetNow()</code> inside <code>Loop()</code> never ends. End the browser pass with <code>System::Delay(ms)</code> under <code>#ifdef SIMPLE_TOUCH_WEB</code>, and keep the wait for the Seed.</li>
+            <li>Add <code>build-web</code> to <code>.gitignore</code>.</li>
+            <li>The <a href="https://github.com/jonwaterschoot/simple-touch-web#the-one-change-in-the-firmware" target="_blank">simple-touch-web README</a> has the rest, such as leaving out a <code>syscalls.cpp</code>.</li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="split"> The hardware build still works (<code>make clean &amp;&amp; make</code>, flash, play)</label>
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">4b</span><div class="card">
         <div class="head"><b>The workflow</b><span class="tools"><span class="tool">GitHub Actions</span></span></div>
         <p>Add <code>.github/workflows/browser-build.yml</code> from the <a href="https://github.com/jonwaterschoot/simple-touch-web#publishing-a-build" target="_blank">simple-touch-web README</a> and push. Every push then builds the firmware for the browser, checks that it boots, and adds the build to a <code>simple-touch-web</code> branch.</p>
+        <details class="more"><summary>In detail</summary>
+          <pre>name: Browser build
+on:
+  push:
+    branches: [<span data-f="branch"></span>]
+  workflow_dispatch:
+jobs:
+  browser:
+    uses: jonwaterschoot/simple-touch-web/.github/workflows/build-firmware.yml@v1
+    permissions:
+      contents: write</pre>
+          <ol>
+            <li>Save this as <code>.github/workflows/browser-build.yml</code>. <code>branches</code> is your default branch.</li>
+            <li>If the Makefile is in a subfolder, add <code>with: { firmware-dir: &lt;folder&gt; }</code> under <code>browser:</code>.</li>
+            <li>Push it:<pre>git add .github/workflows/browser-build.yml
+git commit -m "Added the browser build workflow"
+git push origin <span data-f="branch"></span></pre></li>
+            <li>Open <a data-link="actions" target="_blank">Actions</a> › <b>Browser build</b>. A run takes a few minutes. A red run shows its error under the step that failed.</li>
+            <li>After a green run, the build is on the <a data-link="webbranch" target="_blank"><code>simple-touch-web</code> branch</a>, named <code>&lt;target&gt;-&lt;hash&gt;.wasm</code>.</li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="actions"> <a data-link="actions" target="_blank">Actions</a>: the Browser build run is green</label>
       </div></li>
       <li class="step"><span class="num" aria-hidden="true">4c</span><div class="card">
         <div class="head"><b>Listen, then approve</b><span class="tools"><span class="tool t-web">Test bench</span><span class="tool t-des">Designer</span></span></div>
         <p>In the designer, under Browser build, <b>Find builds in the repository</b> lists the builds with a <b>Test bench</b> link. Listen there. If it sounds like your firmware, tick "drives the OLED" if it has one, then <b>Use this build</b>, <b>Save file</b>, and commit the label file again.</p>
+        <details class="more"><summary>In detail</summary>
+          <p class="hint" data-cap="emuCap"></p>
+          <pre data-f="emulator"></pre>
+          <ol>
+            <li>In the designer, with your repository open: under <b>Firmware</b>, <b>Find builds in the repository</b>.</li>
+            <li><b>Test bench ↗</b> beside the newest build plays it on a virtual panel. Try every control.</li>
+            <li>Tick <b>The firmware drives the optional OLED</b> if it does, then <b>Use this build</b>. The block above goes into <b>Browser build</b>.</li>
+            <li><b>Save file</b>, put the download in your clone as <code>simple-touch-labels.json</code>, and push:<pre>git add simple-touch-labels.json
+git commit -m "Approved a browser build"
+git push origin <span data-f="branch"></span></pre></li>
+          </ol>
+        </details>
         <label class="chk"><input type="checkbox" data-c="bench"> On the test bench it plays like the hardware: knobs, pads, LED<span data-build="daisy">, OLED</span></label>
         <label class="chk"><input type="checkbox" data-c="approved"> The new label file is on the default branch, and Preview in library shows Play</label>
         <p class="hint">Without the designer, copy the <code>emulator</code> block from your repository's <b>Actions</b> › <b>Browser build</b> › the newest run › its summary into the label file. <code>"embed": "allowed"</code> lets the library play the build. <code>"link-only"</code> with a <code>"url"</code> only links to your own page. The block pins the build by its hash, so a later build plays only once you approve it.</p>
@@ -172,6 +365,15 @@
       <li class="step"><span class="num" aria-hidden="true">5a</span><div class="card">
         <div class="head"><b>Web app</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub Pages</span></span></div>
         <p><b>Web app…</b> packs your manual as a site: copy the folder into <code>docs/</code> on the default branch, then <a data-link="pages" target="_blank">Settings › Pages</a>: Deploy from a branch, your default branch, <code>/docs</code>. It works whether or not the firmware is listed. Link it from your README.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li><b>Web app…</b> › <b>Preview ↗</b> shows the page. <b>Download web app (.zip)</b> gives a folder <code><span data-f="id"></span>-web-app/</code>.</li>
+          <li>Copy everything in that folder, <code>.nojekyll</code> too, into <code>docs/</code> at the root of your clone.</li>
+          <li>Push:<pre>git add docs
+git commit -m "Added the web app"
+git push origin <span data-f="branch"></span></pre></li>
+          <li><a data-link="pages" target="_blank">Settings › Pages</a>: Source <b>Deploy from a branch</b>, branch <code data-f="branch"></code>, folder <b>/docs</b>, <b>Save</b>.</li>
+          <li>A minute or two later it is at <code data-f="site"></code>. Link it from your README: <code>[Play it in the browser](<span data-f="site"></span>)</code>.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="pages"> The page is live at <a data-link="site" target="_blank">your Pages address</a></label>
         <p class="hint">Online, the page reads the label file from your repository, so a build you approve later shows without a new export. Served from your computer (<code>python -m http.server</code> in the folder) it uses the copy beside it. If Pages already serves something else, any subfolder works, such as <code>docs/play/</code>.</p>
       </div></li>
@@ -182,6 +384,11 @@
       <li class="step"><span class="num" aria-hidden="true">6a</span><div class="card">
         <div class="head"><b>In the library</b><span class="tools"><span class="tool t-lib">Library</span></span></div>
         <p>The directory publishes on every merge, and the <a href="index.html" target="_blank">library</a> lists your firmware under <b>Community</b>. It reads your repository each time, so labels and builds you add later show up by themselves.</p>
+        <details class="more"><summary>In detail</summary><ol>
+          <li>Open the <a href="index.html" target="_blank">library</a> › <b>Community</b> › <span data-f="title"></span>.</li>
+          <li>The <b>i</b> beside the name says where the labels come from. If it doesn't say <b>Labels by the creator</b>, the library found no label file: check that <code>simple-touch-labels.json</code> is at the root of <code data-f="branch"></code>.</li>
+          <li><b>Check</b> at the top of this page reads the directory too, and ticks this step's checks once your firmware is listed.</li>
+        </ol></details>
         <label class="chk"><input type="checkbox" data-c="listed"> The library's Community list has it, and the <b>i</b> beside its name says <b>Labels by the creator</b></label>
       </div></li>
     </ol>
@@ -269,19 +476,106 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
 </div>
 <script>
 /* The guide's choices and ticks, in this browser only. Steps for the other start (data-path) or the other
-   build (data-build) are hidden; links (data-link) point into the repository typed at the top. */
+   build (data-build) are hidden; links (data-link) point into the repository typed at the top. The examples
+   under In detail (data-f, data-cap) show that repository, with what Check read from it (S.facts), or
+   TouchSpore while no repository is typed. */
 (()=>{
   const KEY='stGuide.v1', $=id=>document.getElementById(id);
-  let S={path:'have', build:'daisy', repo:'', done:{}};
+  let S={path:'have', build:'daisy', repo:'', done:{}, facts:null};
   try{ Object.assign(S, JSON.parse(localStorage.getItem(KEY))||{}); }catch(e){}
   const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const parse=r=>String(r).trim().replace(/\/+$/,'').replace(/\.git$/,'').match(/^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+  const slugify=t=>String(t).trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'simple-touch';   // as slug() in core.js: the directory id
+  const DIR='https://github.com/Synthux-Academy/community-instruments';
+  const ROW=/^\s*\|.*\b(S3[0-7]|P(1[01]|0?\d)|[Kk]nob\s?[1-6]|SW[12])\b.*\|/;   // a table row that names a control
+  // TouchSpore has every step done, its web app on Pages included; its values as of v0.2.0
+  const EX={gh:'https://github.com/jonwaterschoot/TouchSpore', owner:'jonwaterschoot', name:'TouchSpore', branch:'main', title:'TouchSpore', author:'Jon Waterschoot',
+    desc:'Generative plinks and pads for the Synthux Simple Touch. Pad touches, hand distance and the noise from plants or wires drive the notes.', tag:'v0.2.0', bin:'touchspore-v0.2.0.bin',
+    rows:['| S33 | Pads: strings ←→ choir |','| S37 right fader | Field sensitivity |','| Right switch (SW2) | Down = touch only · centre = autoplay · up = autoplay + per-note variation (see below) |',
+      '| P10 tap | Toggle field → slow pads (a strike makes that pad the chord root, at once) |','| P10 + P11 tap together | Toggle drift mode: random notes weighted by pad readings |'],
+    wasm:'TouchSpore-98d142eaa94b.wasm', sha:'98d142eaa94b93cb726c39ce3621f865fd5b08c36d0b6f7c246647270bbfb5a9', oled:true, checked:true, ex:true};
+  const TEMPLATE_ROWS=['| Control | Function | Detail |','|---|---|---|','| S30 | Time | 10 ms to 2 s |','| S31 | Feedback | Fully right self-oscillates |','| P10 + S30 | Width | Mono to wide |'];
+  function facts(){
+    const m=parse(S.repo);
+    if(!m) return EX;
+    const gh=`https://github.com/${m[1]}/${m[2]}`, base={gh, owner:m[1], name:m[2], branch:'main', title:m[2], author:m[1], desc:''};
+    return S.facts?.gh===gh? {...base, ...S.facts} : base;
+  }
+  // laid out as the designer's dirJSON (editor.html): one field per line, author on one line
+  const dirJSON=e=>'{\n'+Object.entries(e).map(([k,v])=>`  ${JSON.stringify(k)}: `+(k==='author'? '{ '+Object.entries(v).map(([a,b])=>`${JSON.stringify(a)}: ${JSON.stringify(b)}`).join(', ')+' }' : JSON.stringify(v))).join(',\n')+'\n}';
+  function fill(){
+    const F=facts(), o=F.owner, n=F.name, who=`<b>${esc(o+'/'+n)}</b>`, id=slugify(F.title), raw=`https://raw.githubusercontent.com/${o}/${n}/`;
+    const v=String(F.tag||'').match(/^v?(\d+)\.(\d+)\.(\d+)$/), ntag= v? `v${v[1]}.${v[2]}.${+v[3]+1}` : 'v1.0.0';
+    const entry={schema_version:1, id, name:F.title, description:F.desc||'', author:{name:F.author, url:'https://github.com/'+o}, repo:F.gh, platform:'touch'};
+    const T={gh:F.gh, git:F.gh+'.git', owner:o, name:n, branch:F.branch, title:F.title, id, ntag, nbin:`${id}-${ntag}.bin`,
+      raw:raw+F.branch+'/simple-touch-labels.json', site:`https://${o.toLowerCase()}.github.io/${n}/`,
+      rows:(F.rows||TEMPLATE_ROWS).join('\n'), entry:dirJSON(entry),
+      emulator:`"emulator": {\n  "wasm": "${raw}simple-touch-web/${F.wasm||'<target>-<hash>.wasm'}",\n  "abi": "simple-touch-web/1",\n  "sha256": "${F.sha||'<64 characters from the run summary>'}",\n  "embed": "allowed"${F.oled? ',\n  "oled": true' : ''}\n}`};
+    T.cmp=dirJSON({schema_version:1, id:'touchspore', name:EX.title, description:EX.desc, author:{name:EX.author, url:'https://github.com/'+EX.owner}, repo:EX.gh, platform:'touch'});
+    document.querySelectorAll('[data-f]').forEach(e=>{ e.textContent=T[e.dataset.f]??''; });
+    document.querySelectorAll('[data-cmp]').forEach(e=>{ e.hidden= F.gh===EX.gh; });   // TouchSpore's own entry needs no comparison
+    const caps={
+      ex: F.ex? `The examples under <b>In detail</b> use ${who}. Fill in your repository and press <b>Check</b> to see your own.`
+        : F.checked? `The examples under <b>In detail</b> use ${who}, as Check read it.`
+        : `The examples under <b>In detail</b> use ${who}. <b>Check</b> fills in its branch, release and README.`,
+      rowsCap: F.rows? `From ${who}'s README:` : F.checked? `No table row in ${who}'s README names a control yet. Rows like these:` : 'Rows like these. Check shows the ones in your README.',
+      relCap: F.tag? `Latest release of ${who}: <b>${esc(F.tag)}</b>${F.bin? ` with <code>${esc(F.bin)}</code>` : ''}. The next one, as an example:`
+        : F.checked? `${who} has no release yet. The first one, as an example:` : 'The first release, as an example:',
+      emuCap: F.wasm? `The newest build on ${who}'s <code>simple-touch-web</code> branch:` : 'The block looks like this. The run summary has the real file name and hash.',
+      entryCap: F.gh===EX.gh? `The entry for ${who}, as it is in the directory:` : `The entry for ${who}, as the designer writes it. Edit it here before you open the pull request.`};
+    document.querySelectorAll('[data-cap]').forEach(e=>{ e.innerHTML=caps[e.dataset.cap]; });
+    // the entry as a field: edits are kept per repository (S.entry), and the pull request takes them
+    const ta=$('gEntry'), own= S.entry?.gh===F.gh? S.entry.text : null;
+    if(document.activeElement!==ta) ta.value= own ?? T.entry;
+    $('gEntryReset').hidden= own==null;
+    entryCheck(F);
+  }
+  /* the directory's schema (schema/project.schema.json in community-instruments) and its duplicate check */
+  function entryProblems(e, F){
+    const p=[], s=v=>typeof v==='string';
+    if(!e || typeof e!=='object' || Array.isArray(e)) return ['The entry is one JSON object, between { and }.'];
+    const extra=Object.keys(e).filter(k=>!['schema_version','id','name','description','author','repo','platform','firmware'].includes(k));
+    if(extra.length) p.push(`The directory doesn't know these fields: ${extra.join(', ')}.`);
+    if(e.schema_version!==1) p.push('schema_version: 1, as a number.');
+    if(!s(e.id) || e.id.length<3 || e.id.length>64 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(e.id)) p.push('id: 3 to 64 lowercase letters and digits, with single hyphens between them.');
+    else if(F.dirIds?.[e.id]) p.push(`id: "${e.id}" is taken by ${F.dirIds[e.id]}. Pick another.`);
+    if(!s(e.name) || !e.name.trim() || e.name.length>80) p.push('name: 1 to 80 characters.');
+    if(!s(e.description) || !e.description.trim()) p.push('description: one line on what the firmware does, and that it runs on the Simple Touch.');
+    else if(/[\r\n]/.test(e.description)) p.push('description: one line, without line breaks.');
+    else if(e.description.length>200) p.push(`description: ${e.description.length} characters. The directory allows 200.`);
+    const a=e.author;
+    if(!a || typeof a!=='object' || !s(a.name) || !a.name.trim() || a.name.length>80) p.push('author: { "name": "…" }, with a name of 1 to 80 characters.');
+    else {
+      if(a.url!==undefined && !(s(a.url) && /^https:\/\/[^\s/]+/.test(a.url))) p.push('author url: a full address starting with https://.');
+      const ax=Object.keys(a).filter(k=>k!=='name' && k!=='url'); if(ax.length) p.push(`author: only name and url, not ${ax.join(', ')}.`);
+    }
+    if(!s(e.repo) || !/^https:\/\/(github\.com|codeberg\.org)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(e.repo) || /\.git$/.test(e.repo)) p.push('repo: https://github.com/owner/name, with nothing after the name.');
+    else if(!F.ex && e.repo!==F.gh) p.push(`repo: ${e.repo} is not the repository at the top of this page.`);
+    if(e.platform!=='touch') p.push('platform: "touch".');
+    return p;
+  }
+  function entryCheck(F=facts()){
+    const ta=$('gEntry'), pr=$('gPR');
+    let e=null, p;
+    try{ e=JSON.parse(ta.value); p=entryProblems(e,F); }catch(err){ p=[`Not valid JSON (${err.message}). Check the quotes and commas, or Start again.`]; }
+    $('gEntryMsg').innerHTML= p.length? '<ul class="dirmsg">'+p.map(t=>`<li>${esc(t)}</li>`).join('')+'</ul>' : F.ex? '' : 'The entry follows the directory\'s rules.';
+    // the pull request straight from this page, once Check has read the repository
+    pr.innerHTML= F.ex? ''
+      : !F.checked? 'Press <b>Check</b> at the top for a link that opens this pull request.'
+      : F.listed? `Already listed as <code>projects/${esc(F.listed)}.json</code>.`
+      : p.length? ''
+      : `<a href="${esc(`${DIR}/new/main/projects?filename=${encodeURIComponent(e.id+'.json')}&value=${encodeURIComponent(ta.value.trim()+'\n')}`)}" target="_blank">Open the pull request with this file ↗</a> Check the name, author and description before you commit.`;
+    pr.hidden=!pr.innerHTML;
+  }
   const links=()=>{
-    const m=String(S.repo).trim().replace(/\/+$/,'').replace(/\.git$/,'').match(/^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
-    const gh= m? `https://github.com/${m[1]}/${m[2]}` : '';
+    const m=parse(S.repo), gh= m? `https://github.com/${m[1]}/${m[2]}` : '';
     const L= m? {branches:gh+'/settings/branches', newrelease:gh+'/releases/new', releases:gh+'/releases', actions:gh+'/actions', pages:gh+'/settings/pages',
       raw:`https://raw.githubusercontent.com/${m[1]}/${m[2]}/HEAD/simple-touch-labels.json`, site:`https://${m[1].toLowerCase()}.github.io/${m[2]}/`,
+      webbranch:gh+'/tree/simple-touch-web', mypulls:`${DIR}/pulls?q=${encodeURIComponent('is:pr author:'+m[1])}`,
       designer:'editor.html?repo='+encodeURIComponent(gh)} : {designer:'editor.html'};
     document.querySelectorAll('[data-link]').forEach(a=>{ const u=L[a.dataset.link]; if(u) a.href=u; else a.removeAttribute('href'); a.title= u? '' : 'Fill in your repository at the top'; });
+    fill();
   };
   function draw(){
     for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S[k])));
@@ -298,6 +592,8 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
   $('gRepo').value=S.repo; $('gRepo').oninput=e=>{ S.repo=e.target.value; save(); links(); };
   $('gRepo').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } };
   $('gCheck').onclick=check;
+  $('gEntry').oninput=e=>{ S.entry={gh:facts().gh, text:e.target.value}; save(); $('gEntryReset').hidden=false; entryCheck(); };
+  $('gEntryReset').onclick=()=>{ S.entry=null; save(); fill(); };
   /* What the repository shows from outside: GitHub's API (60 requests an hour without signing in) and raw files
      from the default branch. Ticks the checks it confirms and never clears one. */
   async function check(){
@@ -309,20 +605,29 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
     const [,o,n]=m, gh=`https://github.com/${o}/${n}`, api=`https://api.github.com/repos/${o}/${n}`, raw=`https://raw.githubusercontent.com/${o}/${n}/HEAD/`;
     const get=u=>fetch(u,{cache:'no-store'}).then(r=>r.ok? r : Promise.reject(r.status));
     box.innerHTML='<p class="hint">Reading '+esc(o+'/'+n)+'…</p>'; $('gCheck').disabled=true;
-    const [info, readme, rel, lf, web, dir]=await Promise.all([
+    const [info, readme, rel, lf, web, dir, user]=await Promise.all([
       get(api).then(r=>r.json()).catch(e=>e),
       get(raw+'README.md').then(r=>r.text()).catch(()=>null),
       get(api+'/releases/latest').then(r=>r.json()).catch(()=>null),
       get(raw+'simple-touch-labels.json').then(r=>r.json()).catch(e=>e===404? null : 'bad'),
       get(`https://raw.githubusercontent.com/${o}/${n}/simple-touch-web/latest.json`).then(r=>r.json()).catch(()=>null),
-      get('https://synthux-academy.github.io/community-instruments/projects.json').then(r=>r.json()).catch(()=>null)]);
+      get('https://synthux-academy.github.io/community-instruments/projects.json').then(r=>r.json()).catch(()=>null),
+      get('https://api.github.com/users/'+o).then(r=>r.json()).catch(()=>null)]);
     $('gCheck').disabled=false;
     if(info===403){ box.innerHTML='<p class="hint">GitHub allows 60 checks an hour without signing in. Try again later.</p>'; return; }
     if(!info?.full_name){ box.innerHTML=`<p class="hint">No public repository at <a href="${esc(gh)}" target="_blank">${esc(o+'/'+n)}</a>. Check the address, and that the repository is public (Settings › General › Danger Zone › Change visibility).</p>`; return; }
-    const table= !!readme && /^\s*\|.*\b(S3[0-7]|P(1[01]|0?\d)|[Kk]nob\s?[1-6])\b.*\|/m.test(readme.replace(/```[\s\S]*?```/g,''));
+    const rowsFound= readme? readme.replace(/```[\s\S]*?```/g,'').split('\n').filter(l=>ROW.test(l)) : [], table=rowsFound.length>0;
     const bin=rel && (rel.assets||[]).find(a=>/\.bin$/i.test(a.name));
     const labels= lf && lf!=='bad' && lf.labels && lf.firmware;
     const entry= dir && (dir.projects||[]).find(p=>String(p.repo||'').replace(/\/+$/,'')===gh);
+    // the values the examples under In detail show: the label file first, then GitHub (a README's first heading is often a slogan)
+    const str=t=>String(t||'').replace(/\s+/g,' ').trim();
+    const title=str((labels && lf.firmware.name) || info.name);
+    const dirIds= dir && Object.fromEntries((dir.projects||[]).filter(p=>String(p.repo||'').replace(/\/+$/,'')!==gh).map(p=>[p.id, p.name]));   // ids taken by other repositories
+    S.facts={gh, checked:true, branch:info.default_branch||'main', title, author:str((labels && lf.firmware.author) || user?.name || o),
+      desc:str((labels && lf.firmware.description) || info.description), ...(table && {rows:rowsFound.slice(0,5)}),
+      ...(rel?.tag_name && {tag:rel.tag_name}), ...(bin && {bin:bin.name}), ...(web?.file && /^[0-9a-f]{64}$/.test(web.sha256||'') && {wasm:web.file, sha:web.sha256, oled:!!(labels && lf.emulator?.oled)}),
+      ...(entry && {listed:entry.id}), ...(dirIds && {dirIds})};
     const rows=[
       [true, `Public, default branch <code>${esc(info.default_branch||'')}</code>`, ['public','h-public']],
       [!!readme, readme? '<code>README.md</code> at the root' : 'No <code>README.md</code> at the root', ['readme']],
@@ -337,7 +642,6 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
     box.innerHTML='<ul>'+rows.map(([ok,t])=>`<li class="${ok?'ok':'no'}">${ok?'✓':'✗'} ${t}</li>`).join('')+'</ul>'
       +`<p class="hint">${ticked? `Ticked ${ticked} check${ticked>1?'s':''} below. ` : ''}<a href="editor.html?repo=${encodeURIComponent(gh)}" target="_blank">Open it in the designer ↗</a></p>`;
   }
-  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   document.addEventListener('change',e=>{ const c=e.target.closest('[data-c]'); if(!c) return; S.done[c.dataset.c]=c.checked; save(); draw(); });
   $('gReset').onclick=()=>{ if(confirm('Clear all your ticks?')){ S.done={}; save(); draw(); } };
   draw();

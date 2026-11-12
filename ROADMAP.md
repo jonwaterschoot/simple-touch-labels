@@ -109,6 +109,17 @@ If Lab turns out to have its own pipeline, offer the split PR alone, since any b
 
 - [ ] About page: the route for each way in. Code it yourself, Plugdata, or hand it to an LLM, without tying the guide to one model or tool.
 - [ ] Use TouchVink (new firmware) and TouchPlaited (existing firmware) as the two worked examples.
+- [ ] A minimal libDaisy template for the Simple Touch to clone, as a repository of its own. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
+  - Hardware: every control read (knobs S30–S35, faders S36 and S37, both switches), the user LED, the pressure-sensitive pads as Touch String reads them, audio in and out, and USB MIDI.
+  - Repository: the `Setup()` / `Loop()` split, the browser build workflow, a release, a README with a controls table, and a `simple-touch-labels.json`. It passes every check in the guide.
+  - The example: a small polysynth on DaisySP.
+    - P03–P09: notes. P10 and P11: root note down and up.
+    - Left switch (SW1): scale, minor / major / lydian. Right switch (SW2): octave.
+    - S36 (left fader): output volume. S37 (right fader): filter.
+    - S30: detune. S31, S32, S33: attack, decay, release. S34, S35 and one more: level of sine, saw and square.
+    - P00 held + S30: reverb. P02 held + S35: delay. P01 is free.
+  - Open: the levels need a third control. S30–S35 are six knobs and the spec asks for seven (detune, A, D, R and three levels), with S36 already the volume.
+- [x] Added detailed steps to the guide (2026-11-12): each step has an **In detail** section, folded, with commands and examples filled in from the repository at the top, or from TouchSpore while none is typed. Set up lists Git, the Daisy Toolchain, Python and VS Code per system, with a chat assistant for help.
 - [x] `guide.html` (2026-10-29): step by step with checks, from "I have a repository" or "from scratch", libDaisy or Plugdata: repository, release, the directory pull request early (the review runs while you work), labels, repository kit, browser build, own page, after the merge.
 - [ ] Screenshots in the guide, one per screen; the browser-build part: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build** (added 2026-10-29: no more copying the block from the run summary), Save file, commit `simple-touch-labels.json`, Play in the library.
 - [ ] The build branch's README (written by `build-firmware.yml`) still points only at the run summary; mention the designer's build finder in the next simple-touch-web release.
