@@ -116,6 +116,9 @@ Finished items, newest first, and plans that changed.
 
 ### Done
 
+**2026-11-13**
+- Fixed the guide's Plugdata set up: it no longer asks for VS Code. It lists Plugdata and the compiler toolchain it installs, says hvcc translates a patch to C++ for the Daisy, and names what the compile needs (patch, abstractions in its folder, the `simple_touch.json` board file).
+
 **2026-11-12**
 - Added detailed steps to the guide: each step has an **In detail** section, folded, with commands and examples filled in from the repository at the top, or from TouchSpore while none is typed. Set up lists Git, the Daisy Toolchain, Python and VS Code per system.
 - Added **Check** to the guide's repository field. The guide says when and where to open the directory pull request.
