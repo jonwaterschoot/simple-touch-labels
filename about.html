@@ -25,15 +25,35 @@
     <div class="intro">
       <nav class="nav"><a href="index.html">Library</a><a href="editor.html">Designer</a><a href="guide.html">Guide</a><span class="on">About</span><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
       <h1>About</h1>
-      <p>Control maps and manuals for the Synthux Simple Touch. The <a href="index.html">library</a> shows what every knob, fader, switch and pad does in a firmware; the <a href="editor.html">designer</a> is where those labels are made.</p>
+      <p>An unofficial experiment in making, documenting and sharing firmware for the Synthux Simple Touch.</p>
+      <p>It started because I wanted a consistent way to make a labelled image of the controls for each new firmware. From there I wanted a collection of firmware projects that anyone can browse and share.</p>
+      <p>So this project is both a library and a designer. I'm also building a guide that goes from an idea to a firmware listed in the community directory.</p>
     </div>
   </header>
 
   <main class="about">
-    <h2 id="project">The project</h2>
-    <p>A case study: one set of files in each firmware's own repository, read by everything that shows or plays a Simple Touch firmware. A label file (<code>simple-touch-labels.json</code>) holds the control map and the creator's look, with the faceplate beside it. A browser build on a <code>simple-touch-web</code> branch makes the firmware playable. The library, the designer and the web app read those files. This site keeps nothing about a community firmware itself.</p>
-    <p>Few repositories carry these files yet. The official manuals come from label files kept in this repository, most community firmware shows labels a script read from its README, and <a href="https://github.com/jonwaterschoot/TouchVink" target="_blank">TouchVink</a> is the one firmware that plays in the browser. As a standard, the same files could serve Synthux Lab, flashing tools and this site alike. <a href="https://github.com/jonwaterschoot/simple-touch-labels/blob/main/ROADMAP.md" target="_blank">ROADMAP.md</a> has the open questions and next steps, <a href="https://github.com/jonwaterschoot/simple-touch-labels/blob/main/notes.md" target="_blank">notes.md</a> the reasoning.</p>
-    <p>To add your own firmware, follow the <a href="guide.html">step-by-step guide</a>.</p>
+    <h2 id="project">What this is</h2>
+    <div class="what">
+      <div>
+        <b>A library of community firmware</b>
+        <p>Browse the official firmware and every Simple Touch project in the Synthux community directory. Each one shows its controls on a drawing of the panel, its notes and README, and <b>Upload to device…</b> for its latest release. TouchVink, TouchSpore and TouchPlaited also play in the browser.</p>
+        <p class="go"><a href="index.html">Open the library</a></p>
+      </div>
+      <div>
+        <b>A designer for manuals</b>
+        <p>Label every knob, fader, switch and pad, with modifiers, modes, MIDI and notes, in your own colours, font and faceplate. Export the manual as PNG, PDF or a page of its own. Or publish it: a label file and README for your repository, a web app for GitHub Pages, and an entry for the community directory.</p>
+        <p class="go"><a href="editor.html">Open the designer</a></p>
+      </div>
+      <div>
+        <b>A guide to your own firmware</b>
+        <p>Step by step from a template to a listed firmware. Clone an official firmware, change the code in VS Code, on your own or with an LLM, and push it to a GitHub repository of your own. Then build its manual in the designer, make a version that plays in the browser, and add it to the Synthux community directory, which also lists it in this library.</p>
+        <p class="go"><a href="guide.html">Open the guide</a></p>
+      </div>
+    </div>
+
+    <h2 id="files">How it fits together</h2>
+    <p>Everything about a firmware stays in its creator's repository. A label file (<code>simple-touch-labels.json</code>) holds the control map and the creator's look, with the faceplate beside it. A browser build on a <code>simple-touch-web</code> branch makes the firmware playable. The library, the designer and each web app read those files. This site keeps nothing about a community firmware itself.</p>
+    <p>Few repositories carry these files yet, so most community firmware shows labels a script read from its README. As a standard, the same files could serve Synthux Lab and flashing tools as well as this site. <a href="https://github.com/jonwaterschoot/simple-touch-labels/blob/main/ROADMAP.md" target="_blank">ROADMAP.md</a> has the open questions and next steps, <a href="https://github.com/jonwaterschoot/simple-touch-labels/blob/main/notes.md" target="_blank">notes.md</a> the reasoning.</p>
 
     <h2 id="places">Three places</h2>
     <div class="flow" role="list">
