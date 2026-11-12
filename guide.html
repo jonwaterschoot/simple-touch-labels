@@ -33,9 +33,9 @@
       <div class="grp"><span class="cap">Where do you start?</span><div class="seg" id="gPath"><button type="button" data-v="have">I already have a repository</button><button type="button" data-v="scratch">I'm starting from scratch</button></div></div>
       <div class="grp"><span class="cap">Built with</span><div class="seg" id="gBuild"><button type="button" data-v="daisy">libDaisy (C++)</button><button type="button" data-v="pd">Plugdata</button></div></div>
       <div class="grp grepo"><label class="cap" for="gRepo">Your repository</label><div class="grow"><input id="gRepo" type="url" placeholder="https://github.com/you/your-firmware" spellcheck="false"><button type="button" id="gCheck" title="Reads the repository and ticks the checks it can confirm">Check</button></div></div>
-      <div class="gcheck" id="gResult" hidden></div>
       <p class="hint" id="gProgress"></p>
     </div>
+    <div class="gcheck" id="gResult" hidden></div>
 
     <h2 id="order">The order, and why</h2>
     <p>Your repository first, because everything else points at it. Then the pull request to the community directory, as soon as the repository has a README and a release. A person reviews it, and that can take days. Everything after it works without it: the designer, your label file, the browser build and your own page don't wait for the review. When the entry is merged the library lists your firmware with whatever is in your repository by then, so the entry never needs changing for a new label or build.</p>
@@ -293,7 +293,7 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
       [!!web, web? `Browser build <code>${esc(web.file||'')}</code> on the <code>simple-touch-web</code> branch` : 'No browser build on a <code>simple-touch-web</code> branch', []],
       [!!entry, entry? `Listed in the community directory as <code>${esc(entry.id)}</code>` : dir? 'Not in the community directory yet' : 'The community directory could not be read', []]];
     let ticked=0;
-    for(const [ok,,cs] of rows) if(ok) for(const c of cs) if(!S.done[c]){ S.done[c]=true; ticked++; }
+    for(const [ok,,cs] of rows) if(ok) for(const c of cs) if(!S.done[c]){ S.done[c]=true; if(document.querySelector(`[data-c="${c}"]`)?.offsetParent) ticked++; }   // a check for the other start counts once it shows
     save(); draw();
     box.innerHTML='<ul>'+rows.map(([ok,t])=>`<li class="${ok?'ok':'no'}">${ok?'✓':'✗'} ${t}</li>`).join('')+'</ul>'
       +`<p class="hint">${ticked? `Ticked ${ticked} check${ticked>1?'s':''} below. ` : ''}<a href="editor.html?repo=${encodeURIComponent(gh)}" target="_blank">Open it in the designer ↗</a></p>`;
