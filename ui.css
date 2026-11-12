@@ -385,6 +385,9 @@ g[data-key].hl-use { filter:drop-shadow(0 0 7px rgba(255,122,26,.95)); }
 .route .way p { margin:0 0 .5em; }
 .route .way p:last-child { margin:0; }
 .route .or { align-self:center; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+/* guide: the order at the top, and the note before the steps that don't wait for the review */
+.about .order li { margin:0 0 .4em; }
+.about .wait { border-left:3px solid var(--kicker); padding:6px 12px; margin:0 0 1.4em; }
 @media (max-width:640px) {
   .route .fork { grid-template-columns:1fr; }
   .route .or { justify-self:center; }

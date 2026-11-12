@@ -24,7 +24,7 @@
     <div class="intro">
       <nav class="nav"><a href="index.html">Library</a><a href="editor.html">Designer</a><span class="on">Guide</span><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
       <h1>Step by step</h1>
-      <p>From a firmware to the library: labelled, playable, and listed in the Synthux community directory. Every step ends with checks; tick them as you go. This browser remembers them. To share a firmware without this site, <a href="#readme-minimum">A README for any firmware</a> lists the minimum.</p>
+      <p>From a firmware to the library: labelled, playable, and listed in the Synthux community directory. Every step ends with checks. Tick them as you go: this browser remembers them. To share a firmware without this site, see <a href="#readme-minimum">A README for any firmware</a> for the minimum.</p>
     </div>
   </header>
 
@@ -37,8 +37,13 @@
     </div>
     <div class="gcheck" id="gResult" hidden></div>
 
-    <h2 id="order">The order, and why</h2>
-    <p>Your repository first, because everything else points at it. Then the pull request to the community directory, as soon as the repository has a README and a release. A person reviews it, and that can take days. Everything after it works without it: the designer, your label file, the browser build and your own page don't wait for the review. When the entry is merged the library lists your firmware with whatever is in your repository by then, so the entry never needs changing for a new label or build.</p>
+    <h2 id="order">The order</h2>
+    <ol class="order">
+      <li><b>Your repository</b> (<a href="#repo">step 1</a>): public on GitHub, with a README and a release with the <code>.bin</code>. Everything else points at it.</li>
+      <li><b>The pull request</b> to the community directory (<a href="#directory">step 2</a>), as soon as step 1 is done. Don't wait for labels, a browser build or a page. A person reviews it, and that can take days.</li>
+      <li><b>While you wait</b> (<a href="#wait">steps 3 to 5</a>): labels, the browser build and a page of your own. None of them need the review. Commit them to your default branch.</li>
+      <li><b>After the merge</b> (<a href="#merged">step 6</a>): the library lists your firmware with whatever is on your default branch by then. The directory entry doesn't change for a new label or build.</li>
+    </ol>
 
     <h2 id="repo">1. Your repository</h2>
     <ol class="route">
@@ -64,40 +69,63 @@
         <label class="chk"><input type="checkbox" data-c="h-branch"> I know its default branch, and my work is on it</label>
         <label class="chk"><input type="checkbox" data-c="h-clone"> A fresh clone builds and flashes<span data-build="daisy"> (with <code>git clone --recursive</code>, if it has submodules)</span></label>
       </div></li>
-      <li class="step"><span class="num" aria-hidden="true">1d</span><div class="card">
+      <li class="step"><span class="num" aria-hidden="true" data-have="1b">1d</span><div class="card">
         <div class="head"><b>A README</b></div>
-        <p>What the firmware does, how to install it, and a table of its controls. <a href="#readme-minimum">A README for any firmware</a> has the minimum and a template. The designer's Repository kit can write a full one with the control map in step 3, which you can merge into yours.</p>
+        <p>What the firmware does, how to install it, and a table of its controls. <a href="#readme-minimum">A README for any firmware</a> has the minimum and a template. The designer's <b>Repository kit…</b> can write a full one with the control map later (step 3c), which you can merge into yours. A short README is enough for the pull request.</p>
         <label class="chk"><input type="checkbox" data-c="readme"> <code>README.md</code> is at the root of the default branch</label>
         <label class="chk"><input type="checkbox" data-c="readmetable"> It has a table with one row per control</label>
       </div></li>
-      <li class="step"><span class="num" aria-hidden="true">1e</span><div class="card">
+      <li class="step"><span class="num" aria-hidden="true" data-have="1c">1e</span><div class="card">
         <div class="head"><b>A release with the .bin</b><span class="tools"><span class="tool">GitHub</span></span></div>
         <p><a data-link="newrelease" target="_blank">Releases › Draft a new release</a>, a tag such as <code>v1.0.0</code>, and the firmware attached, named in lowercase with hyphens: <code>my-firmware-v1.0.0.bin</code>. People flash that file with the <a href="https://flash.daisy.audio/" target="_blank">Daisy Web Programmer</a>, or with <b>Upload to device…</b> on the firmware's page in the library, which takes the latest release and says whether it needs the Daisy bootloader. The directory recommends it (it warns without one) and will need it for one-click flashing later.</p>
         <label class="chk"><input type="checkbox" data-c="release"> <a data-link="releases" target="_blank">Releases</a> shows the .bin</label>
       </div></li>
     </ol>
 
-    <h2 id="directory">2. The community directory</h2>
+    <h2 id="directory">2. The pull request to the community directory</h2>
+    <p>The <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">Synthux community directory</a> is the repository <a href="https://github.com/Synthux-Academy/community-instruments" target="_blank">Synthux-Academy/community-instruments</a>: one JSON file per firmware, in <code>projects/</code>. You add yours with a pull request. Open it as soon as step 1 is done: a public repository, a README with a controls table, and a release with the <code>.bin</code>. Labels, a browser build and a page can follow while it's reviewed.</p>
     <ol class="route">
-      <li class="step"><span class="num" aria-hidden="true">2a</span><div class="card">
+      <li class="step"><span class="num" aria-hidden="true">2a</span><div class="card" id="open">
+        <div class="head"><b>Open your firmware in the designer</b><span class="tools"><span class="tool t-des">Designer</span></span></div>
+        <p>Two ways in. Both fill in the labels too, so step 3 starts from them.</p>
+        <div class="fork">
+          <div class="way"><span class="cap">From your repository</span>
+            <p><b>Open repository…</b> and paste its address, or <a data-link="designer" href="editor.html" target="_blank">open it in the designer ↗</a> with the address at the top of this page. The designer reads <code>simple-touch-labels.json</code> from the default branch. Without one, a script fills in the labels from the README and a manual it links to. Name, author and repository are filled in. The repository doesn't have to be listed yet.</p>
+          </div>
+          <span class="or">or</span>
+          <div class="way"><span class="cap">From a README file</span>
+            <p><b>Open file…</b> and pick a <code>README.md</code> on your computer: for a README you haven't pushed yet. A script reads its labels and modes, and the name from its first <code>#</code> heading. Fill in the repository under <b>Firmware</b> yourself.</p>
+          </div>
+        </div>
+        <label class="chk"><input type="checkbox" data-c="opened"> The designer shows my firmware, with its repository under <b>Firmware</b></label>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">2b</span><div class="card">
         <div class="head"><b>Directory entry</b><span class="tools"><span class="tool t-des">Designer</span><span class="tool">GitHub</span></span></div>
-        <p>In the <a href="editor.html" target="_blank">designer</a>, fill in <b>Firmware</b>: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b>: it checks the entry the way the directory does, and opens a pull request on GitHub with the file filled in. GitHub asks you to fork the directory first.</p>
-        <label class="chk"><input type="checkbox" data-c="entry"> Directory entry… shows no problems, and the pull request is open</label>
+        <p>Under <b>Firmware</b>, fill in what's missing: name, author, a one-line description (up to 200 characters) and the repository. Then <b>Directory entry…</b> checks the entry the way the directory does. <b>Open pull request…</b> opens GitHub with <code>projects/&lt;id&gt;.json</code> filled in. GitHub makes a fork for you first if you need one. Commit the file, then create the pull request.</p>
+        <p class="hint">If you can write to community-instruments, GitHub offers to commit straight to <code>main</code>. Pick the option to create a new branch and start a pull request instead. Without the designer: fork the repository, add the file as <a href="https://github.com/Synthux-Academy/community-instruments/blob/main/CONTRIBUTING.md" target="_blank">CONTRIBUTING.md</a> describes, and open a pull request.</p>
+        <label class="chk"><input type="checkbox" data-c="entry"> <b>Directory entry…</b> shows no problems, and the pull request is open</label>
         <label class="chk"><input type="checkbox" data-c="validate"> The <b>Validate</b> check on the pull request is green</label>
-        <p class="hint">If the check is red, the pull request's <b>Files changed</b> tab marks what's wrong in your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork and push: the check runs again. A reviewer then looks at whether the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days: carry on below.</p>
+        <p class="hint">If the check is red, the pull request's <b>Files changed</b> tab marks what's wrong in your file (<code>/author/url</code> is the <code>url</code> in <code>author</code>). Fix it in your fork, on the same branch, and push: the check runs again.</p>
+      </div></li>
+      <li class="step"><span class="num" aria-hidden="true">2c</span><div class="card">
+        <div class="head"><b>The review</b><span class="tools"><span class="tool">GitHub</span></span></div>
+        <p>A reviewer checks that the repository matches the entry, has a README and targets the Simple Touch. Nobody tests the firmware. It can take days. Your pull request is under <a href="https://github.com/Synthux-Academy/community-instruments/pulls" target="_blank">Pull requests</a>, and GitHub emails you when someone comments. If the reviewer requests changes, edit the file in your fork, on the same branch: the pull request updates and the check runs again.</p>
+        <p>Go on with step 3 now. Everything you commit to your default branch is in the library once the entry is merged.</p>
       </div></li>
     </ol>
+
+    <p class="wait" id="wait"><b>While you wait.</b> Steps 3 to 5 don't need the review, and none of them change the directory entry. Each one is a commit to your default branch.</p>
 
     <h2 id="labels">3. Labels</h2>
     <ol class="route">
       <li class="step"><span class="num" aria-hidden="true">3a</span><div class="card">
         <div class="head"><b>Label every control</b><span class="tools"><span class="tool t-des">Designer</span></span></div>
-        <p>Start from <b>Blank</b>, or from the official firmware you built on. <b>Reference names: Synthux</b> shows S30, P03 and so on under each label. Then, in the Labels tab:</p>
+        <p>If you opened your repository or README in <a href="#open">step 2a</a>, the labels are filled in. If a script read them from a README, check every one. Otherwise start from <b>Blank</b>, or from the official firmware you built on. <b>Reference names: Synthux</b> shows S30, P03 and so on under each label. Then, in the Labels tab:</p>
         <ul>
           <li>Line 1 for what a control does, line 2 for detail (a switch's positions: "off / on / latch").</li>
           <li>Pads held for a second function: tick <b>Mod</b>, and fill their column for what the other controls do while it's held (or after it's tapped: click <b>hold</b> for <b>tap</b>).</li>
           <li>A function that needs pads held together, such as P10 + P11: add them under <b>Held together</b>. They get one column of their own, and neither pad has to be a modifier by itself.</li>
-          <li>A switch that changes what everything does, such as a playmode switch: <b>Modes</b>. The labels without a mode are the print set, as wide as fits every mode.</li>
+          <li>A switch that changes what everything does, such as a playmode switch: <b>Modes</b>. The labels without a mode are the print set, as wide as fits every mode. If the README has a heading per switch position, <b>Fill the modes from the README</b> reads them.</li>
           <li>The <b>MIDI</b> column if it sends or listens to MIDI, and <b>Notes</b> for what doesn't fit on a label.</li>
         </ul>
         <label class="chk"><input type="checkbox" data-c="labelled"> Every control the firmware uses has a label</label>
@@ -147,13 +175,12 @@
       </div></li>
     </ol>
 
-    <h2 id="merged">6. When the entry is merged</h2>
+    <h2 id="merged">6. After the merge</h2>
     <ol class="route">
       <li class="step"><span class="num" aria-hidden="true">6a</span><div class="card">
         <div class="head"><b>In the library</b><span class="tools"><span class="tool t-lib">Library</span></span></div>
         <p>The directory publishes on every merge, and the <a href="index.html" target="_blank">library</a> lists your firmware under <b>Community</b>. It reads your repository each time, so labels and builds you add later show up by themselves.</p>
         <label class="chk"><input type="checkbox" data-c="listed"> The library's Community list has it, and the <b>i</b> beside its name says <b>Labels by the creator</b></label>
-        <p class="hint">If a reviewer requests changes, edit the file in your fork, on the same branch. The pull request updates and the check runs again.</p>
       </div></li>
     </ol>
 
@@ -178,7 +205,7 @@
     </ol>
     <h3>Optional but preferred</h3>
     <ul>
-      <li><b>Releases:</b> publish each version as a GitHub release with its <code>.bin</code> attached (<a href="#repo">step 1e</a>). The address <code>/releases/latest</code> then always points to the newest version.</li>
+      <li><b>Releases:</b> publish each version as a GitHub release with its <code>.bin</code> attached (<a href="#repo">step 1</a>). The address <code>/releases/latest</code> then always points to the newest version.</li>
       <li><b>The Synthux community directory:</b> add your firmware to the <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">community directory</a> with a pull request on <a href="https://github.com/Synthux-Academy/community-instruments" target="_blank">its repository</a>. <b>Directory entry…</b> in the designer fills in the file for you (<a href="#directory">step 2</a>). Listed Simple Touch firmware also appears in this site's library.</li>
     </ul>
     <h3>Template</h3>
@@ -242,13 +269,15 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
     const m=String(S.repo).trim().replace(/\/+$/,'').replace(/\.git$/,'').match(/^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
     const gh= m? `https://github.com/${m[1]}/${m[2]}` : '';
     const L= m? {branches:gh+'/settings/branches', newrelease:gh+'/releases/new', releases:gh+'/releases', actions:gh+'/actions', pages:gh+'/settings/pages',
-      raw:`https://raw.githubusercontent.com/${m[1]}/${m[2]}/HEAD/simple-touch-labels.json`, site:`https://${m[1].toLowerCase()}.github.io/${m[2]}/`} : {};
+      raw:`https://raw.githubusercontent.com/${m[1]}/${m[2]}/HEAD/simple-touch-labels.json`, site:`https://${m[1].toLowerCase()}.github.io/${m[2]}/`,
+      designer:'editor.html?repo='+encodeURIComponent(gh)} : {designer:'editor.html'};
     document.querySelectorAll('[data-link]').forEach(a=>{ const u=L[a.dataset.link]; if(u) a.href=u; else a.removeAttribute('href'); a.title= u? '' : 'Fill in your repository at the top'; });
   };
   function draw(){
     for(const [id,k] of [['gPath','path'],['gBuild','build']]) $(id).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S[k])));
     document.querySelectorAll('[data-path]').forEach(e=>e.hidden= e.dataset.path!==S.path);
     document.querySelectorAll('[data-build]').forEach(e=>e.hidden= e.dataset.build!==S.build);
+    document.querySelectorAll('[data-have]').forEach(e=>{ e.dataset.scratch??=e.textContent; e.textContent= S.path==='have'? e.dataset.have : e.dataset.scratch; });   // the shared steps follow 1a, or 1a–1c
     const all=[...document.querySelectorAll('[data-c]')].filter(c=>c.offsetParent!==null);
     all.forEach(c=>{ c.checked=!!S.done[c.dataset.c]; c.closest('.chk').classList.toggle('done',c.checked); });
     const n=all.filter(c=>c.checked).length;
@@ -291,7 +320,7 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
       [!!bin, bin? `Latest release <b>${esc(rel.tag_name)}</b> has <code>${esc(bin.name)}</code>` : rel? `Latest release <b>${esc(rel.tag_name)}</b> has no .bin` : 'No release yet', ['release']],
       [!!labels, labels? `<code>simple-touch-labels.json</code> at the root${lf.emulator? ', with a browser build' : ''}` : lf==='bad'? '<code>simple-touch-labels.json</code> is not a label file (no labels, or not valid JSON)' : 'No <code>simple-touch-labels.json</code> yet', ['committed']],
       [!!web, web? `Browser build <code>${esc(web.file||'')}</code> on the <code>simple-touch-web</code> branch` : 'No browser build on a <code>simple-touch-web</code> branch', []],
-      [!!entry, entry? `Listed in the community directory as <code>${esc(entry.id)}</code>` : dir? 'Not in the community directory yet' : 'The community directory could not be read', []]];
+      [!!entry, entry? `Listed in the community directory as <code>${esc(entry.id)}</code>` : dir? 'Not in the community directory yet: see <a href="https://github.com/Synthux-Academy/community-instruments/pulls" target="_blank">its pull requests</a> for yours' : 'The community directory could not be read', ['opened','entry','validate','listed']]];
     let ticked=0;
     for(const [ok,,cs] of rows) if(ok) for(const c of cs) if(!S.done[c]){ S.done[c]=true; if(document.querySelector(`[data-c="${c}"]`)?.offsetParent) ticked++; }   // a check for the other start counts once it shows
     save(); draw();
