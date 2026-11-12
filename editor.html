@@ -31,22 +31,23 @@
       <p>Name every control, mark pads or knobs as modifiers and get a manual that lays its labels out by itself: boxes on the controls for phones, side columns with leader lines for desktop. Start from a reference label set or an official firmware. Everything is kept in this browser.</p>
     </div>
     <div class="export">
-      <span class="cap">Export</span>
-      <div class="btns">
-        <button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button>
-        <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
-        <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
-        <button type="button" id="shareBtn">Copy share link</button>
-        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a tab that follows your edits">Preview in library</button>
-      </div>
-      <div class="btns">
+      <div class="btns"><span class="cap">File</span>
         <button type="button" id="openBtn">Open file…</button>
         <input type="file" id="openFile" accept=".json,application/json" hidden>
         <button type="button" id="repoBtn" title="Reads a GitHub or Codeberg repository's label file, or the labels in its README">Open repository…</button>
         <button type="button" id="saveBtn" title="Save labels, design and font as JSON (opens in Fabio Bartali's Manual Designer too)">Save file</button>
-        <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
-        <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
+        <button type="button" id="shareBtn">Copy share link</button>
         <span class="status" id="busy"></span>
+      </div>
+      <div class="btns"><span class="cap">Export</span>
+        <button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button>
+        <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
+      </div>
+      <div class="btns"><span class="cap">Publish</span>
+        <button type="button" id="previewBtn" title="Your manual as the library will show it, in a tab that follows your edits">Preview in library</button>
+        <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
+        <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
+        <button type="button" id="dirBtn" title="The JSON file that lists this firmware in the Synthux community directory">Directory entry…</button>
       </div>
     </div>
   </header>
