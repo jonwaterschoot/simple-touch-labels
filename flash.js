@@ -6,6 +6,23 @@ const BOOTLOADER_FILE='vendor/libdaisy/dsy_bootloader_v6_4-intdfu-2000ms.bin';
 /* the deployed proxy/firmware-proxy.js. Empty: the dialog links to Releases and takes a file from this computer. */
 const FIRMWARE_PROXY='https://simple-touch-firmware.jonwtr.workers.dev/';
 const ADDR_INTERNAL=0x08000000, ADDR_QSPI=0x90040000;
+const BOOTLOADER_VERSION=[6,4];   // of BOOTLOADER_FILE
+
+/* The optional firmware block of a directory entry (community-instruments' schema): {asset_pattern, hardware, min_bootloader}.
+   asset_pattern is a glob on release asset names (* any run of characters, ? one), min_bootloader a version such as "v6.0". */
+const globRe=g=>new RegExp('^'+String(g).replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$','i');
+function patternAssets(assets, pattern){
+  if(typeof pattern!=='string' || !pattern.trim()) return assets;
+  const re=globRe(pattern.trim()), hit=assets.filter(a=>re.test(a.name));
+  return hit.length? hit : assets;
+}
+function newerBootloader(min){
+  const m=/^v?(\d+)(?:\.(\d+))?/i.exec(String(min||'').trim());
+  return !!m && (+m[1]>BOOTLOADER_VERSION[0] || (+m[1]===BOOTLOADER_VERSION[0] && +(m[2]||0)>BOOTLOADER_VERSION[1]));
+}
+async function directoryFirmware(repo){
+  try{ const f=(await loadDirectory()).find(p=>p.repo===normRepo(repo))?.firmware; return f && typeof f==='object'? f : {}; }catch(e){ return {}; }
+}
 
 /* The first two words of a Cortex-M image: initial stack pointer, reset handler (odd: Thumb).
    libDaisy's linker scripts place the reset handler by APP_TYPE: BOOT_NONE in internal flash, BOOT_QSPI in QSPI from
@@ -123,7 +140,7 @@ function openFlash({name='', repo=''}={}){
     <p class="hint">On Windows the first upload can need the <a href="https://docs.daisy.audio/tutorials/zadig" target="_blank">WinUSB driver ↗</a>. If the upload fails, try the <a href="${DAISY_PROGRAMMER}" target="_blank">Daisy Web Programmer ↗</a>.</p></form>`;
   const q=s=>d.querySelector(s), src=q('#fSrc'), pick=q('#fPick'), local=q('#fLocal'), box=q('#fAdvice'), boot=q('#fBoot'), go=q('#fGo'), bar=q('#fBar'), status=q('#fStatus'), close=q('#fClose');
   const relLink= relUrl? ` <a href="${escAttr(relUrl)}" target="_blank">Releases ↗</a>` : '';
-  let fw=null, busy=false, loads=0, bootFile=null;
+  let fw=null, busy=false, loads=0, bootFile=null, minBoot='';
   const done=new Set();   // ticked steps of this dialog: boot | enter | flash
   const mark=()=>box.querySelectorAll('li[data-step]').forEach(li=>li.classList.toggle('done',done.has(li.dataset.step)));
   const say=(t,bad,ok)=>{ if(status){ status.textContent=t; status.classList.toggle('err',!!bad); status.classList.toggle('ok',!!ok); } };
@@ -132,6 +149,7 @@ function openFlash({name='', repo=''}={}){
     const kind=firmwareKind(bytes), a=flashAdvice(kind), needsBoot= kind==='qspi' || kind==='sram';
     fw={bytes, kind, label};
     box.hidden=false; box.classList.toggle('warn',a.warn); box.innerHTML=a.html;
+    if(needsBoot && newerBootloader(minBoot)) box.insertAdjacentHTML('beforeend', `<p><b>Needs Daisy bootloader ${esc(minBoot)} or newer.</b> <b>Install bootloader</b> writes v${BOOTLOADER_VERSION.join('.')}. If the firmware does not start, install a newer bootloader with the <a href="${DAISY_PROGRAMMER}" target="_blank">Daisy Web Programmer ↗</a>.</p>`);
     done.delete('enter'); done.delete('flash'); mark();   // another file: only the bootloader stays done
     if(bar) bar.hidden=true;
     if(boot) boot.hidden=!needsBoot;
@@ -190,14 +208,17 @@ function openFlash({name='', repo=''}={}){
     if(!FIRMWARE_PROXY) return manual(`Download the <code>.bin</code> from${relLink}, then choose it below.`);
     src.textContent='Reading the latest release…';
     let rel=null;
+    const entry=directoryFirmware(repo);
     try{ rel=await latestRelease(repo); }
     catch(err){ return manual(`The release list could not be read (${esc(err.message)}). Download the <code>.bin</code> from${relLink}, then choose it below.`); }
     if(!rel) return manual('This repository has no release. Choose a <code>.bin</code> below.');
     if(!rel.assets.length) return manual(`The latest release has no <code>.bin</code> file.${relLink} Choose one below.`);
-    if(rel.assets.length>1){
-      pick.replaceChildren(...rel.assets.map((a,i)=>new Option(a.name,i)));
-      pick.hidden=false; pick.onchange=()=>pull(rel, rel.assets[+pick.value]);
+    const block=await entry, assets=patternAssets(rel.assets, block.asset_pattern);
+    if(typeof block.min_bootloader==='string') minBoot=block.min_bootloader.trim().slice(0,16);
+    if(assets.length>1){
+      pick.replaceChildren(...assets.map((a,i)=>new Option(a.name,i)));
+      pick.hidden=false; pick.onchange=()=>pull(rel, assets[+pick.value]);
     }
-    pull(rel, rel.assets[0]);
+    pull(rel, assets[0]);
   })();
 }

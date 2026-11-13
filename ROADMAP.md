@@ -34,35 +34,41 @@ While waiting, the DevTools check in notes.md (Synthux Lab) needs no answer from
 Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its repository since 2026-10-29.
 
 - [ ] Add `"oled": true` to the `emulator` block in its `simple-touch-labels.json`, push.
-- [ ] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
+- [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
 - [ ] Live link: send the Live SysEx next to its telemetry and add a `device` block with `live`, as TouchSpore does.
 - [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
 
 ### Runtime (simple-touch-web)
 
-- [ ] Release `v1.3`: `main` is 13 commits past `v1.2` (device source, live link, pad hits). Then move `v1`: `git tag -f -a v1 -m v1 "v1.3^{}" && git push -f origin v1` (by hand: the permission check blocks tag force-pushes).
-- [ ] With that release, the build branch's README (written by `build-firmware.yml`) mentions the designer's **Find builds in the repository** next to the run summary.
-- [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it.
-- [ ] Compile vendored code (`thirdparty/`, `lib/`) without `-Wall`, so a firmware's own warnings stand out.
+- [ ] Release `v1.3`: `main` is 13 commits past `v1.2` (device source, live link, pad hits), and the local branch `v1.3-prep` adds the two items below. Merge it, tag `v1.3`, then move `v1`: `git tag -f -a v1 -m v1 "v1.3^{}" && git push -f origin v1` (by hand: the permission check blocks tag force-pushes).
+- [x] The build branch's README (written by `publish.mjs`) names the designer's **Find builds in the repository** › **Use this build** next to the run summary. On `v1.3-prep`.
+- [x] Sources in a firmware's `thirdparty`, `third_party`, `lib`, `libs`, `vendor` or `external` folder compile without warnings. On `v1.3-prep`. TouchPlaited builds with 10 warnings and passes the smoke test. 8 of the 10 come from a Plaits header its own code includes.
+- [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it. No firmware needs it yet.
 - [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
 
 ### The shared standard
 
-- [ ] Write the spec for `simple-touch-labels.json`: the `simple-touch-manual/3` fields, the library's extras (`emulator`, `device`, `modes`, `combos`, `oled`, `design`, `midi`, `listing`, creator look, faceplate path), and what the library accepts and drops. A JSON Schema next to it, like the directory's `schema/`.
-- [ ] One page, "what a firmware repo carries": README, `simple-touch-labels.json`, faceplate (`img/faceplate.svg` or `.png`), `.bin` in releases, `.wasm` on the `simple-touch-web` branch, the two workflows.
-- [ ] Modes not tied to a switch (a tapped pad such as FM BleepBloop's P1, TouchPlaited's Recording): tapped modifiers cover them as columns today. Decide whether `modes` takes a pad, or a `page` from the firmware's Live SysEx.
-- [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs that `page` to keep the labels up. Tapped combos have no editor control yet.
+- [x] [SPEC.md](SPEC.md): the label file in three parts. Labels (`simple-touch-manual/3` with `combos`, `modTypes`, `modes`, `midi`) are all a reader needs. Play and the board (`emulator`, `device`) stay specified in simple-touch-web. Look is for the library and designer. `listing` is reserved. It ends with what the library accepts and drops.
+- [x] `schema/simple-touch-labels.schema.json`: strict on labels, modifiers, modes and `emulator`, types only for the look. The five examples, TouchSpore, TouchPlaited and TouchVink pass.
+- [x] "What a firmware repo carries": the table at the top of SPEC.md, linked from the about page and guide step 3c.
+- [ ] Decide: the label file stays a description that needs no running firmware. Proposed:
+  - `modes` stays one switch. A mode picked by a tapped pad (FM BleepBloop's P1, TouchPlaited's Recording) stays a `toggle` modifier, as SPEC.md says now.
+  - What the board shows at a given moment is the live link's job. One optional `page` byte in the Live frame (0: none, n: the nth of `modifiers` then `combos`) keeps a layer's labels up after the pads are let go (TouchSpore's 2 s window) and follows a tapped mode. Specified in simple-touch-web's README, with no new key in the label file.
+- [ ] Tapped combos: `modTypes` takes only single modifiers. The designer has no control for a combo, and the library drops the key.
+- [ ] The library does not check `format`. Decide whether a file with another `format` is refused.
+- [ ] The designer drops keys it doesn't know on **Save file**. `listing` needs adding there before anyone writes it by hand.
 - [ ] Offer the format and route to Synthux (one example PR, TouchString), once they have answered.
 
 ### Library
 
 - [ ] Flash from an exported web app: TouchSpore's Pages, **Upload to device…**, on hardware.
-- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback.
+- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback. No official repository has a label file yet, so this shows nothing new until one does. `EXAMPLES` is read while both pages start, so they have to wait for the file. Do it with the cards, whose Action needs the same list.
 - [ ] Cards on the Official and Community tabs: see [Firmware cards](#firmware-cards) below.
 - [ ] Lab links (`embed: link-only` with a `url`) for the officials, once Synthux gives deep links and agrees.
 - [ ] Firmware switcher in the player: `switchTo(doc)` = stop, set, start, keeping volume, input, lock scroll and full screen. Prev/next in full screen, swipe on a phone, `[` `]` on a keyboard, URL updated with `replaceState`. Preload the next build.
 - [ ] Optional bare mode (`player.html?bare`): panel and switcher only, Lab style.
-- [ ] **Upload to device…** reads the directory entry's `firmware` block when it has one: `asset_pattern` picks the `.bin` when a release has several, and a `min_bootloader` newer than the bundled v6.4 gets a warning.
+- [x] **Upload to device…** reads the directory entry's `firmware` block when it has one: `asset_pattern` picks the `.bin` when a release has several, and a `min_bootloader` newer than the bundled v6.4 gets a warning.
+- [ ] Check that dialog with a real entry. No directory entry has a `firmware` block yet (8 entries, 2026-11-13).
 
 ### Firmware cards
 
@@ -119,13 +125,15 @@ If Lab turns out to have its own pipeline, offer the split PR alone, since any b
 - [ ] A minimal libDaisy template for the Simple Touch, as a repository of its own. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
   - Hardware: every control read (knobs S30–S35, faders S36 and S37, both switches), the user LED, the pressure-sensitive pads as Touch String reads them, audio in and out, and USB MIDI.
   - Repository: the `Setup()` / `Loop()` split, the browser build workflow, a release, a README with a controls table, a `simple-touch-labels.json`. It passes every check in the guide.
-  - The example: a small polysynth on DaisySP.
+  - The example: a small polysynth with 3 voices (sine, saw, square) on DaisySP.
     - P03–P09: notes. P10 and P11: root note down and up.
     - Left switch (SW1): scale, minor / major / lydian. Right switch (SW2): octave.
     - S36 (left fader): output volume. S37 (right fader): filter.
-    - S30: detune. S31, S32, S33: attack, decay, release. S34, S35 and one more: level of sine, saw and square.
+    - S30: detune. S31, S32: attack, decay. S33, S34, S35: level of sine, saw and square.
     - P00 held + S30: reverb. P02 held + S35: delay. P01 is free.
-  - Open: the levels need a third control. S30–S35 are six knobs and the spec asks for seven (detune, A, D, R and three levels), with S36 already the volume.
+
+
+  - another community member also made a bare example: https://github.com/chrisades/SimpleTouchTemplate
 
 ## In sync?
 
@@ -155,6 +163,8 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-13**
+- Added SPEC.md and `schema/simple-touch-labels.schema.json`: what a firmware repository carries and the label file's format, linked from the about page and the guide.
+- Added the directory's `firmware` block to **Upload to device…**: `asset_pattern` narrows the release's `.bin` files, and a `min_bootloader` newer than v6.4 adds a warning. Untested on a real entry: none has the block yet.
 - Added the directory's optional `firmware` block to the guide (step 2b): `asset_pattern`, `hardware` and `min_bootloader`, checked against the directory's schema. The directory ignores it for now, and the designer leaves it out.
 - Fixed the guide's Plugdata set up: it no longer asks for VS Code. It lists Plugdata and the compiler toolchain it installs, says hvcc translates a patch to C++ for the Daisy, and names what the compile needs (patch, abstractions in its folder, the `simple_touch.json` board file).
 

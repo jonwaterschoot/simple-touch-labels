@@ -221,7 +221,7 @@ git push origin <span data-f="branch"></span></pre></li>
             <li><code>author</code>: your name, and a <code>url</code> starting with <code>https://</code> if you want one.</li>
             <li><code>repo</code>: the repository's address, with nothing after its name: no trailing <code>/</code>, no <code>.git</code>.</li>
             <li><code>schema_version</code> and <code>platform</code> stay <code>1</code> and <code>"touch"</code>.</li>
-            <li><code>firmware</code> (optional): reserved for flashing from the directory later. The directory accepts it but ignores it today, and the designer leaves it out. All three fields are optional:
+            <li><code>firmware</code> (optional): reserved for flashing from the directory later. The directory accepts it but ignores it today, and the designer leaves it out. The library's <b>Upload to device…</b> reads <code>asset_pattern</code> and <code>min_bootloader</code>. All three fields are optional:
               <ul>
                 <li><code>asset_pattern</code>: which release file is the firmware, as a pattern such as <code>"<span data-f="id"></span>-*.bin"</code> for releases named as in <a href="#repo">step 1</a>.</li>
                 <li><code>hardware</code>: a list of hardware revisions it runs on, such as <code>["rev2"]</code>. The directory doesn't fix the names yet.</li>
@@ -298,7 +298,7 @@ git push origin <span data-f="branch"></span></pre></li>
         </ol></details>
         <label class="chk"><input type="checkbox" data-c="committed"> The files are on the default branch: <a data-link="raw" target="_blank">the label file</a> opens</label>
         <label class="chk"><input type="checkbox" data-c="readmemap"> The README shows the control map on GitHub</label>
-        <p class="hint">GitHub caches raw files for a few minutes, so a new push can take that long to show.</p>
+        <p class="hint">GitHub caches raw files for a few minutes, so a new push can take that long to show. To write or check the label file by hand, <a href="https://github.com/jonwaterschoot/simple-touch-labels/blob/main/SPEC.md" target="_blank">SPEC.md ↗</a> has its format and a JSON Schema.</p>
       </div></li>
     </ol>
 

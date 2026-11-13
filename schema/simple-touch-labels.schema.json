@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jonwaterschoot.github.io/simple-touch-labels/schema/simple-touch-labels.schema.json",
+  "title": "Simple Touch label file",
+  "description": "simple-touch-labels.json at the root of a firmware repository. Described in SPEC.md. Keys not listed here are allowed, and readers skip them.",
+  "type": "object",
+  "required": ["format", "firmware", "labels", "modifiers"],
+  "properties": {
+    "format": { "const": "simple-touch-manual/3" },
+    "firmware": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "maxLength": 40 },
+        "author": { "type": "string", "maxLength": 60 },
+        "version": { "type": "string", "maxLength": 16 },
+        "description": { "type": "string", "maxLength": 300 },
+        "notes": { "description": "Markdown.", "type": "string", "maxLength": 8000 },
+        "repo": {
+          "description": "Empty, or the repository's address without a trailing slash or .git.",
+          "type": "string",
+          "pattern": "^(https://(github\\.com|codeberg\\.org)/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+)?$"
+        },
+        "authorUrl": { "type": "string", "pattern": "^(https://\\S+)?$" }
+      }
+    },
+    "labels": { "$ref": "#/$defs/labels" },
+    "modifiers": {
+      "description": "Pads, knobs or faders that give the other controls a second function.",
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/modifier" }
+    },
+    "combos": {
+      "description": "Controls held together as one modifier, such as \"P10+P11\".",
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[PS]\\d\\d(\\+[PS]\\d\\d){1,2}$" }
+    },
+    "modTypes": {
+      "description": "A modifier that is tapped, not held.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/modifier" },
+      "additionalProperties": { "const": "toggle" }
+    },
+    "modes": { "$ref": "#/$defs/modes" },
+    "emulator": {
+      "description": "The browser build the author approved. Specified in simple-touch-web's README.",
+      "type": "object",
+      "required": ["embed"],
+      "properties": {
+        "wasm": { "type": "string", "pattern": "^https://[^\\s\"'<>?#]+\\.wasm$" },
+        "abi": { "const": "simple-touch-web/1" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "embed": { "enum": ["allowed", "link-only"] },
+        "url": { "type": "string", "pattern": "^https://\\S+$" },
+        "oled": { "type": "boolean" }
+      },
+      "if": { "properties": { "embed": { "const": "allowed" } } },
+      "then": { "required": ["wasm", "abi", "sha256"] },
+      "else": { "required": ["url"] }
+    },
+    "device": {
+      "description": "MIDI port, settings, presets and the live link. Specified in simple-touch-web's README.",
+      "type": "object"
+    },
+    "faceplate": {
+      "description": "Path of the faceplate file in the same repository. Older files hold the SVG itself.",
+      "type": "string"
+    },
+    "fpStyle": { "type": "object" },
+    "fpDesktop": {
+      "type": "object",
+      "properties": {
+        "art": { "enum": ["same", "own", "none"] },
+        "faceplate": { "$ref": "#/$defs/path" },
+        "style": { "type": "object" }
+      }
+    },
+    "fpLabels": { "type": "object" },
+    "customs": { "type": "array", "items": { "type": "object" } },
+    "offsets": {
+      "type": "object",
+      "properties": {
+        "phone": { "$ref": "#/$defs/offsets" },
+        "desktop": { "$ref": "#/$defs/offsets" }
+      }
+    },
+    "oled": {
+      "type": "object",
+      "properties": { "rows": { "enum": [32, 64] } }
+    },
+    "design": { "type": "object" },
+    "font": { "type": "object" },
+    "view": { "type": "object" },
+    "listing": { "description": "Reserved.", "type": "object" }
+  },
+  "$defs": {
+    "control": { "type": "string", "pattern": "^(P0\\d|P1[01]|S3[0-7]|S09_S10|S07_S08|IN|OUT|LED)$" },
+    "modifier": { "type": "string", "pattern": "^(P0\\d|P1[01]|S3[0-7])$" },
+    "path": { "type": "string", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\.(svg|png|jpe?g|webp|gif|avif)$" },
+    "labels": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/control" },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "main": { "description": "Line 1. \"-\" hides the control.", "type": "string", "maxLength": 20 },
+          "main_2": { "description": "Line 2.", "type": "string", "maxLength": 24 },
+          "midi": { "type": "string", "maxLength": 40 }
+        },
+        "patternProperties": {
+          "^m_[PS]\\d\\d(\\+[PS]\\d\\d){0,2}$": { "description": "With that modifier or combo.", "type": "string", "maxLength": 24 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "modes": {
+      "description": "A switch whose positions change what the other controls do. S07_S08 has up, centre and down. S09_S10 has left, centre and right.",
+      "type": "object",
+      "required": ["switch", "list"],
+      "properties": {
+        "switch": { "enum": ["S07_S08", "S09_S10"] },
+        "list": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["pos", "name"],
+            "properties": {
+              "pos": { "enum": ["up", "centre", "down", "left", "right"] },
+              "name": { "type": "string", "minLength": 1, "maxLength": 20 },
+              "labels": { "$ref": "#/$defs/labels" }
+            }
+          }
+        }
+      }
+    },
+    "offsets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "r": { "enum": [0, 90, 180, 270] }
+        }
+      }
+    }
+  }
+}

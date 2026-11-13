@@ -46,6 +46,7 @@ flowchart TD
   - **Input**: a loop, the mic or a sound file of your own.
 - **Upload to device…**: on a firmware in the library and in the web app. Pulls the `.bin` of the repository's latest release, shows whether it runs from internal flash or needs the Daisy bootloader (QSPI or SRAM), with the steps for that case, and writes it with **Connect and flash**.
   - **Source**: GitHub or Codeberg releases, through `proxy/firmware-proxy.js` (release downloads send no CORS header). GitHub's sha256 is checked in the page. Without a release or a proxy, the dialog takes a file from this computer.
+  - **Directory entry**: when the firmware's entry in the community directory has a `firmware` block, its `asset_pattern` picks the `.bin` in a release with several, and a `min_bootloader` newer than v6.4 adds a warning.
   - **Mode check**: the page reads which DFU the Daisy is in and writes nothing if it is the wrong one for the firmware.
   - **Daisy bootloader**: when a firmware needs it, **Install bootloader** writes libDaisy's v6.4 build (built-in USB port, 2-second wait) to internal flash. It needs a firmware built with libDaisy v5.3 or newer.
   - Uploading needs WebUSB (Chrome or Edge, over HTTPS or on localhost).
@@ -97,6 +98,7 @@ The designer adds:
 
 ## Files
 
+- [SPEC.md](SPEC.md): what a firmware repository carries, and the format of `simple-touch-labels.json`. `schema/simple-touch-labels.schema.json` is the same as a JSON Schema.
 - `core.js`: slots, reference names, themes, the layout engine, both drawings, faceplates, fonts, Markdown, share links and exports. Shared by both pages.
 - `play.js`: Play. The panel's controls as an interactive layer over the drawing, the audio chain (input, firmware, volume, limiter), the LED and OLED. It loads the runtime in `vendor/simple-touch-web/` (simple-touch-web's `web/`, tag `v1`, ABI `simple-touch-web/1`) on the first Play.
 - `flash.js`: **Upload to device…**. Reads the latest release, finds where a `.bin` runs from its reset vector (`firmwareKind`) and writes it with `vendor/webdfu/` (Electrosmith's Programmer, unchanged, MIT and ISC). `FIRMWARE_PROXY` holds the deployed proxy's URL.
