@@ -8,7 +8,7 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 
 - **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
 - **Playable**: TouchVink and TouchPlaited, each from its own repository, sha256-pinned. TouchSpore over **Connect to Simple Touch** with the live link.
-- **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12).
+- **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12). TouchPlaited's, as `/play/` on its site, in the site's own theme and built from this repository's `main` on every deploy (2026-11-13).
 - **Designer**: modes, combos, per-layout style, fonts per part, OLED placement, **Open repository…**, README files in **Open file…**.
 - **Guide**: step by step with a repository check and an **In detail** section per step. The about page describes the project in three parts.
 - **Synthux**: asked on Discord (2026-10-28; Fabio, Roey, Vlad). No answer yet.
@@ -33,16 +33,16 @@ While waiting, the DevTools check in notes.md (Synthux Lab) needs no answer from
 
 Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its repository since 2026-10-29.
 
-- [ ] Add `"oled": true` to the `emulator` block in its `simple-touch-labels.json`, push.
+- [x] `"oled": true` in the `emulator` block, an `oled` placement (128 × 32, between S30 and S35) and MIDI per control and mode in its `simple-touch-labels.json`. Pushed 2026-11-13.
+- [x] Its site plays it: `/play/` is `player.html` with the site's header and `doc/play.css`, assembled by its `build-site.mjs` from a checkout of this repository. Its README and manual were shortened the same day.
 - [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
 - [ ] Live link: send the Live SysEx next to its telemetry and add a `device` block with `live`, as TouchSpore does.
 - [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
 
 ### Runtime (simple-touch-web)
 
-- [ ] Release `v1.3`: `main` is 13 commits past `v1.2` (device source, live link, pad hits), and the local branch `v1.3-prep` adds the two items below. Merge it, tag `v1.3`, then move `v1`: `git tag -f -a v1 -m v1 "v1.3^{}" && git push -f origin v1` (by hand: the permission check blocks tag force-pushes).
-- [x] The build branch's README (written by `publish.mjs`) names the designer's **Find builds in the repository** › **Use this build** next to the run summary. On `v1.3-prep`.
-- [x] Sources in a firmware's `thirdparty`, `third_party`, `lib`, `libs`, `vendor` or `external` folder compile without warnings. On `v1.3-prep`. TouchPlaited builds with 10 warnings and passes the smoke test. 8 of the 10 come from a Plaits header its own code includes.
+- [x] The build branch's README (written by `publish.mjs`) names the designer's **Find builds in the repository** › **Use this build** next to the run summary. In `v1.3`.
+- [x] Sources in a firmware's `thirdparty`, `third_party`, `lib`, `libs`, `vendor` or `external` folder compile without warnings. In `v1.3`. TouchPlaited builds with 10 warnings and passes the smoke test. 8 of the 10 come from a Plaits header its own code includes.
 - [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it. No firmware needs it yet.
 - [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
 
@@ -141,11 +141,12 @@ What can drift between the repos, and where it stands (2026-11-13):
 
 | Piece | Now | Behind |
 |---|---|---|
-| simple-touch-web tags | `v1.2` newest, `v1` = `v1.2` | `main` has 13 untagged commits (device source, live link, pad hits) |
-| Library `vendor/simple-touch-web/` | same as simple-touch-web `main` | ahead of any tag until `v1.3` |
+| simple-touch-web tags | `v1.3` newest, `v1` = `v1.3` | |
+| Library `vendor/simple-touch-web/` | same as `v1.3` | |
 | TouchPlaited workflow | `@v1` | |
-| TouchPlaited approved build | `8acf93d464ec` (v1.2) | `emulator` block lacks `"oled": true` |
-| TouchVink workflow | `@v1` | its approved build is from the first `v1`. A push builds with `v1.2` and a new hash; the approved one stays pinned until it is re-approved |
+| TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
+| TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
+| TouchVink workflow | `@v1` | its approved build is from the first `v1`. A push builds with `v1.3` and a new hash; the approved one stays pinned until it is re-approved |
 | TouchSpore web app | exported 2026-11-12 | |
 | Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop`, `fpLabels`, `design.fonts` or label `style`, and draws a `-` box for a hidden control. No **Upload to device…** and only the **Pad labels** toggle in full screen. Export again to fix |
 
@@ -163,6 +164,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-13**
+- Released simple-touch-web `v1.3` (device source, live link, pad hits, vendored folders without warnings, the build finder in the build branch's README). `v1` moved to `v1.3`.
 - Added SPEC.md and `schema/simple-touch-labels.schema.json`: what a firmware repository carries and the label file's format, linked from the about page and the guide.
 - Added the directory's `firmware` block to **Upload to device…**: `asset_pattern` narrows the release's `.bin` files, and a `min_bootloader` newer than v6.4 adds a warning. Untested on a real entry: none has the block yet.
 - Added the directory's optional `firmware` block to the guide (step 2b): `asset_pattern`, `hardware` and `min_bootloader`, checked against the directory's schema. The directory ignores it for now, and the designer leaves it out.
