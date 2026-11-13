@@ -36,7 +36,9 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 - [x] `"oled": true` in the `emulator` block, an `oled` placement (128 × 32, between S30 and S35) and MIDI per control and mode in its `simple-touch-labels.json`. Pushed 2026-11-13.
 - [x] Its site plays it: `/play/` is `player.html` with the site's header and `doc/play.css`, assembled by its `build-site.mjs` from a checkout of this repository. Its README and manual were shortened the same day.
 - [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
-- [ ] Live link: send the Live SysEx next to its telemetry and add a `device` block with `live`, as TouchSpore does.
+- [x] Live link: the firmware sends the Live frame, a knobs frame (`7D 54 50 01 06`) and OLED half pages for 10 s after the request `F0 7D 54 50 01 7E F7`. Its label file has a `device` block with `port`, `request`, `live.knobs` and `live.oled`. Checked on hardware 2026-11-13 on simple-touch-web's test bench: levers, pads, knobs, OLED.
+- [ ] Live link, page to board: `touch` and `hits`, and knobs. The board is read-only for now. A knob turned on the page returns to the board's value, and `live.knobs.cc` (102) is ignored by the firmware.
+- [ ] Push TouchPlaited and simple-touch-web, tag simple-touch-web, then check **Connect to Simple Touch** in the library (`?community=touchplaited`).
 - [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
 
 ### Runtime (simple-touch-web)
@@ -142,7 +144,7 @@ What can drift between the repos, and where it stands (2026-11-13):
 | Piece | Now | Behind |
 |---|---|---|
 | simple-touch-web tags | `v1.3` newest, `v1` = `v1.3` | |
-| Library `vendor/simple-touch-web/` | same as `v1.3` | |
+| Library `vendor/simple-touch-web/` | `v1.3` plus `device-panel.js` from `main` (a `device` block with only `live`) | ahead of the newest tag until simple-touch-web is tagged |
 | TouchPlaited workflow | `@v1` | |
 | TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
 | TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
@@ -164,6 +166,8 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-13**
+- Added the live link to TouchPlaited: levers, pads, knobs and OLED in **Connect to Simple Touch**, read-only from the page. Checked on hardware on the test bench.
+- Fixed a `device` block with only `live`: `parseDevice` dropped a block without settings or presets. The library hides the empty settings box.
 - Released simple-touch-web `v1.3` (device source, live link, pad hits, vendored folders without warnings, the build finder in the build branch's README). `v1` moved to `v1.3`.
 - Added SPEC.md and `schema/simple-touch-labels.schema.json`: what a firmware repository carries and the label file's format, linked from the about page and the guide.
 - Added the directory's `firmware` block to **Upload to device…**: `asset_pattern` narrows the release's `.bin` files, and a `min_bootloader` newer than v6.4 adds a warning. Untested on a real entry: none has the block yet.

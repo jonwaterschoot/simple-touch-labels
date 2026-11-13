@@ -372,7 +372,7 @@ const Play = (()=>{
     keyboards(box);
     S.link=linkMod.mountDeviceLink($p('playLink'), device, {onMidi:d=>S.panel?.midi(d), onChange:()=>{ S.panel?.reset(); S.panel?.ask(); }, live:LIVE_HANDLERS});
     S.follows=S.link.follows; S.oledRows=device.live?.oled?.rows||0;
-    box.hidden=false;
+    box.hidden=!device.settings.length && !device.presets.length;   // a block with only `live` has no controls to show
     if(S.source==='device') refresh();
   }
   /* a setting with the 12 note names as buttons (a root note) is drawn as one octave of keys (ui.css .keyboard) */
