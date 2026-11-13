@@ -7,7 +7,7 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 ## Where it stands
 
 - **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
-- **Playable**: TouchVink and TouchPlaited, each from its own repository, sha256-pinned. TouchSpore over **Connect to Simple Touch** with the live link.
+- **Playable**: TouchVink and TouchPlaited, each from its own repository, sha256-pinned. TouchSpore and TouchPlaited over **Connect to Simple Touch** with the live link (TouchPlaited read-only from the page).
 - **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12). TouchPlaited's, as `/play/` on its site, in the site's own theme and built from this repository's `main` on every deploy (2026-11-13).
 - **Designer**: modes, combos, per-layout style, fonts per part, OLED placement, **Open repository…**, README files in **Open file…**.
 - **Guide**: step by step with a repository check and an **In detail** section per step. The about page describes the project in three parts.
@@ -38,7 +38,7 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 - [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
 - [x] Live link: the firmware sends the Live frame, a knobs frame (`7D 54 50 01 06`) and OLED half pages for 10 s after the request `F0 7D 54 50 01 7E F7`. Its label file has a `device` block with `port`, `request`, `live.knobs` and `live.oled`. Checked on hardware 2026-11-13 on simple-touch-web's test bench: levers, pads, knobs, OLED.
 - [ ] Live link, page to board: `touch` and `hits`, and knobs. The board is read-only for now. A knob turned on the page returns to the board's value, and `live.knobs.cc` (102) is ignored by the firmware.
-- [ ] Check **Connect to Simple Touch** in the library (`?community=touchplaited`) and on TouchPlaited's `/play/`. Both repositories are pushed (2026-11-13).
+- [x] **Connect to Simple Touch** in the library (`?community=touchplaited`) and on TouchPlaited's `/play/`, checked on hardware 2026-11-13.
 - [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
 
 ### Runtime (simple-touch-web)
