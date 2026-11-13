@@ -48,7 +48,7 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 
 ### The shared standard
 
-- [ ] Write the spec for `simple-touch-labels.json`: the `simple-touch-manual/3` fields, the library's extras (`emulator`, `device`, `modes`, `combos`, `oled`, `design`, `midi`, creator look, faceplate path), and what the library accepts and drops. A JSON Schema next to it, like the directory's `schema/`.
+- [ ] Write the spec for `simple-touch-labels.json`: the `simple-touch-manual/3` fields, the library's extras (`emulator`, `device`, `modes`, `combos`, `oled`, `design`, `midi`, `listing`, creator look, faceplate path), and what the library accepts and drops. A JSON Schema next to it, like the directory's `schema/`.
 - [ ] One page, "what a firmware repo carries": README, `simple-touch-labels.json`, faceplate (`img/faceplate.svg` or `.png`), `.bin` in releases, `.wasm` on the `simple-touch-web` branch, the two workflows.
 - [ ] Modes not tied to a switch (a tapped pad such as FM BleepBloop's P1, TouchPlaited's Recording): tapped modifiers cover them as columns today. Decide whether `modes` takes a pad, or a `page` from the firmware's Live SysEx.
 - [ ] Combos in Play follow what is held. A firmware that keeps its layer open after you let go (TouchSpore's 2 s window) needs that `page` to keep the labels up. Tapped combos have no editor control yet.
@@ -58,10 +58,48 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 
 - [ ] Flash from an exported web app: TouchSpore's Pages, **Upload to device…**, on hardware.
 - [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback.
-- [ ] Cards on the Official and Community tabs: name, platform, and Play / Open in Synthux Lab ↗ / Manual.
+- [ ] Cards on the Official and Community tabs: see [Firmware cards](#firmware-cards) below.
 - [ ] Lab links (`embed: link-only` with a `url`) for the officials, once Synthux gives deep links and agrees.
 - [ ] Firmware switcher in the player: `switchTo(doc)` = stop, set, start, keeping volume, input, lock scroll and full screen. Prev/next in full screen, swipe on a phone, `[` `]` on a keyboard, URL updated with `replaceState`. Preload the next build.
 - [ ] Optional bare mode (`player.html?bare`): panel and switcher only, Lab style.
+- [ ] **Upload to device…** reads the directory entry's `firmware` block when it has one: `asset_pattern` picks the `.bin` when a release has several, and a `min_bootloader` newer than the bundled v6.4 gets a warning.
+
+### Firmware cards
+
+A list of every firmware like the [directory's page](https://synthux-academy.github.io/community-instruments/), with more per card: a picture, a video or sound, the release, and Play / Open in Synthux Lab ↗ / Manual / **Upload to device…**. The creator's repository stays the source, so a card is never out of sync for long.
+
+Where each piece comes from:
+
+| Piece | Source |
+|---|---|
+| Name, author, description, repository | The directory entry (`projects.json`) |
+| `firmware` block (asset pattern, hardware, bootloader) | The directory entry. Not copied into the label file. |
+| Video, sound, card image | A `listing` block in `simple-touch-labels.json`, filled in on the designer's Firmware tab |
+| Release, `.bin`, browser build, labels by the creator | The repository itself |
+
+```json
+"listing": {
+  "video": "https://www.youtube.com/watch?v=…",
+  "audio": "media/demo.mp3",
+  "image": "img/card.png"
+}
+```
+
+The card image, first that exists: `listing.image` (PNG, JPG or WebP at the panel's aspect ratio, under 500 KB), else the panel drawn in the creator's look with its faceplate, else the blank panel with the labels read from the README.
+
+Loading, in three parts:
+
+1. **Snapshot:** a GitHub Action in this repository writes `community-index.json` with what each card shows. It runs daily and by hand, and commits only when something changed. The page loads this one file first, so the list shows at once whatever its length.
+2. **Refresh while read:** the page then reads each visible card's `simple-touch-labels.json` from the repository's raw files (not counted against GitHub's API limit) and updates a card that differs from the snapshot.
+3. **On open:** the latest release through GitHub's API, as **Upload to device…** does now. One request per opened firmware stays under the 60 an hour allowed without signing in.
+
+A creator's push can't start the Action (their repository would need a token for ours), so the refresh covers changes between snapshots.
+
+- [ ] Test one audio file from `raw.githubusercontent.com` in an `<audio>` element: the type GitHub sends, and a file stored with Git LFS. Settle `listing.audio` after that. A YouTube or SoundCloud link works either way.
+- [ ] `listing` in the designer's Firmware tab, in **Save file** and the Repository kit. **Export › Card image** writes `img/card.png` from the preview.
+- [ ] The Action and `community-index.json`.
+- [ ] The cards: snapshot first, refresh for visible cards, release on open.
+- [ ] Guide: the `listing` block in the labels step.
 
 ### Officials in the browser (after Synthux answers)
 
@@ -117,6 +155,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-13**
+- Added the directory's optional `firmware` block to the guide (step 2b): `asset_pattern`, `hardware` and `min_bootloader`, checked against the directory's schema. The directory ignores it for now, and the designer leaves it out.
 - Fixed the guide's Plugdata set up: it no longer asks for VS Code. It lists Plugdata and the compiler toolchain it installs, says hvcc translates a patch to C++ for the Daisy, and names what the compile needs (patch, abstractions in its folder, the `simple_touch.json` board file).
 
 **2026-11-12**
