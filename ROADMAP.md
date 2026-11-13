@@ -38,7 +38,7 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 - [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
 - [x] Live link: the firmware sends the Live frame, a knobs frame (`7D 54 50 01 06`) and OLED half pages for 10 s after the request `F0 7D 54 50 01 7E F7`. Its label file has a `device` block with `port`, `request`, `live.knobs` and `live.oled`. Checked on hardware 2026-11-13 on simple-touch-web's test bench: levers, pads, knobs, OLED.
 - [ ] Live link, page to board: `touch` and `hits`, and knobs. The board is read-only for now. A knob turned on the page returns to the board's value, and `live.knobs.cc` (102) is ignored by the firmware.
-- [ ] Push TouchPlaited and simple-touch-web, tag simple-touch-web, then check **Connect to Simple Touch** in the library (`?community=touchplaited`).
+- [ ] Check **Connect to Simple Touch** in the library (`?community=touchplaited`) and on TouchPlaited's `/play/`. Both repositories are pushed (2026-11-13).
 - [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
 
 ### Runtime (simple-touch-web)
@@ -143,12 +143,12 @@ What can drift between the repos, and where it stands (2026-11-13):
 
 | Piece | Now | Behind |
 |---|---|---|
-| simple-touch-web tags | `v1.3` newest, `v1` = `v1.3` | |
-| Library `vendor/simple-touch-web/` | `v1.3` plus `device-panel.js` from `main` (a `device` block with only `live`) | ahead of the newest tag until simple-touch-web is tagged |
+| simple-touch-web tags | `v1.4` newest, `v1` = `v1.4` | |
+| Library `vendor/simple-touch-web/` | same as `v1.4` | |
 | TouchPlaited workflow | `@v1` | |
 | TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
 | TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
-| TouchVink workflow | `@v1` | its approved build is from the first `v1`. A push builds with `v1.3` and a new hash; the approved one stays pinned until it is re-approved |
+| TouchVink workflow | `@v1` | its approved build is from the first `v1`. A push builds with `v1.4` and a new hash; the approved one stays pinned until it is re-approved |
 | TouchSpore web app | exported 2026-11-12 | |
 | Web apps exported before 2026-11-09 | their own copy of `core.js` | a label file saved since then shows there without ALL CAPS, turns, `fpDesktop`, `fpLabels`, `design.fonts` or label `style`, and draws a `-` box for a hidden control. No **Upload to device…** and only the **Pad labels** toggle in full screen. Export again to fix |
 
@@ -166,6 +166,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-13**
+- Released simple-touch-web `v1.4` (a `device` block with only `live`). `v1` moved to `v1.4`.
 - Added the live link to TouchPlaited: levers, pads, knobs and OLED in **Connect to Simple Touch**, read-only from the page. Checked on hardware on the test bench.
 - Fixed a `device` block with only `live`: `parseDevice` dropped a block without settings or presets. The library hides the empty settings box.
 - Released simple-touch-web `v1.3` (device source, live link, pad hits, vendored folders without warnings, the build finder in the build branch's README). `v1` moved to `v1.3`.
