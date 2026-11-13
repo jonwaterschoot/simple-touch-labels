@@ -85,15 +85,15 @@ git config --global user.email "12345678+you@users.noreply.github.com"</pre>GitH
           <li data-build="daisy"><b>A first flash:</b> the Daisy examples, with Blink:<pre>cd ~/Documents/GitHub
 git clone --recurse-submodules https://github.com/electro-smith/DaisyExamples</pre>In VS Code, <b>File › Open Folder…</b> › <code>DaisyExamples/seed/Blink</code>. Put the Simple Touch in its bootloader (hold BOOT while you plug in USB), then Ctrl+P (Cmd+P on macOS) and type <code>task build_and_program_dfu</code>. The first time, run <code>task build_all</code> before it: it builds libDaisy and DaisySP. The Daisy Seed's own LED blinks. A closing <code>Error 74</code> from dfu-util is normal. If dfu-util finds no device on Windows, the <a href="https://docs.daisy.audio/tutorials/zadig/" target="_blank">Zadig page</a> sets its USB driver.</li>
           <li data-build="pd"><b>Plugdata:</b> download it from <a href="https://plugdata.org" target="_blank">plugdata.org</a> and run the installer.</li>
-          <li data-build="pd"><b>The compiler toolchain:</b> the first time you open Plugdata's compile dialog, it offers to install the toolchain: hvcc and the ARM compiler for the Daisy. There is nothing to install by hand.</li>
-          <li data-build="pd"><b>How a patch reaches the Daisy:</b> the Daisy can't read <code>.pd</code> files. hvcc translates the patch into C++, the toolchain compiles that into a <code>.bin</code>, and Plugdata flashes it. hvcc translates most vanilla Pd objects, not all of them, and no externals. Tick Plugdata's compiled mode (the hvcc checkmark) while you patch: it then offers only objects hvcc can translate.</li>
+          <li data-build="pd"><b>The compiler toolchain:</b> the first time you open Plugdata's export dialog, it offers to install the toolchain: hvcc and the ARM compiler for the Daisy. There is nothing to install by hand.</li>
+          <li data-build="pd"><b>How a patch reaches the Daisy:</b> the Daisy can't read <code>.pd</code> files. hvcc translates the patch into C++, the toolchain compiles that into a <code>.bin</code>, and Plugdata flashes it. hvcc translates most vanilla Pd objects, not all of them, and no externals. Turn on <b>Menu › Heavy Compiler › Toggle Compiled Mode</b> while you patch: Plugdata then offers only objects hvcc can translate.</li>
           <li data-build="pd"><b>What the compile needs:</b>
             <ul>
               <li>Your <code>.pd</code> patch.</li>
               <li>Every abstraction it uses, in the same folder as the patch.</li>
               <li>A board file: a JSON that maps the Simple Touch's knobs, faders, switches and the pads of its MPR121 touch sensor to the names your patch receives. If your Plugdata lists a Simple Touch template, use it. Otherwise download <a href="https://github.com/Wasted-Audio/hvcc-examples-daisy/blob/main/simple_touch.json" target="_blank"><code>simple_touch.json</code></a> from hvcc-examples-daisy.</li>
             </ul></li>
-          <li data-build="pd"><b>A first flash:</b> open a patch, then the compile dialog: Daisy, the custom board file <code>simple_touch.json</code>, and flash. The Simple Touch has to be in its bootloader (hold BOOT while you plug in USB).</li>
+          <li data-build="pd"><b>A first flash:</b> open a patch, then the export dialog. Pick <b>Electro-Smith Daisy</b>, choose <code>simple_touch.json</code> as the custom JSON for the target board, set the export type to <b>Binary</b>, and flash. The Simple Touch has to be in its bootloader (hold BOOT while you plug in USB).</li>
         </ol></details>
         <label class="chk"><input type="checkbox" data-c="setup"> I can build something and flash it to my Simple Touch</label>
       </div></li>
@@ -106,7 +106,7 @@ git clone --recursive https://github.com/Synthux-Academy/TouchBass <span data-f=
           <li data-build="daisy">Open it: in VS Code, <b>File › Open Folder…</b> › <code>Documents/GitHub/<span data-f="name"></span></code>. <b>Terminal › New Terminal</b> opens a terminal in that folder.</li>
           <li data-build="daisy">Build and flash it as Blink in step 1a: Ctrl+P, <code>task build_all</code> the first time, then <code>task build_and_program_dfu</code> with the Simple Touch in its bootloader. In the terminal it is <code>make</code> and <code>make program-dfu</code>, in the folder with the Makefile. Then change the code, and build and flash again until it plays as you want.</li>
           <li data-build="pd">Make a folder <code>Documents/GitHub/<span data-f="name"></span></code> with <code>simple_touch_template.pd</code> and <code>simple_touch.json</code> in it. Save your patch there under its own name, with every abstraction it uses next to it.</li>
-          <li data-build="pd">Compile it with debug printing on and patch size Big. The template prints every control's changes, so you see which receive belongs to which knob, fader and pad.</li>
+          <li data-build="pd">Export and flash it as in step 1a, with debug printing on and patch size Big. The template prints every control's changes, so you see which receive belongs to which knob, fader and pad.</li>
           <li>Keep the original licence file, and name whose code it builds on in your README.</li>
         </ol></details>
         <label class="chk"><input type="checkbox" data-c="runs"> It flashes and runs on the Simple Touch</label>
@@ -169,7 +169,7 @@ git push origin <span data-f="branch"></span></pre></li>
           <p class="hint" data-cap="relCap"></p>
           <ol>
             <li data-build="daisy">Build with <code>make</code>. It writes <code>build/&lt;TARGET&gt;.bin</code>, with TARGET as the Makefile names it. Copy it as <code data-f="nbin"></code>.</li>
-            <li data-build="pd">Compile in Plugdata, and copy the .bin it writes as <code data-f="nbin"></code>.</li>
+            <li data-build="pd">Export from Plugdata with the export type <b>Binary</b>, and copy the .bin it writes as <code data-f="nbin"></code>.</li>
             <li><a data-link="newrelease" target="_blank">Draft a new release</a>. <b>Choose a tag</b>, type <code data-f="ntag"></code> and pick <b>Create new tag</b>.</li>
             <li>Title it <code><span data-f="title"></span> <span data-f="ntag"></span></code>, with a line on what changed.</li>
             <li>Drag <code data-f="nbin"></code> onto <b>Attach binaries</b>, then <b>Publish release</b>.</li>
