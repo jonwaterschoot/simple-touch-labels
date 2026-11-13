@@ -221,6 +221,14 @@ git push origin <span data-f="branch"></span></pre></li>
             <li><code>author</code>: your name, and a <code>url</code> starting with <code>https://</code> if you want one.</li>
             <li><code>repo</code>: the repository's address, with nothing after its name: no trailing <code>/</code>, no <code>.git</code>.</li>
             <li><code>schema_version</code> and <code>platform</code> stay <code>1</code> and <code>"touch"</code>.</li>
+            <li><code>firmware</code> (optional): reserved for flashing from the directory later. The directory accepts it but ignores it today, and the designer leaves it out. All three fields are optional:
+              <ul>
+                <li><code>asset_pattern</code>: which release file is the firmware, as a pattern such as <code>"<span data-f="id"></span>-*.bin"</code> for releases named as in <a href="#repo">step 1</a>.</li>
+                <li><code>hardware</code>: a list of hardware revisions it runs on, such as <code>["rev2"]</code>. The directory doesn't fix the names yet.</li>
+                <li><code>min_bootloader</code>: the oldest Daisy bootloader it runs with, such as <code>"v6.0"</code>. Leave it out if it flashes to the Daisy's internal memory.</li>
+              </ul>
+              <pre data-f="fwblock"></pre>
+            </li>
           </ul>
           <p class="hint" id="gPR" hidden></p>
           <ol>
@@ -521,6 +529,7 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
       raw:raw+F.branch+'/simple-touch-labels.json', site:`https://${o.toLowerCase()}.github.io/${n}/`,
       rows:(F.rows||TEMPLATE_ROWS).join('\n'), entry:dirJSON(entry),
       emulator:`"emulator": {\n  "wasm": "${raw}simple-touch-web/${F.wasm||'<target>-<hash>.wasm'}",\n  "abi": "simple-touch-web/1",\n  "sha256": "${F.sha||'<64 characters from the run summary>'}",\n  "embed": "allowed"${F.oled? ',\n  "oled": true' : ''}\n}`};
+    T.fwblock=`"firmware": {\n  "asset_pattern": "${id}-*.bin",\n  "hardware": ["rev2"],\n  "min_bootloader": "v6.0"\n}`;
     T.cmp=dirJSON({schema_version:1, id:'touchspore', name:EX.title, description:EX.desc, author:{name:EX.author, url:'https://github.com/'+EX.owner}, repo:EX.gh, platform:'touch'});
     document.querySelectorAll('[data-f]').forEach(e=>{ e.textContent=T[e.dataset.f]??''; });
     document.querySelectorAll('[data-cmp]').forEach(e=>{ e.hidden= F.gh===EX.gh; });   // TouchSpore's own entry needs no comparison
@@ -562,6 +571,16 @@ MIT. Built on [DaisySP](https://github.com/electro-smith/DaisySP).</pre>
     if(!s(e.repo) || !/^https:\/\/(github\.com|codeberg\.org)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(e.repo) || /\.git$/.test(e.repo)) p.push('repo: https://github.com/owner/name, with nothing after the name.');
     else if(!F.ex && e.repo!==F.gh) p.push(`repo: ${e.repo} is not the repository at the top of this page.`);
     if(e.platform!=='touch') p.push('platform: "touch".');
+    const f=e.firmware, full=v=>s(v) && v.length>0;
+    if(f!==undefined){
+      if(!f || typeof f!=='object' || Array.isArray(f)) p.push('firmware: { … }, an object with asset_pattern, hardware or min_bootloader, or leave it out.');
+      else {
+        const fx=Object.keys(f).filter(k=>!['asset_pattern','hardware','min_bootloader'].includes(k)); if(fx.length) p.push(`firmware: only asset_pattern, hardware and min_bootloader, not ${fx.join(', ')}.`);
+        if(f.asset_pattern!==undefined && !full(f.asset_pattern)) p.push('firmware asset_pattern: a pattern such as "*.bin".');
+        if(f.hardware!==undefined && !(Array.isArray(f.hardware) && f.hardware.every(full))) p.push('firmware hardware: a list of names, such as ["rev2"].');
+        if(f.min_bootloader!==undefined && !full(f.min_bootloader)) p.push('firmware min_bootloader: a version, such as "v6.0".');
+      }
+    }
     return p;
   }
   function entryCheck(F=facts()){
