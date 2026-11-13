@@ -2,7 +2,7 @@
 
 One set of files per firmware repository, read by everything that shows or plays a Simple Touch firmware: Synthux Lab, this library, the designer and the uploader. Official and community firmwares follow the same route; only where they are listed differs.
 
-Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-13.
+Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-14.
 
 ## Where it stands
 
@@ -37,15 +37,17 @@ Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its reposi
 - [x] Its site plays it: `/play/` is `player.html` with the site's header and `doc/play.css`, assembled by its `build-site.mjs` from a checkout of this repository. Its README and manual were shortened the same day.
 - [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
 - [x] Live link: the firmware sends the Live frame, a knobs frame (`7D 54 50 01 06`) and OLED half pages for 10 s after the request `F0 7D 54 50 01 7E F7`. Its label file has a `device` block with `port`, `request`, `live.knobs` and `live.oled`. Checked on hardware 2026-11-13 on simple-touch-web's test bench: levers, pads, knobs, OLED.
-- [ ] Live link, page to board: `touch` and `hits`, and knobs. The board is read-only for now. A knob turned on the page returns to the board's value, and `live.knobs.cc` (102) is ignored by the firmware.
+- [ ] Page to board, the light way: in **Connect to Simple Touch** a pad or knob on the page sends the control's own `midi` entry (`CC 20`, `note 36 ch 10`) to the board. Page only: no firmware change and no new key. A control without a `midi` entry sends nothing. The full version (`touch`, knob CCs, `hits`) stays TouchSpore's and is not planned for TouchPlaited.
 - [x] **Connect to Simple Touch** in the library (`?community=touchplaited`) and on TouchPlaited's `/play/`, checked on hardware 2026-11-13.
-- [ ] Write the comparison (TouchVink vs TouchPlaited: what changed, how long, what broke) into notes.md, then into the about page as a "bridging an existing firmware" section.
+- [ ] Guide note, after a firmware update: labels need nothing. **Play** runs the pinned build until the `emulator` block gets the new `wasm` name and `sha256`, by hand from the run summary or with the designer's **Use this build**.
 
 ### Runtime (simple-touch-web)
 
 - [x] The build branch's README (written by `publish.mjs`) names the designer's **Find builds in the repository** › **Use this build** next to the run summary. In `v1.3`.
 - [x] Sources in a firmware's `thirdparty`, `third_party`, `lib`, `libs`, `vendor` or `external` folder compile without warnings. In `v1.3`. TouchPlaited builds with 10 warnings and passes the smoke test. 8 of the 10 come from a Plaits header its own code includes.
 - [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it. No firmware needs it yet.
+- [ ] Opt-in pin update: after a build that passes the smoke test, the workflow writes the new `wasm` name and `sha256` into the repository's `simple-touch-labels.json` and commits it. Off by default. A commit made with the workflow's own token starts no other workflow, so a Pages deploy that reads the label file needs its own trigger. Test before the push with a local build on the test bench (`?wasm=/<repo>/build-web/<target>.wasm`).
+- [ ] README: the live link as two levels. Follow: `request` and the Live frame, with knobs and OLED optional, read-only from the page (TouchPlaited). Control: `touch`, knob CCs and `hits` (TouchSpore), marked advanced.
 - [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
 
 ### The shared standard
@@ -122,20 +124,20 @@ If Lab turns out to have its own pipeline, offer the split PR alone, since any b
 ### Guide
 
 - [ ] Screenshots, one per screen. For the browser-build part: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build**, Save file, commit `simple-touch-labels.json`, Play in the library.
-- [ ] TouchVink (new firmware) and TouchPlaited (existing firmware) as the two worked examples.
+- [ ] Recipes, in place of one long document and of the TouchVink vs TouchPlaited comparison. One short page per feature, each with three parts side by side: the firmware snippet, the README table row, the JSON it becomes.
+  - Pad as button, pad as toggle, a combo, fader with pickup, switch as play mode, OLED, MIDI per control, the Follow live link, the browser build.
+  - Each recipe is a small firmware or a snippet on the template below, not one firmware with everything.
+  - TouchVink (new firmware) and TouchPlaited (existing firmware) stay the two full examples the recipes link to.
 - [ ] The route for each way in: code it yourself, Plugdata, or hand it to an LLM, without tying the guide to one model or tool.
-- [ ] A minimal libDaisy template for the Simple Touch, as a repository of its own. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
+- [ ] A minimal libDaisy template for the Simple Touch, as a repository of its own: the base the recipes build on. It reads every control and makes sound, with no layers. Read [SimpleTouchTemplate](https://github.com/chrisades/SimpleTouchTemplate) first, in case it already is that base. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
   - Hardware: every control read (knobs S30–S35, faders S36 and S37, both switches), the user LED, the pressure-sensitive pads as Touch String reads them, audio in and out, and USB MIDI.
   - Repository: the `Setup()` / `Loop()` split, the browser build workflow, a release, a README with a controls table, a `simple-touch-labels.json`. It passes every check in the guide.
-  - The example: a small polysynth with 3 voices (sine, saw, square) on DaisySP.
+  - The polysynth below is the combined example at the end of the recipes, not the base:
     - P03–P09: notes. P10 and P11: root note down and up.
     - Left switch (SW1): scale, minor / major / lydian. Right switch (SW2): octave.
     - S36 (left fader): output volume. S37 (right fader): filter.
     - S30: detune. S31, S32: attack, decay. S33, S34, S35: level of sine, saw and square.
     - P00 held + S30: reverb. P02 held + S35: delay. P01 is free.
-
-
-  - another community member also made a bare example: https://github.com/chrisades/SimpleTouchTemplate
 
 ## In sync?
 
@@ -212,6 +214,8 @@ Finished items, newest first, and plans that changed.
 
 ### Changed plans
 
+- **TouchVink vs TouchPlaited comparison in notes.md and the about page**: dropped 2026-11-14 for recipes under Guide.
+- **Full page to board for TouchPlaited** (`touch`, knob CCs, `hits`): dropped 2026-11-14. The page sends each control's `midi` entry instead, and the full link stays optional in the standard.
 - **Front page in two sections**: done as tabs (2026-11-11). What is left is the card content, under Library.
 - **Live labels SysEx sent by TouchPlaited first**: TouchSpore went first, with a `request` message and knob traffic on top of the planned bytes. TouchPlaited follows the same spec.
 - **Labels for TouchPlaited from `editor.html?community=touchplaited`**: done through the repository kit (2026-10-29). The approved build went in without `"oled": true`, now under Next.
