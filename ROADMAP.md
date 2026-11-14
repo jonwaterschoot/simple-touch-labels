@@ -84,7 +84,6 @@ A creator's push can't start the Action (their repository would need a token for
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
 - [ ] Try the designer's **Library card** section by hand: choose a sound and a picture, hear and see them, and find both in the Repository kit's .zip at their paths. Written and loaded in headless Edge without errors. The file pickers were not tried there.
 - [ ] **Export › Card image**: writes `img/card.png` from the preview.
-- [ ] Guide: the `listing` block in the labels step.
 
 ### Library
 
@@ -166,7 +165,7 @@ What can drift between the repos, and where it stands (2026-11-14):
 | simple-touch-web tags | `v1.4` newest, `v1` = `v1.4` | |
 | Library `vendor/simple-touch-web/` | same as `v1.4` | |
 | simple-touch-web `main` | `v1.4` plus the README's two levels of the live link | not pushed |
-| `community-index.json` | 8 firmware, 2026-11-14 | the workflow runs daily at 04:17 UTC |
+| `community-index.json` and `community-media/` | 8 firmware and 2 video stills, 2026-11-14 | the workflow runs daily at 04:17 UTC |
 | TouchPlaited workflow | `@v1` | |
 | TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
 | TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
