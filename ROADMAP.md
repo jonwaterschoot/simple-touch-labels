@@ -67,7 +67,6 @@ A creator's push can't start the Action (their repository would need a token for
 `listing.audio` is a file in the repository (MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. GitHub's raw files send `audio/mpeg`, byte ranges and a CORS header, so an `<audio>` element plays and seeks them (checked 2026-11-14).
 
 - [ ] Look at **All firmware** (`?all`) in a browser. The first version was written without one: a card per official and community firmware, with tags from `community-index.json`. Not committed until it has been seen.
-- [ ] Run the **Community index** workflow once by hand on GitHub and check that it commits nothing when nothing changed.
 - [ ] A picture on every card: the panel drawn in the creator's look, else the blank panel with the README's labels. `listing.image` already shows.
 - [ ] Official cards: description and tags. With `officials.json` (under Library).
 - [ ] Actions on a card: Play, Manual, **Upload to device…**, and Open in Synthux Lab ↗ once Lab has links.
@@ -156,7 +155,7 @@ What can drift between the repos, and where it stands (2026-11-14):
 | simple-touch-web tags | `v1.4` newest, `v1` = `v1.4` | |
 | Library `vendor/simple-touch-web/` | same as `v1.4` | |
 | simple-touch-web `main` | `v1.4` plus the README's two levels of the live link | not pushed |
-| `community-index.json` | written by hand 2026-11-14 | the daily workflow has not run on GitHub yet |
+| `community-index.json` | 8 firmware, 2026-11-14 | the workflow runs daily at 04:17 UTC |
 | TouchPlaited workflow | `@v1` | |
 | TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
 | TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
@@ -178,7 +177,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
-- Added `scripts/community-index.mjs`, the **Community index** workflow and `community-index.json`: a snapshot of the directory's 8 Simple Touch repositories for the cards.
+- Added `scripts/community-index.mjs`, the **Community index** workflow and `community-index.json`: a snapshot of the directory's 8 Simple Touch repositories for the cards. The workflow ran once by hand: green, and no commit when nothing changed.
 - Settled `listing.audio`: a file in the repository or an `https://` link. GitHub's raw files play and seek in an `<audio>` element.
 - Changed the guide's **Later** section: what a new firmware version needs, and how to move the approved browser build on, by hand or in the designer.
 - Changed simple-touch-web's README: the live link in two levels, Follow (TouchPlaited) and Control (TouchSpore).
