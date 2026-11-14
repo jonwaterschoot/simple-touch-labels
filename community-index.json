@@ -52,6 +52,16 @@
       "oled": true,
       "look": true,
       "modes": 3,
+      "listing": {
+        "tags": [
+          "Synth"
+        ],
+        "audio": [
+          {
+            "src": "media/Touchplaited_demo.mp3"
+          }
+        ]
+      },
       "theme": "vis",
       "panel": {
         "drawing": "simple",
@@ -110,10 +120,18 @@
       "oled": true,
       "look": true,
       "listing": {
+        "tags": [
+          "Generative",
+          "Ambient"
+        ],
         "video": [
           {
             "src": "https://youtu.be/LsLw1mzLUBw",
             "still": "community-media/yt-LsLw1mzLUBw.jpg"
+          },
+          {
+            "src": "media/TouchSpore_webplayScreenrec.mp4",
+            "text": "Screen recording of Play in the web app."
           }
         ]
       },
