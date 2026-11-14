@@ -71,6 +71,7 @@ A creator's push can't start the Action (their repository would need a token for
 - [ ] More on an open card: Play and **Upload to device…** beside **Open the manual**.
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
 - [ ] Try the designer's **Library card** section by hand: **Choose file…** for a video, a sound and a picture, **Make from the drawing**, the card under **In the library**, and the Repository kit's card and .zip. Seen in headless Edge: the fields filled from TouchSpore's label file and the card. The file pickers, **Make from the drawing** and the kit were not tried there.
+- [ ] Try the back button by hand: cards, open a card, **Open the manual**, back, forward, and **Library** in the header.
 - [ ] Press play on a card's YouTube still, and play TouchPlaited's sound and TouchSpore's clip from their repositories, in a real browser.
 - [ ] Tags: a creator can only see the spellings in the last snapshot. Decide whether the library needs a fixed list once more firmware has tags.
 
@@ -176,6 +177,8 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
+- Changed the open card again: the card keeps its picture and name, faded, and its row repeats the card in full with a larger picture. Card and row share one outline.
+- Added history for the cards: **Library** in the header returns to them, and the browser's back button goes from a manual to the cards and back. Not tried in a real browser.
 - Changed `listing`: `video` and `audio` are lists of `{src, text}`, up to 6 each, with a description of up to 10 lines. One address as a string still reads. Added `tags` (up to 6). Tags that differ only in capitals or punctuation count as one.
 - Changed the open card: the card stays in its place and is marked, and its videos and sounds open as a row under the card's own row. A click on the open card or its row no longer closes it. `?card=<id>` follows the open card.
 - Added the **Tag** row above the cards, and tags on the cards.

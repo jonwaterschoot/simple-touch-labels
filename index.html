@@ -30,7 +30,7 @@
 <div class="wrap">
   <header class="top">
     <div class="intro">
-      <nav class="nav"><span class="on">Library</span><a href="editor.html" id="editLink">Designer</a><a href="guide.html">Guide</a><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
+      <nav class="nav"><a class="on" href="index.html" id="homeLink" title="All community firmware">Library</a><a href="editor.html" id="editLink">Designer</a><a href="guide.html">Guide</a><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
       <h1><span id="title">Simple Touch control map</span><button type="button" id="labelsInfo" class="info" hidden title="About these labels" aria-label="About these labels">i</button></h1>
       <p id="intro"></p>
     </div>
@@ -187,7 +187,7 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
-  if(UI.cards){ UI.cards=false; closeCards(); $('cards').hidden=true; document.querySelector('.wrap').classList.remove('cards-open'); $('cardsBtn').setAttribute('aria-pressed','false'); }
+  if(UI.cards){ leave(); UI.cards=false; closeCards(); $('cards').hidden=true; document.querySelector('.wrap').classList.remove('cards-open'); $('cardsBtn').setAttribute('aria-pressed','false'); }
   Play.reset(); V.mode='';
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   const t=tabOf(src); if(t){ UI.tab=t; UI.last[t]= proj? proj.id : src; }
@@ -296,7 +296,12 @@ $('pngBtn').onclick=()=>{
 /* The community cards, the page's home: one per firmware in the directory (cardHTML, community.js). A card adds what
    community-index.json holds for it: a daily snapshot of the directory's repositories (scripts/community-index.mjs).
    A click marks the card and opens its detail (videos, sounds, a button to the manual) as a row under the card's own
-   row. It stays open until another card is chosen. */
+   row. The open card keeps its picture and name, and the row repeats the card in full. It stays open until another card
+   is chosen.
+   The browser's back button: leaving the cards for a manual, or a manual for the cards, adds a history entry
+   (pushState of the address as it is; the code that follows rewrites the new entry). popstate draws what the address names. */
+let popping=false;
+const leave=()=>{ if(!popping) history.pushState(null,'',location.href); };
 let cardIndex=null, cardIdx={}, cardKnown=[];
 const loadIndex = () => cardIndex ||= fetch('community-index.json').then(r=>r.ok? r.json() : {})
   .then(d=>{
@@ -307,8 +312,10 @@ const cardOpt = p => ({themes:LIB_DESIGN.themes, known:cardKnown, file:(path,ext
 function cardDetail(p, c){
   const box=document.createElement('section'); box.className='fwdetail'; box.dataset.id=p.id; box.setAttribute('aria-label',p.name);
   const media=mediaHTML(p.name, c, cardOpt(p));
-  box.innerHTML=`<div class="fwact"><b>${esc(p.name)}</b><button type="button" class="primary" data-open>Open the manual</button><a href="${escAttr(p.repo)}" target="_blank" rel="noopener">${esc(repoShort(p.repo))} ↗</a></div>`
+  box.innerHTML=`<div class="fwhead">${cardInner(p, c, cardOpt(p)).html}</div>`
+    +`<div class="fwact"><button type="button" class="primary" data-open>Open the manual</button><a href="${escAttr(p.repo)}" target="_blank" rel="noopener">${esc(repoShort(p.repo))} ↗</a></div>`
     +(media? `<div class="media">${media}</div>` : '<p class="hint">No video or sound for this firmware yet.</p>');
+  box.querySelector('.fwhead .body').append(box.querySelector('.fwact'));   // the buttons under the card's text
   return box;
 }
 /* the detail sits after the last card of the open card's row. Measured with the detail out of the grid. Moved only
@@ -345,12 +352,14 @@ function cardFilter(key){
 }
 /* the page's heading while the cards are open; update() writes the open firmware's there */
 function cardsHead(){ $('title').textContent='Community firmware'; $('intro').textContent=TABS.comm.title+'.'; $('labelsInfo').hidden=true; }
-async function showCards(on){
+async function showCards(on, keep=false){
+  if(on===UI.cards) return;
+  if(!keep) leave();
   UI.cards=on; $('cards').hidden=!on; document.querySelector('.wrap').classList.toggle('cards-open',on);
   $('cardsBtn').setAttribute('aria-pressed',String(on));
   if(!on){ closeCards(); update(); return; }
   Play.reset(); UI.tab='comm'; buildBars();
-  cardsHead(); history.replaceState(null,'',location.pathname);
+  cardsHead(); if(!keep) history.replaceState(null,'',location.pathname);
   await loadIndex(); const list=UI.community||[];
   if(!UI.cards) return;
   const tags=[...new Map(cardKnown.map(t=>[tagKey(t), tagSpelling(t,cardKnown)])).entries()].filter(([k])=>list.some(p=>(listingOf(cardIdx[p.id]?.listing)?.tags||[]).some(t=>tagKey(t)===k)));
@@ -369,6 +378,18 @@ $('cards').onclick=e=>{
   if(e.target.closest('.fwsum')) openCard(p);
 };
 addEventListener('resize',()=>{ if(UI.cards) placeDetail(); });
+$('homeLink').onclick=e=>{ e.preventDefault(); if(UI.cards) scrollTo({top:0, behavior:'smooth'}); else showCards(true); };
+addEventListener('popstate', async()=>{
+  const q=new URLSearchParams(location.search), list=UI.community||[], src=q.get('src');
+  const P=q.get('community') && list.find(p=>p.id===q.get('community'));
+  popping=true;
+  try{
+    if(P) await pick('community',P,true);
+    else if(q.has('preview')) await pick('preview',null,true);
+    else if(REF_SETS[src] || FIRMWARE.includes(src)) await pick(src,null,true);
+    else { UI.cards=false; await showCards(true,true); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p,false); }
+  } finally { popping=false; }
+});
 /* under a community manual: the tags, videos and sounds of its label file's listing block. Drawn again only when
    they change, so a theme or mode change leaves a playing video alone. */
 function cardInfo(P, pv, repo){
@@ -411,7 +432,7 @@ $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(fig
   // the cards are the home: every address that names no firmware, wiring set or preview
   if(q.has('all') || q.has('card') || !(P || q.has('src') || q.has('preview'))){
     const list=await community;
-    if(list.length){ await showCards(true); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p); }
+    if(list.length){ await showCards(true,true); history.replaceState(null,'',location.pathname); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p); }
   }
 })();
 </script>

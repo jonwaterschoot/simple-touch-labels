@@ -12,7 +12,7 @@ body { background:var(--page); color:var(--text); --line:color-mix(in srgb, var(
 .nav { display:flex; gap:8px 16px; flex-wrap:wrap; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
 .nav a { color:var(--muted); text-decoration:none; }
 .nav a:hover { color:var(--active); }
-.nav .on { color:var(--kicker); border-bottom:2px solid var(--kicker); }
+.nav .on, .nav a.on:hover { color:var(--kicker); border-bottom:2px solid var(--kicker); }
 .cap { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
 .hint { color:var(--muted); font-size:13px; line-height:1.45; margin:0 0 8px; }
 .status { font-size:13px; color:var(--muted); }
@@ -687,15 +687,28 @@ button.lbl { min-width:8.5em; text-align:center; }
 .meta input.bad { border-color:var(--warn); }
 .fwcard[hidden] { display:none; }
 .fwcard:hover { border-color:var(--active); }
-.fwcard.open { border-color:var(--active); box-shadow:inset 0 0 0 2px var(--active); }
-.fwsum .tags .tag, .cardinfo .tags .tag { background:var(--active); border-color:var(--active); color:#fff; }
+/* the open card and its row share one outline: the card reaches down over the gap and covers the row's top border */
+.fwcard.open { position:relative; z-index:1; border-color:var(--active); border-bottom:0; margin-bottom:-15px; padding-bottom:16px; }
+.fwcard.open .by, .fwcard.open .txt, .fwcard.open .tags { display:none; }
+.fwcard.open .fwsum { cursor:default; }
+.fwcard.open .fwsum > * { opacity:.55; }
+.fwhead { display:flex; align-items:flex-start; gap:18px; }
+.fwhead .pic { flex:none; width:min(200px, 36%); }
+.fwhead .pic svg, .fwhead .pic img { display:block; width:100%; height:auto; }
+.fwhead .body { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.fwhead b { font-size:24px; font-weight:700; }
+.fwhead .by { font-size:13px; color:var(--muted); }
+.fwhead .txt { font-size:14px; line-height:1.5; max-width:70ch; }
+.fwhead .tags { display:flex; flex-wrap:wrap; gap:4px 6px; }
+.fwhead .fwact { margin-top:6px; }
+.fwhead .tags span { font-size:11px; border:1px solid var(--hair); padding:1px 6px; }
+.fwsum .tags .tag, .fwhead .tags .tag, .cardinfo .tags .tag { background:var(--active); border-color:var(--active); color:#fff; }
 .fwfilter { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:12px; }
 .fwfilter button[aria-pressed="true"] { background:var(--active); border-color:var(--active); color:#fff; }
 /* an open card's videos and sounds: a row of the grid, under the card's own row (placeDetail, index.html) */
 .fwdetail { grid-column:1 / -1; display:flex; flex-direction:column; gap:14px; min-width:0; padding:14px; border:1px solid var(--active); background:var(--field); }
 .fwdetail .hint { margin:0; }
 .fwact { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; font-size:13px; }
-.fwact b { font-size:18px; margin-right:auto; }
 .media { display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px; }
 .mitem { display:flex; flex-direction:column; gap:6px; width:min(560px, 100%); margin:0; }
 .mitem.tall { width:min(250px, 100%); }

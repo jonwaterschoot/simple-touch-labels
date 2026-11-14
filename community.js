@@ -460,12 +460,17 @@ function cardThumb(c, themes){
   const vars=Object.entries(PVARS).filter(([k])=>q[k]!=null && q[k]!=='').map(([k,v])=>`--${v}:${q[k]}`).join(';');
   return `<svg class="thumb" viewBox="${D.x} ${D.y} ${D.w} ${D.h}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
 }
-function cardHTML(p, c, o){
+/* a card's picture and text: the same in the small card and at the head of the open card's row */
+function cardInner(p, c, o){
   const L=listingOf(c.listing)||{}, img= L.image? o.file(L.image, LISTING_EXT.image) : '', by=p.author?.name||'';
   const own=(L.tags||[]).map(t=>tagSpelling(t,o.known)), tags=cardTags(c,L);
-  return `<article class="fwcard" data-id="${escAttr(p.id)}" data-tags="${escAttr(own.map(tagKey).join(' '))}"><button type="button" class="fwsum" aria-expanded="false"><span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c, o.themes)}</span>`
+  return {keys:own.map(tagKey).join(' '), html:`<span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c, o.themes)}</span>`
     +`<span class="body"><b>${esc(p.name)}</b>${by? `<span class="by">${esc(by)}</span>` : ''}${p.description? `<span class="txt">${esc(p.description)}</span>` : ''}`
-    +(own.length||tags.length? `<span class="tags">${own.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span></button></article>';
+    +(own.length||tags.length? `<span class="tags">${own.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span>'};
+}
+function cardHTML(p, c, o){
+  const i=cardInner(p,c,o);
+  return `<article class="fwcard" data-id="${escAttr(p.id)}" data-tags="${escAttr(i.keys)}"><button type="button" class="fwsum" aria-expanded="false">${i.html}</button></article>`;
 }
 /* A listing's videos and sounds, each with its description. A YouTube video is a still with a play button (the still
    is in community-media/, fetched by the snapshot script and named in the index as `still`): the player loads from
