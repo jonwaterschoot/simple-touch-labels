@@ -31,7 +31,7 @@
       <p>Name every control, mark pads or knobs as modifiers and get a manual that lays its labels out by itself: boxes on the controls for phones, side columns with leader lines for desktop. Start from a reference label set or an official firmware. Everything is kept in this browser.</p>
     </div>
     <div class="export">
-      <div class="btns"><span class="cap">File</span>
+      <div class="btns" id="fileBtns"><span class="cap">File</span>
         <button type="button" id="openBtn" title="A label file (.json), or a README (.md) to read the labels from">Open file…</button>
         <input type="file" id="openFile" accept=".json,application/json,.md,.markdown,text/markdown" hidden>
         <button type="button" id="repoBtn" title="Reads a GitHub or Codeberg repository's label file, or the labels in its README">Open repository…</button>
@@ -39,11 +39,11 @@
         <button type="button" id="shareBtn">Copy share link</button>
         <span class="status" id="busy"></span>
       </div>
-      <div class="btns"><span class="cap">Export</span>
+      <div class="btns" id="exportBtns"><span class="cap">Export</span>
         <button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button>
         <button type="button" class="outline" id="htmlBtn" title="A standalone page: phone and desktop layouts, light and dark, prints in light">Download manual</button>
       </div>
-      <div class="btns"><span class="cap">Publish</span>
+      <div class="btns" id="publishBtns"><span class="cap">Publish</span>
         <button type="button" id="previewBtn" title="Your manual as the library will show it, in a tab that follows your edits">Preview in library</button>
         <button type="button" id="kitBtn" title="README with control map, label file and directory entry, in one .zip for your repository">Repository kit…</button>
         <button type="button" class="outline" id="appBtn" title="Your manual as its own GitHub Pages site, with Play once a build is approved">Web app…</button>
@@ -52,12 +52,12 @@
     </div>
   </header>
 
-  <div class="bar">
+  <div class="bar" id="barStart">
     <div class="grp"><span class="cap">Start from</span><div class="seg" id="startSeg"></div></div>
     <div class="grp"><span class="cap">Reference names</span><div class="seg" id="refSeg"></div><div class="seg" id="refModeSeg" data-why="Pick a reference set first"></div></div>
     <div class="grp"><span class="cap">Table</span><div class="seg" id="tableSeg"></div></div>
   </div>
-  <div class="bar">
+  <div class="bar" id="barView">
     <div class="grp"><span class="cap">Theme</span><div class="seg" id="themeSeg"></div></div>
     <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div></div>
     <div class="grp" id="partGrp"><span class="cap">Functions</span><div class="seg" id="partSeg" data-why="Mark a control as a modifier to get a secondary view"></div><div class="seg" id="arrangeSeg" data-why="Shown when Main and Secondary are both on"></div><div class="seg" id="bwSeg" data-why="Black and white applies to the secondary view"></div></div>
@@ -106,7 +106,7 @@
 <dialog id="dirModal" class="dir">
   <form method="dialog" class="modal">
     <div class="mhead"><span>Community directory entry</span><button value="cancel" class="tight">Close</button></div>
-    <p class="hint">The <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">Synthux community directory</a> lists firmware for Synthux instruments, one small JSON file per project. This one is built from the Labels tab: name, author, repository and author link.</p>
+    <p class="hint">The <a href="https://synthux-academy.github.io/community-instruments/" target="_blank">Synthux community directory</a> lists firmware for Synthux instruments, one small JSON file per project. This one is built from the Firmware tab: name, author, repository and author link.</p>
     <label class="cap" for="dirId">Entry id (also the file name)</label>
     <input id="dirId" autocomplete="off" spellcheck="false">
     <label class="cap" for="dirDesc">One-line description <span id="dirCount"></span></label>
@@ -451,16 +451,40 @@ function comboRow(){
   }
   return row;
 }
+/* The tour behind the i beside the tabs: a box in the corner that walks through the tabs and the header, one part
+   at a time. A step opens its tab and outlines the part it describes. */
+const TOUR=[
+  {tab:'firmware', at:'#formCol .tabs', t:'Firmware', h:'Name, author, description and repository. <b>Browser build</b> lets the library play the firmware. <b>Library card</b> holds its tags, videos and sounds.'},
+  {tab:'labels', at:'#formCol .tabs', t:'Labels', h:'What each control does: line 1 and line 2 per control, modes on a switch, modifiers with a column of their own, and MIDI.'},
+  {tab:'style', at:'#formCol .tabs', t:'Style', h:'Colours, sizes and fonts per theme and layout, the panel drawing and your faceplate. <b>Faceplate labels</b> there adds a tab for text without boxes.'},
+  {at:'#previewCol', t:'Preview', h:'The manual as it is now. Click a label to edit it, drag it to move it.'},
+  {at:'#barStart', t:'Start from', h:'<b>Start from</b> loads a blank panel or an official firmware. <b>Reference names</b> shows each control\'s Synthux, libDaisy or Plugdata name. <b>Table</b> adds a control table under the drawing.'},
+  {at:'#barView', t:'Theme and Layout', h:'<b>Phone</b> puts boxes on the controls. <b>Desktop</b> puts the labels in side columns with leader lines. Each layout keeps its own label positions. <b>Main</b> and <b>Secondary</b> show the plain functions and those behind a modifier.'},
+  {at:'#fileBtns', t:'File', h:'<b>Save file</b> downloads the label file. <b>Open file…</b> and <b>Open repository…</b> read one back, or read the labels from a README. Your work also stays in this browser.'},
+  {at:'#exportBtns', t:'Export', h:'<b>Export / print…</b> makes a PNG, a PDF or a print: an empty panel to sketch on (<b>Start from</b> › <b>Blank</b>), the labelled drawing, or the full manual with table and notes. <b>Download manual</b> saves one standalone page.'},
+  {at:'#publishBtns', t:'Publish', h:'<b>Repository kit…</b> packs the README, the label file and your media in one .zip to copy into your repository. <b>Preview in library</b> shows the result. <b>Web app…</b> and <b>Directory entry…</b> come after that.'},
+];
+function tourShow(i){
+  document.querySelectorAll('.tour-at').forEach(e=>e.classList.remove('tour-at'));
+  let box=$('tour');
+  if(i<0 || i>=TOUR.length){ if(box) box.remove(); return; }
+  const s=TOUR[i], last=i===TOUR.length-1;
+  if(s.tab && UI.tab!==s.tab){ UI.tab=s.tab; buildForm(); autosave(); }
+  const at=document.querySelector(s.at);
+  if(at){ at.classList.add('tour-at'); at.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+  if(!box){ box=el('div',{id:'tour',className:'tour'}); box.setAttribute('role','dialog'); box.setAttribute('aria-label','Tour of the designer'); document.body.append(box); }
+  box.replaceChildren(
+    el('div',{className:'mhead'}, el('span',{textContent:s.t}), el('span',{className:'cap',textContent:`${i+1} / ${TOUR.length}`})),
+    el('p',{innerHTML:s.h}),
+    el('div',{className:'mfoot'}, el('button',{type:'button',className:'tight',textContent:'Close',onclick:()=>tourShow(-1)}),
+      el('button',{type:'button',textContent:'Back',disabled:!i,onclick:()=>tourShow(i-1)}),
+      el('button',{type:'button',className:'primary',textContent:last?'Finish':'Next',onclick:()=>tourShow(last? -1 : i+1)})));
+  box.querySelector('.primary').focus({preventScroll:true});
+}
+addEventListener('keydown',e=>{ if(e.key==='Escape' && $('tour')) tourShow(-1); });
 function section(title,hint){ form.append(el('h2',{textContent:title})); if(hint) form.append(el('p',{className:'hint',textContent:hint})); }
-function buildForm(){
-  const keepScroll=form.scrollTop; form.innerHTML='';
-  const tabs=el('div',{className:'tabs',role:'tablist'});
-  if(UI.tab==='fplabels' && !doc.fpLabels?.on) UI.tab='style';
-  for(const [k,l] of [['labels','Labels'],['style','Style'],...(doc.fpLabels?.on? [['fplabels','Faceplate labels']] : [])]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
-  form.append(tabs);
-  if(UI.tab==='style'){ buildStyle(); form.scrollTop=keepScroll; return; }
-  if(UI.tab==='fplabels'){ buildFpLabels(); form.scrollTop=keepScroll; return; }
-  if(modeList().length){ form.append(el('div',{id:'modeBar',className:'modebar'})); drawModeBar(); }
+/* the Firmware tab: what the firmware is, the browser build the library may play, and its card in the library */
+function buildFirmware(){
   section('Firmware');
   const meta=el('div',{className:'meta'});
   for(const [k,t,max,cls] of [['name','Name',LIMITS.name,''],['author','Author',LIMITS.author,''],['version','Version',LIMITS.version,''],['description','Short description',LIMITS.desc,'full']]){
@@ -603,7 +627,19 @@ function buildForm(){
     el('p',{className:'hint',innerHTML:'<b>Choose file…</b> keeps the file in this browser. Nothing is sent anywhere. <b>Repository kit…</b> puts it in the .zip at its path, and the library plays it from your repository once you commit it. Choose it again after a reload.'}),
     el('p',{className:'hint',innerHTML:'<b>Card image:</b> without one the card draws the blank panel in your colours. <b>Make from the drawing</b> saves the panel as it shows here, with faceplate and labels, as a small PNG (480 px wide).'}),
     el('p',{className:'hint',innerHTML:'<b>Tags:</b> up to 6, such as Synth, FX or Ambient. A tag someone already uses keeps its spelling.'})); }
-
+}
+function buildForm(){
+  const keepScroll=form.scrollTop; form.innerHTML='';
+  const tabs=el('div',{className:'tabs',role:'tablist'});
+  if(UI.tab==='fplabels' && !doc.fpLabels?.on) UI.tab='style';
+  for(const [k,l] of [['firmware','Firmware'],['labels','Labels'],['style','Style'],...(doc.fpLabels?.on? [['fplabels','Faceplate labels']] : [])]){ const b=el('button',{type:'button',textContent:l}); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(UI.tab===k)); b.onclick=()=>{ UI.tab=k; buildForm(); autosave(); }; tabs.append(b); }
+  tabs.append(el('button',{type:'button',className:'info tourbtn',textContent:'i',title:'A short tour of the designer',onclick:()=>tourShow(0)}));
+  tabs.lastChild.setAttribute('aria-label','A short tour of the designer');
+  form.append(tabs);
+  if(UI.tab==='firmware'){ buildFirmware(); form.scrollTop=keepScroll; return; }
+  if(UI.tab==='style'){ buildStyle(); form.scrollTop=keepScroll; return; }
+  if(UI.tab==='fplabels'){ buildFpLabels(); form.scrollTop=keepScroll; return; }
+  if(modeList().length){ form.append(el('div',{id:'modeBar',className:'modebar'})); drawModeBar(); }
   // modes: a switch whose positions change what the other controls do
   section('Modes','When a switch changes what the other controls do, name its positions. Each becomes a button in the Mode row. The labels without a mode are the print set, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
   const mg=el('div',{className:'meta modes'});
@@ -1255,10 +1291,10 @@ function dirEntry(id=$('dirId').value.trim(), desc=$('dirDesc').value){
 function dirProblems(e, listed){
   const p=[], https=u=>{ try{ return /^https:\/\//.test(u) && !!new URL(u).host; }catch(err){ return false; } };
   if(e.id.length<3 || e.id.length>64 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(e.id)) p.push('Id: 3 to 64 lowercase letters and digits, with single hyphens between them.');
-  if(!e.name) p.push('Name: fill in the firmware name in the Labels tab.');
+  if(!e.name) p.push('Name: fill in the firmware name in the Firmware tab.');
   if(!e.description) p.push('Description: one line about what the firmware does.');
   else if(e.description.length>200) p.push(`Description: ${e.description.length} characters; the directory allows 200.`);
-  if(!e.author.name) p.push('Author: fill in the author in the Labels tab.');
+  if(!e.author.name) p.push('Author: fill in the author in the Firmware tab.');
   if(e.author.url && !https(e.author.url)) p.push('Author link: a full web address starting with https://.');
   if(!REPO_RE.test(e.repo)) p.push('Repository: the address of a GitHub or Codeberg repository, e.g. https://github.com/you/your-firmware, with nothing after the repository name.');
   if(listed && listed.id!==e.id) p.push(`Repository: already listed as projects/${listed.id}.json. Use the id "${listed.id}" to update that entry.`);
@@ -1292,7 +1328,7 @@ $('dirBtn').onclick=async()=>{
   dirUpdate();
 };
 $('dirId').oninput=dirUpdate;
-/* the description is the firmware's own: edits here show in the Labels tab too */
+/* the description is the firmware's own: edits here show in the Firmware tab too */
 $('dirDesc').oninput=()=>{ doc.firmware.description=$('dirDesc').value; const t=form.querySelector('.meta textarea'); if(t) t.value=doc.firmware.description; dirUpdate(); render(); };
 
 /* ============================================================
@@ -1408,7 +1444,7 @@ function kitUpdate(){
   seg($('kitView'), [['preview','Preview'],['markdown','Markdown']], v=>o.view===v, v=>set({view:v}));
   const ts=$('kitTheme'); if(!ts.options.length){ ts.innerHTML=THEME_NAMES.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join(''); ts.onchange=()=>set({theme:ts.value}); }
   ts.value=o.theme;
-  const fw=doc.firmware, warn=[!oneLine(fw.name)&&'No firmware name yet: the README title and file names use one.', !Object.keys(cleanData().labels).length&&'No labels yet: the control table is empty.', !REPO_RE.test(normRepo(fw.repo))&&'No repository yet (Labels tab, under Firmware): the README has no download link.'].filter(Boolean);
+  const fw=doc.firmware, warn=[!oneLine(fw.name)&&'No firmware name yet: the README title and file names use one.', !Object.keys(cleanData().labels).length&&'No labels yet: the control table is empty.', !REPO_RE.test(normRepo(fw.repo))&&'No repository yet (Firmware tab): the README has no download link.'].filter(Boolean);
   $('kitWarn').replaceChildren(...(warn.length? [el('ul',{className:'dirmsg'},...warn.map(t=>el('li',{textContent:t})))] : []));
   $('kitImgCap').textContent=k.img;
   // README: rendered with the image in place, or as Markdown
@@ -1467,8 +1503,8 @@ function appState(){
   const fw=doc.firmware, repo=normRepo(fw.repo), ok=REPO_RE.test(repo), e=doc.emulator;
   const warn=[!oneLine(fw.name)&&'No firmware name yet: the page is titled after it.',
     !Object.keys(cleanData().labels).length&&'No labels yet.',
-    !ok&&'No repository yet (Labels tab, under Firmware). The page reads its labels, README and browser build from there; without one it only shows the copy in the .zip, and has no Play.',
-    ok&&!e&&'No browser build approved yet (Browser build, under Firmware): the page is a manual without Play for now. Approve one later and the page picks it up from your label file, without a new export.',
+    !ok&&'No repository yet (Firmware tab). The page reads its labels, README and browser build from there; without one it only shows the copy in the .zip, and has no Play.',
+    ok&&!e&&'No browser build approved yet (Firmware tab, Browser build): the page is a manual without Play for now. Approve one later and the page picks it up from your label file, without a new export.',
     e&&e.embed!=='allowed'&&'The browser build is link-only: the page links to your own page instead of playing.'].filter(Boolean);
   return {repo, ok, url:pagesUrl(repo), codeberg:/^https:\/\/codeberg\.org\//.test(repo), id:slug(), warn};
 }
@@ -1557,6 +1593,8 @@ $('appZip').onclick=async()=>{
   onFontsLoaded=render;
   ensureFontLoaded(UI.font,UI.fontUrl).then(render);
   document.fonts.ready.then(render);
+  const step=q.has('tour')? Math.max(1, parseInt(q.get('tour'),10)||1) : 0;   // ?tour or ?tour=<step> opens the tour
+  if(step) tourShow(Math.min(step,TOUR.length)-1);
 })();
 </script>
 </body>
