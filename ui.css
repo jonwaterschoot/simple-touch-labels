@@ -691,6 +691,7 @@ button.lbl { min-width:8.5em; text-align:center; }
 .fwcard.open { position:relative; z-index:1; background:linear-gradient(var(--field), var(--field)), var(--page); border-color:var(--active); border-bottom:0; margin-bottom:-16px; padding-bottom:17px; }
 .fwcard.open .by, .fwcard.open .txt, .fwcard.open .tags { display:none; }
 .fwcard.open .fwsum { cursor:default; }
+.fwsum > * { transition:opacity .2s; }
 .fwcard.open .fwsum > * { opacity:.55; }
 .fwhead { display:flex; align-items:flex-start; gap:18px; }
 .fwhead .pic { flex:none; width:min(200px, 36%); }
@@ -750,8 +751,9 @@ button.lbl { min-width:8.5em; text-align:center; }
 .tour p { margin:10px 0 12px; }
 .tour .mfoot button:first-child { margin-right:auto; }
 .tour-at { outline:2px solid var(--active); outline-offset:4px; }
-/* phones: the open card's name goes above its picture, and the text beside the picture */
+/* phones: the open card's row takes the card's place. Its name goes above the picture, and the text beside the picture */
 @media (max-width:600px){
+  .fwcard.open { display:none; }   /* one column: the row below repeats the card in full */
   .fwhead { display:grid; grid-template-columns:min(150px, 38%) minmax(0, 1fr); gap:8px 14px; }
   .fwhead .body { display:contents; }
   .fwhead b { grid-column:1 / -1; grid-row:1; font-size:22px; line-height:1.15; }

@@ -178,6 +178,8 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-15**
+- Changed the cards on phones: the small card is hidden while it is open, and its row takes its place.
+- Added an animation to an opening card: its row grows open and fades in. A row that replaces the last one in the same place only fades. Off with the system's reduced-motion setting.
 - Changed the open card on phones: its name sits above the picture and breaks when it is too long. Fixed the line between the card and its row there.
 
 **2026-11-14**

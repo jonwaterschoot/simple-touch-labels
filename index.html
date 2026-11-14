@@ -325,7 +325,7 @@ function placeDetail(){
   if(!d || !a) return;
   d.style.display='none';
   const top=a.offsetTop; let last=a;
-  for(const c of g.querySelectorAll('.fwcard:not([hidden])')) if(c.offsetTop===top) last=c;
+  if(a.offsetParent) for(const c of g.querySelectorAll('.fwcard:not([hidden])')) if(c.offsetTop===top) last=c;   // on a phone the open card is not drawn
   d.style.display='';
   if(last.nextElementSibling!==d) last.after(d);
 }
@@ -336,11 +336,20 @@ function closeCards(){
 function openCard(p, scroll=true){
   const art=$('cards').querySelector(`.fwcard[data-id="${CSS.escape(p.id)}"]`);
   if(!art || art.hidden || art.classList.contains('open')) return;
+  const old=$('cards').querySelector('.fwdetail'), oldTop=old? old.offsetTop : -1;
   closeCards();   // one open card at a time, and closing one stops its video
   art.classList.add('open'); art.querySelector('.fwsum').setAttribute('aria-expanded','true');
   const d=cardDetail(p, cardIdx[p.id]||{}); art.after(d); placeDetail();
   history.replaceState(null,'','?card='+encodeURIComponent(p.id));
-  if(scroll && d.getBoundingClientRect().bottom>innerHeight) art.scrollIntoView({block:'start', behavior:'smooth'});
+  // The row grows open and fades in. A row that takes the place of the last one only fades, so the cards below stay put.
+  if(scroll && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const h=d.offsetHeight, grow=d.offsetTop!==oldTop;
+    d.style.overflow='hidden';
+    d.animate(grow? [{height:'0px', paddingTop:'0px', paddingBottom:'0px', opacity:0},{height:h+'px', opacity:1}] : [{opacity:0},{opacity:1}], {duration:grow? 280 : 180, easing:'ease-out'})
+      .finished.catch(()=>{}).then(()=>{ d.style.overflow=''; });
+  }
+  const top=(art.offsetParent? art : d).getBoundingClientRect().top;
+  if(scroll && (top<0 || top+d.offsetHeight+(art.offsetParent? art.offsetHeight : 0)>innerHeight)) scrollTo({top:scrollY+top-12, behavior:'smooth'});
 }
 /* the tag row above the cards: one tag at a time, '' for all */
 function cardFilter(key){
