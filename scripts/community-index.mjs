@@ -21,6 +21,24 @@ const https = (v) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v) 
 // A file in the repository: no scheme, no leading slash, no "..".
 const repoPath = (v, ext) => (typeof v === 'string' && v.length <= 200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v) ? v : '');
 
+const THEMES = ['light', 'dark', 'vis', 'panel', 'gold', 'print'];   // THEME_NAMES, core.js
+const SAFE_COLOUR = /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?\s*(,\s*[\d.]+%?\s*){2,3}\)|transparent|none|[a-z]{3,20})$/i;
+
+// The colours of the creator's panel drawing, for the card's picture: the theme
+// their file opens in and what it changes in that theme's panel. Plain values only.
+function lookOf(d) {
+  if (!d.design || typeof d.design !== 'object' || !('size1' in d.design)) return {};
+  const theme = THEMES.includes(d.view?.theme) ? d.view.theme : 'panel';
+  const src = d.design.v === 2 ? d.design.themes?.[theme]?.panel : null;
+  const panel = {};
+  for (const [k, v] of Object.entries(src && typeof src === 'object' ? src : {})) {
+    if (!/^[a-z]{2,12}$/.test(k)) continue;
+    if (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 1000) panel[k] = v;
+    else if (typeof v === 'string' && SAFE_COLOUR.test(v.trim())) panel[k] = v.trim();
+  }
+  return Object.keys(panel).length ? { theme, panel } : { theme };
+}
+
 const rawUrl = (r, path) => (r.host === 'github.com'
   ? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${path}`
   : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${path}`);
@@ -82,6 +100,7 @@ function fromLabelFile(d, r) {
     look: !!(d.design || d.theme || d.faceplate || d.faceplateFile),
     modes: Array.isArray(d.modes?.list) ? d.modes.list.length : 0,
     listing,
+    ...lookOf(d),
   };
 }
 

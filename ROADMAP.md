@@ -6,7 +6,7 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 
 ## Where it stands
 
-- **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
+- **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. The Community tab opens on a card per firmware. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
 - **Playable**: TouchVink and TouchPlaited, each from its own repository, sha256-pinned. TouchSpore and TouchPlaited over **Connect to Simple Touch** with the live link (TouchPlaited read-only from the page).
 - **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12). TouchPlaited's, as `/play/` on its site, in the site's own theme and built from this repository's `main` on every deploy (2026-11-13).
 - **Designer**: modes, combos, per-layout style, fonts per part, OLED placement, **Open repository…**, README files in **Open file…**.
@@ -35,7 +35,7 @@ In this order: the cards, then the rest of the library, then the guide with its 
 
 ### Firmware cards
 
-A list of every firmware like the [directory's page](https://synthux-academy.github.io/community-instruments/), with more per card: a picture, a video or sound, the release, and Play / Open in Synthux Lab ↗ / Manual / **Upload to device…**. The creator's repository stays the source, so a card is never out of sync for long.
+A card per community firmware, like the [directory's page](https://synthux-academy.github.io/community-instruments/), with more per card: a picture, a video or sound, the release, and Play / Open in Synthux Lab ↗ / Manual / **Upload to device…**. The creator's repository stays the source, so a card is never out of sync for long.
 
 Where each piece comes from:
 
@@ -66,10 +66,8 @@ A creator's push can't start the Action (their repository would need a token for
 
 `listing.audio` is a file in the repository (MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. GitHub's raw files send `audio/mpeg`, byte ranges and a CORS header, so an `<audio>` element plays and seeks them (checked 2026-11-14).
 
-- [ ] Look at **All firmware** (`?all`) in a browser. The first version was written without one: a card per official and community firmware, with tags from `community-index.json`. Not committed until it has been seen.
-- [ ] A picture on every card: the panel drawn in the creator's look, else the blank panel with the README's labels. `listing.image` already shows.
-- [ ] Official cards: description and tags. With `officials.json` (under Library).
-- [ ] Actions on a card: Play, Manual, **Upload to device…**, and Open in Synthux Lab ↗ once Lab has links.
+- [ ] The card's picture with the creator's faceplate and labels. Now it is `listing.image`, else the panel without labels in the creator's theme and panel colours (`theme` and `panel` in the snapshot), else the library's Synthux panel.
+- [ ] Actions on a card: Play, Manual, **Upload to device…**. A click on the card opens the firmware.
 - [ ] Video and sound on a card, from `listing.video` and `listing.audio`.
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
 - [ ] `listing` in the designer's Firmware tab, in **Save file** and the Repository kit. **Export › Card image** writes `img/card.png` from the preview. The designer drops keys it doesn't know on **Save file**, so this comes before anyone writes `listing` by hand.
@@ -78,7 +76,7 @@ A creator's push can't start the Action (their repository would need a token for
 ### Library
 
 - [ ] Page to board, the light way: in **Connect to Simple Touch** a pad or knob on the page sends the control's own `midi` entry (`CC 20`, `note 36 ch 10`) to the board. Page only: no firmware change and no new key. A control without a `midi` entry sends nothing.
-- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback. No official repository has a label file yet, so this shows nothing new until one does. `EXAMPLES` is read while both pages start, so they have to wait for the file. The snapshot script needs the same list.
+- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback. No official repository has a label file yet, so this shows nothing new until one does. `EXAMPLES` is read while both pages start, so they have to wait for the file.
 - [ ] Firmware switcher in the player: `switchTo(doc)` = stop, set, start, keeping volume, input, lock scroll and full screen. Prev/next in full screen, swipe on a phone, `[` `]` on a keyboard, URL updated with `replaceState`. Preload the next build.
 - [ ] Optional bare mode (`player.html?bare`): panel and switcher only, Lab style.
 - [ ] Flash from an exported web app: TouchSpore's Pages, **Upload to device…**, on hardware.
@@ -177,6 +175,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
+- Added the community cards: the Community tab opens on a card per firmware, with its picture, author, description, Play, live link, OLED, where the labels come from and the latest release. **All firmware** returns to them, and `?all` opens them. Seen in headless Edge at desktop width. Clicking a card was not tried there.
 - Added `scripts/community-index.mjs`, the **Community index** workflow and `community-index.json`: a snapshot of the directory's 8 Simple Touch repositories for the cards. The workflow ran once by hand: green, and no commit when nothing changed.
 - Settled `listing.audio`: a file in the repository or an `https://` link. GitHub's raw files play and seek in an `<audio>` element.
 - Changed the guide's **Later** section: what a new firmware version needs, and how to move the approved browser build on, by hand or in the designer.
@@ -231,6 +230,7 @@ Finished items, newest first, and plans that changed.
 
 ### Changed plans
 
+- **Cards on the Official tab**: dropped 2026-11-14. The cards are for community firmware. The officials keep their list, and may get a card of their own later or stay with the official website.
 - **TouchVink vs TouchPlaited comparison in notes.md and the about page**: dropped 2026-11-14 for recipes under Guide.
 - **Full page to board for TouchPlaited** (`touch`, knob CCs, `hits`): dropped 2026-11-14. The page sends each control's `midi` entry instead, and the full link stays optional in the standard.
 - **Front page in two sections**: done as tabs (2026-11-11). What is left is the card content, under Library.

@@ -667,3 +667,19 @@ button.lbl { min-width:8.5em; text-align:center; }
   .bar.view-open .grp.view { display:flex; }
   .bar #modeGrp { order:4; }
 }
+
+/* The community tab's cards (index.html showCards). While they are open the firmware's own sections are hidden. */
+#cards:not([hidden]) ~ :not(footer) { display:none !important; }
+#cards { padding-top:18px; }
+.cards-open #viewGrp, .cards-open .lblgrp, .cards-open #viewBtn, .cards-open #modeGrp, .cards-open .export { display:none; }
+#cards .hint { margin-top:12px; }
+.fwcards { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap:14px; }
+.fwcard { display:flex; align-items:stretch; gap:14px; padding:12px; border-color:var(--hair); background:var(--field); font-weight:500; white-space:normal; }
+.fwcard .pic { flex:none; width:120px; }
+.fwcard .pic svg, .fwcard .pic img { display:block; width:100%; height:auto; }
+.fwcard .body { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.fwcard b { font-size:16px; font-weight:700; }
+.fwcard .by { font-size:12px; color:var(--muted); }
+.fwcard .txt { font-size:13px; line-height:1.45; }
+.fwcard .tags { display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:auto; padding-top:6px; }
+.fwcard .tags span { font-size:11px; border:1px solid var(--hair); padding:1px 6px; }

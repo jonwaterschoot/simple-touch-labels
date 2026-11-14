@@ -40,7 +40,7 @@
   </header>
 
   <div class="bar">
-    <div class="grp pick"><div class="seg" id="tabSeg" role="group" aria-label="Kind of map"></div><select id="srcSel" aria-label="Firmware or map"></select></div>
+    <div class="grp pick"><div class="seg" id="tabSeg" role="group" aria-label="Kind of map"></div><select id="srcSel" aria-label="Firmware or map"></select><button type="button" id="cardsBtn" class="tight" aria-pressed="false" title="A card per community firmware" hidden>All firmware</button></div>
     <div class="grp view" id="viewGrp">
       <label class="grp"><span class="cap">Theme</span><select id="themeSel"></select></label>
       <div class="grp"><span class="cap">Layout</span><div class="seg" id="layoutSeg"></div><div class="seg" id="arrangeSeg" title="Main and secondary next to each other or one above the other"></div></div>
@@ -50,6 +50,7 @@
     <div class="grp" id="modeGrp" hidden><span class="cap">Mode</span><div class="seg" id="modeSeg"></div></div>
   </div>
 
+  <section class="cards" id="cards" hidden></section>
   <section class="play" id="play" hidden></section>
   <section class="notice" id="notice" hidden></section>
   <div class="lib">
@@ -110,7 +111,7 @@ const FIRMWARE = Object.keys(EXAMPLES).filter(k=>EXAMPLES[k].file);
 let doc=emptyDoc();
 const V={theme:'panel', layout:'phone', ref:'sx', refMode:'empty', focusId:null, mode:''};
 const UI={src:'sx', proj:null, read:null, theme:'panel', libTheme:'panel', arrange:'side', exWhat:'panel', exLook:'color',
-  tab:'fw', last:{}, community:null};   // tab: fw | comm | wire, the list the picker shows; last: the entry opened last per tab
+  tab:'fw', last:{}, community:null, cards:false};   // tab: fw | comm | wire, the list the picker shows; last: the entry opened last per tab
 const $=id=>document.getElementById(id);
 let ready=false;
 
@@ -132,19 +133,20 @@ function tabItems(t){
 }
 function pickTab(t){
   UI.tab=t; const items=tabItems(t), last=UI.last[t];
+  if(t==='comm'){ showCards(true); return; }   // the community tab opens on its cards
+  if(UI.cards) showCards(false);
   if(tabOf(UI.src)===t){ buildBars(); return; }
-  if(t==='comm'){ const p=(UI.community||[]).find(x=>x.id===last); p? pick('community',p) : buildBars(); return; }
   pick(items.some(([k])=>k===last)? last : items[0][0]);
 }
 function buildBars(){
   const cur=tabOf(UI.src);
-  if(cur && (UI.tab!=='comm' || cur==='comm')) UI.tab=cur;   // the community tab stays open while its list waits for a choice
+  if(cur && !UI.cards && (UI.tab!=='comm' || cur==='comm')) UI.tab=cur;   // the community tab stays open while its list waits for a choice
   if(UI.src==='preview') UI.tab='';
   const tabs=Object.keys(TABS).filter(k=>k!=='comm' || UI.community?.length);
   seg($('tabSeg'), tabs.map(k=>[k,TABS[k].label]), v=>UI.tab===v, pickTab);
   $('tabSeg').querySelectorAll('button').forEach((b,i)=>b.title=TABS[tabs[i]].title);
   const sel=$('srcSel'), items=tabItems(UI.tab), on= UI.proj? UI.proj.id : UI.src;
-  sel.hidden=!UI.tab;
+  sel.hidden=!UI.tab; $('cardsBtn').hidden=UI.tab!=='comm';
   sel.replaceChildren(...(UI.tab==='comm' && !items.some(([k])=>k===on)? [new Option(`Choose (${items.length})…`,'')] : []), ...items.map(([k,l])=>new Option(l,k)));
   sel.value= items.some(([k])=>k===on)? on : '';
   // the creator's look first; the library's themes below it
@@ -184,6 +186,7 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
+  if(UI.cards){ UI.cards=false; $('cards').hidden=true; document.querySelector('.wrap').classList.remove('cards-open'); $('cardsBtn').setAttribute('aria-pressed','false'); }
   Play.reset(); V.mode='';
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   const t=tabOf(src); if(t){ UI.tab=t; UI.last[t]= proj? proj.id : src; }
@@ -275,6 +278,7 @@ function update(){
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
   readmeSection(repo);
   $('editLink').href=editHref;
+  if(UI.cards){ cardsHead(); return; }
   const url=new URL(location.href); url.search= P? `?community=${encodeURIComponent(P.id)}&${view}` : pv? `?preview&${view}` : `?src=${UI.src}&${view}`; history.replaceState(null,'',url);
 }
 /* the mode switch moved while playing (play.js): the labels on the drawing are drawn again there; the toolbar and table here */
@@ -286,6 +290,55 @@ $('pngBtn').onclick=()=>{
     content:(inc,look)=>({parts, th:look==='print'?'print':V.theme, tableHtml:inc.table? libTable() : '', withNotes:inc.notes,
       fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.notes? 'all' : inc.table? 'table' : 'panel'; UI.exLook=look; }});
+};
+/* The community tab's cards: one per firmware in the directory. A card adds what community-index.json holds for it:
+   a daily snapshot of the directory's repositories (scripts/community-index.mjs). Its text is other people's, so it is
+   escaped here, and its colours pass only as plain values. */
+let cardIndex=null, thumbSeq=0;
+const loadIndex = () => cardIndex ||= fetch('community-index.json').then(r=>r.ok? r.json() : {})
+  .then(d=>Object.fromEntries((Array.isArray(d.firmware)? d.firmware : []).filter(c=>c && typeof c.id==='string').map(c=>[c.id,c]))).catch(()=>({}));
+const LABELS_FROM = {file:'Labels by the creator', readme:'Labels read from the README', none:'No labels yet'};
+const cardTags = c => [c.play&&'Play', c.live&&'Live link', c.oled&&'OLED', LABELS_FROM[c.labels], c.release&&[c.release.tag,c.release.date].filter(Boolean).join(' · ')].filter(Boolean);
+function cardImage(repo, c){
+  const path=c.listing?.image, r=typeof path==='string' && /^[\w.-]+(\/[\w.-]+)*\.(png|jpe?g|webp)$/i.test(path) && !path.includes('..') && repoParts(repo);
+  return !r? '' : r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${path}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${path}`;
+}
+/* The card's picture without listing.image: the panel with no labels and no faceplate, in the theme the creator's file
+   opens in and with their panel colours (c.theme, c.panel). Without a look: the library's Synthux panel. */
+function cardThumb(c){
+  const th=THEME_NAMES.some(t=>t[0]===c.theme)? c.theme : 'panel', q={...LIB_DESIGN.themes[th].panel};
+  for(const [k,v] of Object.entries(c.panel && typeof c.panel==='object'? c.panel : {})){
+    if(typeof v==='number' && Number.isFinite(v)) q[k]=v;
+    else if(typeof v==='string' && SAFE_COLOUR.test(v.trim())) q[k]=v.trim();
+  }
+  const D=DEVICE, simple=q.drawing==='simple', id='ct'+(++thumbSeq);
+  const parts= simple? simpleArt(q) : {base:'<use href="#panelBase"/>', ctl:'<use href="#panelCtl"/>'};
+  const vars=Object.entries(PVARS).filter(([k])=>q[k]!=null && q[k]!=='').map(([k,v])=>`--${v}:${q[k]}`).join(';');
+  return `<svg class="thumb" viewBox="${D.x} ${D.y} ${D.w} ${D.h}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
+}
+function cardHTML(p, c){
+  const img=cardImage(p.repo,c), tags=cardTags(c), by=p.author?.name||'';
+  return `<button type="button" class="fwcard" data-id="${escAttr(p.id)}"><span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c)}</span>`
+    +`<span class="body"><b>${esc(p.name)}</b>${by? `<span class="by">${esc(by)}</span>` : ''}${p.description? `<span class="txt">${esc(p.description)}</span>` : ''}`
+    +(tags.length? `<span class="tags">${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span></button>';
+}
+/* the page's heading while the cards are open; update() writes the open firmware's there */
+function cardsHead(){ $('title').textContent='Community firmware'; $('intro').textContent=TABS.comm.title+'.'; $('labelsInfo').hidden=true; }
+async function showCards(on){
+  UI.cards=on; $('cards').hidden=!on; document.querySelector('.wrap').classList.toggle('cards-open',on); $('cardsBtn').setAttribute('aria-pressed',String(on));
+  if(!on){ update(); return; }
+  Play.reset(); UI.tab='comm'; buildBars();
+  cardsHead();
+  const idx=await loadIndex(), list=UI.community||[];
+  if(!UI.cards) return;
+  $('cards').innerHTML= list.length? `<div class="fwcards">${list.map(p=>cardHTML(p, idx[p.id]||{})).join('')}</div>`
+      +'<p class="hint">Releases and labels are from a daily snapshot. Open a firmware to read its repository again.</p>'
+    : '<p class="hint">The community directory could not be read. Check the connection and load the page again.</p>';
+}
+$('cardsBtn').onclick=()=>showCards(!UI.cards);
+$('cards').onclick=e=>{
+  const b=e.target.closest('.fwcard'), p=b && (UI.community||[]).find(x=>x.id===b.dataset.id);
+  if(p) pick('community',p);
 };
 /* drag the divider between drawing and table to set the drawing's width (kept per layout); double-click resets */
 const figKey=()=>'stManualLib.figW.'+$('fig').className;
@@ -311,6 +364,7 @@ $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(fig
   const P= q.get('community') && (await community).find(p=>p.id===q.get('community'));
   await (P? pick('community',P,q.has('theme')) : pick(UI.src,null,q.has('theme')));
   document.fonts.ready.then(update);
+  if(q.has('all')){ await community; showCards(true); }
 })();
 </script>
 </body>
