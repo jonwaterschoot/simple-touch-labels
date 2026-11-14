@@ -1,5 +1,17 @@
 # Roadmap
 
+14/11 5:21 chat was interrupted; these are the current follow up items:
+
+- When buillding in the designer; we should show a small icon preview of the image it will show in the library. 
+- Let's also ensure that the info fields at the top also have the youtube, video image and sound link fields.
+- underneath the wasm field we could include a link to the guide to explain what it is and how to install / build that
+- the export kit window will also show the library preview with the embedded items
+- the loaded manual of community instruments should also list the card info at the bottom
+- we should probably also start using a tags system with tags like: Synth, FX, Experimental, Ambient, ... We can add a few suggestions, but users should be free to pick new ones as well, just check that spelling and caps are not doubling.
+
+
+
+
 One set of files per firmware repository, read by everything that shows or plays a Simple Touch firmware: Synthux Lab, this library, the designer and the uploader. Official and community firmwares follow the same route; only where they are listed differs.
 
 Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-14.
@@ -68,9 +80,10 @@ A creator's push can't start the Action (their repository would need a token for
 
 - [ ] The card's picture with the creator's faceplate and labels. Now it is `listing.image`, else the panel without labels in the creator's theme and panel colours (`theme` and `panel` in the snapshot), else the library's Synthux panel.
 - [ ] More on an open card: Play and **Upload to device…** beside **Open the manual**.
-- [ ] Put `listing` into the firmware repositories: TouchSpore (`https://youtu.be/LsLw1mzLUBw`, in its local label file, not pushed) and TouchVink (`https://www.youtube.com/shorts/zW_fxw2P43o`). No repository has a sound file yet, so `listing.audio` from a repository is untried.
+- [ ] A sound file in a firmware repository, to try `listing.audio` from a repository: `media/demo.mp3`, named in the label file as `"audio": "media/demo.mp3"`. TouchSpore and TouchVink have `listing.video` since 2026-11-14.
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
-- [ ] `listing` in the designer's Firmware tab: a field for the video link, and for sound and card image either a path or a file. A chosen file plays or shows in the designer and goes into the Repository kit at the path the label file names. **Export › Card image** writes `img/card.png` from the preview. The designer already keeps a `listing` block through **Open file…** and **Save file**.
+- [ ] Try the designer's **Library card** section by hand: choose a sound and a picture, hear and see them, and find both in the Repository kit's .zip at their paths. Written and loaded in headless Edge without errors. The file pickers were not tried there.
+- [ ] **Export › Card image**: writes `img/card.png` from the preview.
 - [ ] Guide: the `listing` block in the labels step.
 
 ### Library
@@ -175,6 +188,7 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
+- Added **Library card** to the designer's Labels tab: a video link, and a path or a chosen file for the sound and the card image. A chosen file stays in the browser, plays or shows there, and goes into the Repository kit at its path. `listing.video` also takes a file in the repository.
 - Changed the library's home: it opens on the community cards. A click opens a card at the top with **Open the manual**, the video and the sound. `?card=<id>` opens one. Seen in headless Edge with test data: a landscape video, a Short and a sound file.
 - Added `listing` to SPEC.md and the schema (`video`, `audio`, `image`). The designer keeps the block on **Save file**. The snapshot saves each YouTube still in `community-media/`, so the page asks YouTube for nothing before a play.
 - Added the community cards: the Community tab opens on a card per firmware, with its picture, author, description, Play, live link, OLED, where the labels come from and the latest release. **All firmware** returns to them, and `?all` opens them. Seen in headless Edge at desktop width. Clicking a card was not tried there.

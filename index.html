@@ -330,11 +330,12 @@ function cardHTML(p, c){
 function cardMore(p, c){
   const L=c.listing && typeof c.listing==='object'? c.listing : {}, video=typeof L.video==='string'? L.video : '', audio=typeof L.audio==='string'? L.audio : '';
   const yt=video.match(YOUTUBE_RE), still=typeof L.still==='string' && /^community-media\/yt-[\w-]{11}\.jpg$/.test(L.still)? L.still : '';
+  const film= VIDEO_RE.test(video)? video : repoRaw(p.repo, video, /\.(mp4|m4v|mov|webm)$/i);
   const sound= AUDIO_EXT.test(audio)? (safeHttps(audio) || repoRaw(p.repo, audio, AUDIO_EXT)) : '';
   const box=document.createElement('div'); box.className='fwmore';
   box.innerHTML=`<div class="fwact"><button type="button" class="primary" data-open>Open the manual</button><a href="${escAttr(p.repo)}" target="_blank" rel="noopener">${esc(repoShort(p.repo))} ↗</a></div>`
     +(yt? `<button type="button" class="ytf${/\/shorts\//.test(video)?' tall':''}" data-yt="${yt[1]}" aria-label="Play the video of ${escAttr(p.name)}" title="Loads the player from YouTube">${still? `<img src="${still}" alt="" loading="lazy">` : ''}<span class="go" aria-hidden="true">▶</span></button>`
-      : VIDEO_RE.test(video)? `<video controls preload="none" playsinline src="${escAttr(video)}"></video>` : '')
+      : film? `<video controls preload="none" playsinline src="${escAttr(film)}"></video>` : '')
     +(sound? `<audio controls preload="none" src="${escAttr(sound)}"></audio>` : safeHttps(audio)? `<a href="${escAttr(audio)}" target="_blank" rel="noopener">Listen ↗</a>` : '');
   return box;
 }

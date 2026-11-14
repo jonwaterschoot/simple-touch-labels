@@ -698,3 +698,9 @@ button.lbl { min-width:8.5em; text-align:center; }
 .ytf .go { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; place-items:center; width:64px; height:44px; background:var(--active); color:#fff; font-size:20px; }
 .fwmore video { width:560px; max-width:100%; max-height:70vh; background:#000; }
 .fwmore audio { width:360px; max-width:100%; }
+/* the designer's Library card: the chosen sound and picture, to check before the kit */
+.cardnow { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; margin-top:8px; }
+.cardnow:empty { display:none; }
+.cardnow audio { width:300px; max-width:100%; }
+.cardnow img { max-width:140px; max-height:200px; border:1px solid var(--hair); }
+.meta input.bad { border-color:var(--warn); }

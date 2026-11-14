@@ -205,12 +205,12 @@ applyDesign();
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
 function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null, listing:null}; }
-/* a label file's listing block, for the library's cards: a video link, a sound (a link or a file in the repository) and a card image (a file) */
+/* a label file's listing block, for the library's cards: a video and a sound (each a link or a file in the repository) and a card image (a file) */
 function listingOf(l){
   if(!l || typeof l!=='object') return null;
   const path=(v,ext)=> typeof v==='string' && v.length<=200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v)? v : '';
   const link=v=> typeof v==='string'? safeHttps(v.trim()).slice(0,300) : '';
-  const out={video:link(l.video), audio:link(l.audio)||path(l.audio,/\.(mp3|ogg|oga|wav|m4a|flac)$/i), image:path(l.image,/\.(png|jpe?g|webp)$/i)};
+  const out={video:link(l.video)||path(l.video,/\.(mp4|m4v|mov|webm)$/i), audio:link(l.audio)||path(l.audio,/\.(mp3|ogg|oga|wav|m4a|flac)$/i), image:path(l.image,/\.(png|jpe?g|webp)$/i)};
   for(const k of Object.keys(out)) if(!out[k]) delete out[k];
   return Object.keys(out).length? out : null;
 }

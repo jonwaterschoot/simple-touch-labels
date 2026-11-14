@@ -111,7 +111,7 @@ function fromLabelFile(d, r) {
   const e = d.emulator && typeof d.emulator === 'object' ? d.emulator : {};
   const l = d.listing && typeof d.listing === 'object' ? d.listing : {};
   const listing = {
-    video: https(l.video),
+    video: https(l.video) || repoPath(l.video, /\.(mp4|m4v|mov|webm)$/i),
     audio: https(l.audio) || repoPath(l.audio, /\.(mp3|ogg|oga|wav|m4a|flac)$/i),
     image: repoPath(l.image, /\.(png|jpe?g|webp)$/i),
   };

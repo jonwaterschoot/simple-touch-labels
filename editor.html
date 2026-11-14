@@ -346,6 +346,10 @@ function setPath(path,v){
   if(v.trim()) o[path[2]]=v; else { delete o[path[2]]; if(!Object.keys(o).length) delete m.labels[path[1]]; }
 }
 function getPath(path){ if(path[0]==='firmware') return doc.firmware[path[1]]||''; const m=curMode(); return ((m? m.labels : doc.labels)[path[1]]||{})[path[2]]||''; }
+/* The Library card's sound and picture as chosen in this page: {data, url} per key, in memory only. */
+const cardFiles={audio:null, image:null}, CARD_FILE_MAX=20e6;
+/* those of them the label file names by a path: they go into the Repository kit at that path */
+const cardKitFiles=()=>['audio','image'].filter(k=>cardFiles[k] && doc.listing?.[k] && !/^https:/.test(doc.listing[k])).map(k=>({path:doc.listing[k], data:cardFiles[k].data, what:k==='audio'?'the card\'s sound':'the card\'s image'}));
 function el(tag,props={},...kids){ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; }
 function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
   const m=path[0]==='labels' && curMode(), base=m? ((doc.labels[path[1]]||{})[path[2]]||'') : '';
@@ -480,6 +484,37 @@ function buildForm(){
   const blist=el('div',{className:'builds'});
   form.append(emu, es, el('div',{className:'fprow'},
     el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })})), blist);
+
+  // the firmware's card in the library (doc.listing, core.js listingOf). A chosen sound or picture is held in this page
+  // only (cardFiles), for the Repository kit: nothing is sent anywhere, and a reload forgets it.
+  section('Library card','Optional. What the library\'s card for this firmware shows next to its name and description.');
+  const lcg=el('div',{className:'meta links'}), lnow=el('div',{className:'cardnow'});
+  const setCard=(k,inp)=>{ const v=inp.value.trim(); doc.listing=listingOf({...(doc.listing||{}), [k]:v}); inp.classList.toggle('bad', !!v && doc.listing?.[k]!==v); autosave(); };
+  const showCard=()=>{
+    lnow.replaceChildren(...['audio','image'].filter(k=>cardFiles[k]).map(k=> k==='audio'? el('audio',{controls:true,src:cardFiles[k].url}) : el('img',{src:cardFiles[k].url,alt:'The card image'})));
+  };
+  const vid=el('input',{type:'text',maxLength:300,spellcheck:false,value:doc.listing?.video||'',placeholder:'https://youtu.be/…'}); vid.setAttribute('aria-label','Video');
+  vid.addEventListener('input',()=>setCard('video',vid));
+  lcg.append(el('label',{className:'full'},el('span',{textContent:'Video'}),vid));
+  for(const [k,t,ph,accept,folder] of [['audio','Sound','media/demo.mp3','audio/*,.mp3,.ogg,.oga,.wav,.m4a,.flac','media/'],['image','Card image','img/card.png','.png,.jpg,.jpeg,.webp','img/']]){
+    const inp=el('input',{type:'text',maxLength:200,spellcheck:false,value:doc.listing?.[k]||'',placeholder:ph,className:'code'}); inp.setAttribute('aria-label',t+': path in your repository');
+    inp.addEventListener('input',()=>setCard(k,inp));
+    const file=el('input',{type:'file',accept,hidden:true});
+    file.onchange=async()=>{
+      const f=file.files[0]; file.value=''; if(!f) return;
+      if(f.size>CARD_FILE_MAX){ flash(`${f.name} is over ${CARD_FILE_MAX/1e6} MB. Use a shorter or smaller file.`); return; }
+      if(cardFiles[k]) URL.revokeObjectURL(cardFiles[k].url);
+      cardFiles[k]={data:new Uint8Array(await f.arrayBuffer()), url:URL.createObjectURL(f)};
+      // the file's own name, as a path GitHub and the library both read
+      const name=f.name.normalize('NFKD').replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g,'')||ph.split('/').pop();
+      if(!/^[\w.-]+(\/[\w.-]+)+$/.test(inp.value.trim()) || /^https:/.test(inp.value.trim())) inp.value=folder+name;
+      else inp.value=inp.value.trim().replace(/[^/]+$/, name);
+      setCard(k,inp); showCard();
+    };
+    lcg.append(el('label',{},el('span',{textContent:t}),inp, el('span',{className:'fprow'},el('button',{type:'button',className:'tight',textContent:'Choose file…',title:'Held in this browser for the Repository kit. Nothing is sent anywhere.',onclick:()=>file.click()}),file)));
+  }
+  showCard();
+  form.append(lcg, lnow, el('p',{className:'hint',innerHTML:'<b>Video:</b> a YouTube link, or a short clip in your repository (<code>media/demo.mp4</code>). A YouTube Short shows in portrait. <b>Sound</b> and <b>Card image:</b> the path of a file in your repository, or for the sound a link. A file you choose stays in this browser. Nothing is sent anywhere. <b>Repository kit…</b> puts it in the .zip at that path, and the library plays it from your repository once you commit it. Choose it again after a reload.'}));
 
   // modes: a switch whose positions change what the other controls do
   section('Modes','When a switch changes what the other controls do, name its positions. Each becomes a button in the Mode row. The labels without a mode are the print set, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
@@ -1247,7 +1282,7 @@ function kitState(){
 function howTo(k){
   const name=oneLine(doc.firmware.name)||'Simple Touch firmware';
   const files=[['README.md','the root (see step 1 if you have one)'], [k.img,'a new folder named docs at the root, even if you have one called doc'],
-    [LABEL_FILE,'the root'], ...fpFiles().map(f=>[f.path,`this path: ${LABEL_FILE} names it`]),
+    [LABEL_FILE,'the root'], ...[...fpFiles(),...cardKitFiles()].map(f=>[f.path,`this path: ${LABEL_FILE} names it`]),
     ...(k.probs.length? [] : [[`community-entry/${k.id}.json`,'not your repository: see step 4']])];
   const w=Math.max(...files.map(f=>f[0].length));
   return [`${name}: repository kit from Simple Touch labels (${SITE})`,'',
@@ -1295,7 +1330,7 @@ function kitUpdate(){
     const at=k.readme.indexOf('!['), end=k.readme.indexOf('\n',at);
     box.innerHTML=`<div class="md kitmd">${md2html(k.readme.slice(0,at))}<p data-img></p>${md2html(k.readme.slice(end))}</div>`;
   }
-  const files=[['README.md','the README above'],[k.img,'the image'],[LABEL_FILE,'your labels'],
+  const files=[['README.md','the README above'],[k.img,'the image'],[LABEL_FILE,'your labels'], ...cardKitFiles().map(f=>[f.path,f.what]),
     k.probs.length? ['community-entry','left out: '+k.probs[0]] : [`community-entry/${k.id}.json`, k.listed? `already listed as projects/${k.id}.json` : 'the directory entry'],['HOW-TO.txt','what to do with these files']];
   $('kitFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
   // the image: rendered again only when what it shows has changed
@@ -1316,7 +1351,7 @@ $('kitZip').onclick=async()=>{
   $('kitBusy').textContent='Making the .zip…';
   try{
     const png=new Uint8Array(await (await fetch(await kitImage(k.o))).arrayBuffer()), base=`${k.id}-repository-kit/`;
-    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...fpFiles().map(f=>({name:base+f.path,data:f.data}))];
+    const files=[{name:base+'HOW-TO.txt',data:howTo(k)},{name:base+'README.md',data:k.readme},{name:base+k.img,data:png},{name:base+LABEL_FILE,data:labelFileText()}, ...[...fpFiles(),...cardKitFiles()].map(f=>({name:base+f.path,data:f.data}))];
     if(!k.probs.length) files.push({name:`${base}community-entry/${k.id}.json`,data:dirJSON(k.entry)});
     download(`${k.id}-repository-kit.zip`, URL.createObjectURL(zipBlob(files)));
     $('kitBusy').textContent='';

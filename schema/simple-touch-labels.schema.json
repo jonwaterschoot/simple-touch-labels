@@ -96,10 +96,10 @@
     "font": { "type": "object" },
     "view": { "type": "object" },
     "listing": {
-      "description": "The firmware's card in the library: a video link, a sound (a file in the repository or a link) and a card image (a file in the repository).",
+      "description": "The firmware's card in the library: a video and a sound (each a link or a file in the repository) and a card image (a file in the repository).",
       "type": "object",
       "properties": {
-        "video": { "type": "string", "pattern": "^https://" },
+        "video": { "type": "string" },
         "audio": { "type": "string" },
         "image": { "type": "string" }
       }

@@ -130,7 +130,7 @@ Optional. What the library's card for the firmware adds to the directory entry. 
 
 | Key | What it holds |
 |---|---|
-| `video` | An `https://` link: YouTube (a Short shows in portrait) or a video file (`.mp4`, `.m4v`, `.mov`, `.webm`) |
+| `video` | An `https://` link: YouTube (a Short shows in portrait) or a video file (`.mp4`, `.m4v`, `.mov`, `.webm`). Or a short clip in the repository (`media/demo.mp4`, not stored with Git LFS) |
 | `audio` | A sound file in the repository (`media/demo.mp3`; MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS), or an `https://` link. A link that is not a sound file shows as **Listen ↗** |
 | `image` | A picture in the repository for the card (`img/card.png`; PNG, JPG or WebP). Without it the card draws the panel in the file's theme and panel colours |
 
