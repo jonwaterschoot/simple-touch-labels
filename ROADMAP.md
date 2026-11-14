@@ -177,6 +177,9 @@ Finished items, newest first, and plans that changed.
 
 ### Done
 
+**2026-11-15**
+- Changed the open card on phones: its name sits above the picture and breaks when it is too long. Fixed the line between the card and its row there.
+
 **2026-11-14**
 - Added a **Firmware** tab to the designer: name, description, repository, **Browser build** and **Library card** moved there. The Labels tab starts at **Modes**.
 - Added a tour to the designer, behind the **i** beside the tabs: 9 steps through the tabs, the preview, the header rows, **Export** and **Publish**. `editor.html?tour` opens it. Seen in headless Edge. Its buttons were not pressed there.
