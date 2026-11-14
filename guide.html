@@ -413,7 +413,8 @@ git push origin <span data-f="branch"></span></pre></li>
     <h2 id="later">Later: keeping it up to date</h2>
     <ul>
       <li><b>Labels:</b> designer › <b>Open file…</b> your <code>simple-touch-labels.json</code>, edit, <b>Save file</b>, commit.</li>
-      <li><b>A new firmware version:</b> a new release with its .bin; with a browser build, approve the new build (Find builds › Use this build) once you've listened to it. Until then the library keeps playing the approved one.</li>
+      <li><b>A new firmware version:</b> a new release with its <code>.bin</code>. The labels need nothing unless a control changed.</li>
+      <li><b>Its browser build:</b> every push makes a new build, and the library keeps playing the approved one. To move on, listen to the new build on the test bench, then put its file name and <code>sha256</code> into the <code>emulator</code> block: with the designer (<b>Find builds in the repository</b> › <b>Use this build</b>, <b>Save file</b>) or by hand from the run's summary under <b>Actions</b>. Commit the label file. A change you can't hear or see in the browser can wait.</li>
       <li><b>The directory entry</b> only changes when the name, description or repository does.</li>
     </ul>
     <p><button type="button" id="gReset">Clear my ticks</button></p>

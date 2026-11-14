@@ -11,6 +11,8 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 - **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12). TouchPlaited's, as `/play/` on its site, in the site's own theme and built from this repository's `main` on every deploy (2026-11-13).
 - **Designer**: modes, combos, per-layout style, fonts per part, OLED placement, **Open repository…**, README files in **Open file…**.
 - **Guide**: step by step with a repository check and an **In detail** section per step. The about page describes the project in three parts.
+- **Standard**: [SPEC.md](SPEC.md) and a JSON Schema for the label file. The live link is in simple-touch-web's README, in two levels: Follow and Control.
+- **TouchPlaited**: the case study is finished (2026-11-14). Labels, faceplate, browser build, its own Play page and the Follow live link.
 - **Synthux**: asked on Discord (2026-10-28; Fabio, Roey, Vlad). No answer yet.
 
 ## Waiting on Synthux
@@ -29,50 +31,7 @@ While waiting, the DevTools check in notes.md (Synthux Lab) needs no answer from
 
 ## Next
 
-### TouchPlaited: finish the case study
-
-Labels, faceplate and an approved build (`8acf93d464ec`, v1.2) are in its repository since 2026-10-29.
-
-- [x] `"oled": true` in the `emulator` block, an `oled` placement (128 × 32, between S30 and S35) and MIDI per control and mode in its `simple-touch-labels.json`. Pushed 2026-11-13.
-- [x] Its site plays it: `/play/` is `player.html` with the site's header and `doc/play.css`, assembled by its `build-site.mjs` from a checkout of this repository. Its README and manual were shortened the same day.
-- [x] Play it in the library (`?community=touchplaited`) on desktop and phone: boot film, OLED, LED blinks, MIDI in and out, CPU with all voices and the four FX groups busy.
-- [x] Live link: the firmware sends the Live frame, a knobs frame (`7D 54 50 01 06`) and OLED half pages for 10 s after the request `F0 7D 54 50 01 7E F7`. Its label file has a `device` block with `port`, `request`, `live.knobs` and `live.oled`. Checked on hardware 2026-11-13 on simple-touch-web's test bench: levers, pads, knobs, OLED.
-- [ ] Page to board, the light way: in **Connect to Simple Touch** a pad or knob on the page sends the control's own `midi` entry (`CC 20`, `note 36 ch 10`) to the board. Page only: no firmware change and no new key. A control without a `midi` entry sends nothing. The full version (`touch`, knob CCs, `hits`) stays TouchSpore's and is not planned for TouchPlaited.
-- [x] **Connect to Simple Touch** in the library (`?community=touchplaited`) and on TouchPlaited's `/play/`, checked on hardware 2026-11-13.
-- [ ] Guide note, after a firmware update: labels need nothing. **Play** runs the pinned build until the `emulator` block gets the new `wasm` name and `sha256`, by hand from the run summary or with the designer's **Use this build**.
-
-### Runtime (simple-touch-web)
-
-- [x] The build branch's README (written by `publish.mjs`) names the designer's **Find builds in the repository** › **Use this build** next to the run summary. In `v1.3`.
-- [x] Sources in a firmware's `thirdparty`, `third_party`, `lib`, `libs`, `vendor` or `external` folder compile without warnings. In `v1.3`. TouchPlaited builds with 10 warnings and passes the smoke test. 8 of the 10 come from a Plaits header its own code includes.
-- [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it. No firmware needs it yet.
-- [ ] Opt-in pin update: after a build that passes the smoke test, the workflow writes the new `wasm` name and `sha256` into the repository's `simple-touch-labels.json` and commits it. Off by default. A commit made with the workflow's own token starts no other workflow, so a Pages deploy that reads the label file needs its own trigger. Test before the push with a local build on the test bench (`?wasm=/<repo>/build-web/<target>.wasm`).
-- [ ] README: the live link as two levels. Follow: `request` and the Live frame, with knobs and OLED optional, read-only from the page (TouchPlaited). Control: `touch`, knob CCs and `hits` (TouchSpore), marked advanced.
-- [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
-
-### The shared standard
-
-- [x] [SPEC.md](SPEC.md): the label file in three parts. Labels (`simple-touch-manual/3` with `combos`, `modTypes`, `modes`, `midi`) are all a reader needs. Play and the board (`emulator`, `device`) stay specified in simple-touch-web. Look is for the library and designer. `listing` is reserved. It ends with what the library accepts and drops.
-- [x] `schema/simple-touch-labels.schema.json`: strict on labels, modifiers, modes and `emulator`, types only for the look. The five examples, TouchSpore, TouchPlaited and TouchVink pass.
-- [x] "What a firmware repo carries": the table at the top of SPEC.md, linked from the about page and guide step 3c.
-- [ ] Decide: the label file stays a description that needs no running firmware. Proposed:
-  - `modes` stays one switch. A mode picked by a tapped pad (FM BleepBloop's P1, TouchPlaited's Recording) stays a `toggle` modifier, as SPEC.md says now.
-  - What the board shows at a given moment is the live link's job. One optional `page` byte in the Live frame (0: none, n: the nth of `modifiers` then `combos`) keeps a layer's labels up after the pads are let go (TouchSpore's 2 s window) and follows a tapped mode. Specified in simple-touch-web's README, with no new key in the label file.
-- [ ] Tapped combos: `modTypes` takes only single modifiers. The designer has no control for a combo, and the library drops the key.
-- [ ] The library does not check `format`. Decide whether a file with another `format` is refused.
-- [ ] The designer drops keys it doesn't know on **Save file**. `listing` needs adding there before anyone writes it by hand.
-- [ ] Offer the format and route to Synthux (one example PR, TouchString), once they have answered.
-
-### Library
-
-- [ ] Flash from an exported web app: TouchSpore's Pages, **Upload to device…**, on hardware.
-- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback. No official repository has a label file yet, so this shows nothing new until one does. `EXAMPLES` is read while both pages start, so they have to wait for the file. Do it with the cards, whose Action needs the same list.
-- [ ] Cards on the Official and Community tabs: see [Firmware cards](#firmware-cards) below.
-- [ ] Lab links (`embed: link-only` with a `url`) for the officials, once Synthux gives deep links and agrees.
-- [ ] Firmware switcher in the player: `switchTo(doc)` = stop, set, start, keeping volume, input, lock scroll and full screen. Prev/next in full screen, swipe on a phone, `[` `]` on a keyboard, URL updated with `replaceState`. Preload the next build.
-- [ ] Optional bare mode (`player.html?bare`): panel and switcher only, Lab style.
-- [x] **Upload to device…** reads the directory entry's `firmware` block when it has one: `asset_pattern` picks the `.bin` when a release has several, and a `min_bootloader` newer than the bundled v6.4 gets a warning.
-- [ ] Check that dialog with a real entry. No directory entry has a `firmware` block yet (8 entries, 2026-11-13).
+In this order: the cards, then the rest of the library, then the guide with its recipes and template.
 
 ### Firmware cards
 
@@ -105,11 +64,78 @@ Loading, in three parts:
 
 A creator's push can't start the Action (their repository would need a token for ours), so the refresh covers changes between snapshots.
 
-- [ ] Test one audio file from `raw.githubusercontent.com` in an `<audio>` element: the type GitHub sends, and a file stored with Git LFS. Settle `listing.audio` after that. A YouTube or SoundCloud link works either way.
-- [ ] `listing` in the designer's Firmware tab, in **Save file** and the Repository kit. **Export › Card image** writes `img/card.png` from the preview.
-- [ ] The Action and `community-index.json`.
-- [ ] The cards: snapshot first, refresh for visible cards, release on open.
+`listing.audio` is a file in the repository (MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. GitHub's raw files send `audio/mpeg`, byte ranges and a CORS header, so an `<audio>` element plays and seeks them (checked 2026-11-14).
+
+- [ ] Look at **All firmware** (`?all`) in a browser. The first version was written without one: a card per official and community firmware, with tags from `community-index.json`. Not committed until it has been seen.
+- [ ] Run the **Community index** workflow once by hand on GitHub and check that it commits nothing when nothing changed.
+- [ ] A picture on every card: the panel drawn in the creator's look, else the blank panel with the README's labels. `listing.image` already shows.
+- [ ] Official cards: description and tags. With `officials.json` (under Library).
+- [ ] Actions on a card: Play, Manual, **Upload to device…**, and Open in Synthux Lab ↗ once Lab has links.
+- [ ] Video and sound on a card, from `listing.video` and `listing.audio`.
+- [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
+- [ ] `listing` in the designer's Firmware tab, in **Save file** and the Repository kit. **Export › Card image** writes `img/card.png` from the preview. The designer drops keys it doesn't know on **Save file**, so this comes before anyone writes `listing` by hand.
 - [ ] Guide: the `listing` block in the labels step.
+
+### Library
+
+- [ ] Page to board, the light way: in **Connect to Simple Touch** a pad or knob on the page sends the control's own `midi` entry (`CC 20`, `note 36 ch 10`) to the board. Page only: no firmware change and no new key. A control without a `midi` entry sends nothing.
+- [ ] `officials.json` (`id, label, repo, example, lab`) in place of the list in `core.js`. Read each official repo's own `simple-touch-labels.json` first, `examples/*.json` as the fallback. No official repository has a label file yet, so this shows nothing new until one does. `EXAMPLES` is read while both pages start, so they have to wait for the file. The snapshot script needs the same list.
+- [ ] Firmware switcher in the player: `switchTo(doc)` = stop, set, start, keeping volume, input, lock scroll and full screen. Prev/next in full screen, swipe on a phone, `[` `]` on a keyboard, URL updated with `replaceState`. Preload the next build.
+- [ ] Optional bare mode (`player.html?bare`): panel and switcher only, Lab style.
+- [ ] Flash from an exported web app: TouchSpore's Pages, **Upload to device…**, on hardware.
+- [ ] Check **Upload to device…** with a directory entry that has a `firmware` block. None has one yet (8 entries, 2026-11-14).
+- [ ] Lab links (`embed: link-only` with a `url`) for the officials, once Synthux gives deep links and agrees.
+
+### The shared standard
+
+- [ ] Decide: the label file stays a description that needs no running firmware. Proposed:
+  - `modes` stays one switch. A mode picked by a tapped pad (FM BleepBloop's P1, TouchPlaited's Recording) stays a `toggle` modifier, as SPEC.md says now.
+  - What the board shows at a given moment is the live link's job. One optional `page` byte in the Live frame (0: none, n: the nth of `modifiers` then `combos`) keeps a layer's labels up after the pads are let go (TouchSpore's 2 s window) and follows a tapped mode. Specified in simple-touch-web's README, with no new key in the label file.
+- [ ] Tapped combos: `modTypes` takes only single modifiers. The designer has no control for a combo, and the library drops the key.
+- [ ] The library does not check `format`. Decide whether a file with another `format` is refused.
+- [ ] Offer the format and route to Synthux (one example PR, TouchString), once they have answered.
+
+### Runtime (simple-touch-web)
+
+- [ ] Opt-in pin update: after a build that passes the smoke test, the workflow writes the new `wasm` name and `sha256` into the repository's `simple-touch-labels.json` and commits it. Off by default. A commit made with the workflow's own token starts no other workflow, so a Pages deploy that reads the label file needs its own trigger. Test before the push with a local build on the test bench (`?wasm=/<repo>/build-web/<target>.wasm`).
+- [ ] OLED frames inside one pass: only a pass's last frame shows. Queue frames the way LEDs are queued if an animation needs it. No firmware needs it yet.
+- [ ] Later: settings persistence through the page (`PersistentStorage` and a journal like TouchPlaited's backed by `localStorage`), as an additive export.
+
+### Guide, recipes and template
+
+The guide stays the route: what to do, in order, with checks. A recipe explains one feature in three parts side by side: the firmware snippet, the README table row, the JSON it becomes. The guide links to a recipe where it now stops at one sentence.
+
+| Guide today | What it says | Recipe it links to |
+|---|---|---|
+| 1b Make the firmware | Start from TouchBass or Touch String | The template, and reading each control: knob, fader, pad, switch, LED |
+| 1d A README, and "A README for any firmware" | A row per control, `P10 + S30`, a heading per mode | The README row of every recipe |
+| 3a, line 1 and line 2 | One bullet | Pad as button |
+| 3a, **Mod**, hold or tap | One bullet | Pad as modifier: held, and tapped (toggle) |
+| 3a, **Held together** | One bullet | A combo of two or three pads |
+| 3a, **Modes** | One bullet | Switch as play mode |
+| 3a, **MIDI** column | One bullet | MIDI per control: in the firmware, the README and `midi` |
+| 4a Setup and loop, 4b The workflow | Split `main()`, add the workflow | The browser build, already done in the template |
+| 4c, "drives the OLED" tick | A tick box | OLED: the screen in the firmware, `"oled": true` and the `oled` placement |
+| Not in the guide | | Fader or knob with pickup behind a modifier |
+| Not in the guide | | Settings and presets: the `device` block and the CCs the firmware echoes |
+| Not in the guide | | The live link, Follow level |
+
+Stays in the guide with no recipe: set up (1a), the repository and release (1c, 1e), the directory entry and review (2), your look (3b), the repository kit (3c), approving a build (4c), the web app (5), after the merge (6).
+
+- [ ] The template: a minimal libDaisy firmware for the Simple Touch, as a repository of its own. It reads every control and makes sound, with no layers. Read [SimpleTouchTemplate](https://github.com/chrisades/SimpleTouchTemplate) first, in case it already is that base. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
+  - Hardware: every control read (knobs S30–S35, faders S36 and S37, both switches), the user LED, the pressure-sensitive pads as Touch String reads them, audio in and out, and USB MIDI.
+  - Repository: the `Setup()` / `Loop()` split, the browser build workflow, a release, a README with a controls table, a `simple-touch-labels.json`. It passes every check in the guide.
+- [ ] The recipes in the table above, each a small firmware or a snippet on the template. Where they live (pages of this site, or the template repository's `examples/`) is open.
+- [ ] The guide links to each recipe from the step in the table, and gets one line each for the three it doesn't mention.
+- [ ] The combined example at the end of the recipes: a small polysynth with 3 voices (sine, saw, square) on DaisySP.
+  - P03–P09: notes. P10 and P11: root note down and up.
+  - Left switch (SW1): scale, minor / major / lydian. Right switch (SW2): octave.
+  - S36 (left fader): output volume. S37 (right fader): filter.
+  - S30: detune. S31, S32: attack, decay. S33, S34, S35: level of sine, saw and square.
+  - P00 held + S30: reverb. P02 held + S35: delay. P01 is free.
+- [ ] TouchVink (new firmware) and TouchPlaited (existing firmware) as the two full examples the recipes link to.
+- [ ] Screenshots, one per screen. For the browser-build part: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build**, Save file, commit `simple-touch-labels.json`, Play in the library.
+- [ ] The route for each way in: code it yourself, Plugdata, or hand it to an LLM, without tying the guide to one model or tool.
 
 ### Officials in the browser (after Synthux answers)
 
@@ -121,32 +147,16 @@ Fork first, branch `web-build`, never relaxing the own-repo rule silently. Order
 
 If Lab turns out to have its own pipeline, offer the split PR alone, since any browser build needs it.
 
-### Guide
-
-- [ ] Screenshots, one per screen. For the browser-build part: the workflow file, a green run on the Actions tab, the test bench, the designer's **Find builds in the repository** › **Use this build**, Save file, commit `simple-touch-labels.json`, Play in the library.
-- [ ] Recipes, in place of one long document and of the TouchVink vs TouchPlaited comparison. One short page per feature, each with three parts side by side: the firmware snippet, the README table row, the JSON it becomes.
-  - Pad as button, pad as toggle, a combo, fader with pickup, switch as play mode, OLED, MIDI per control, the Follow live link, the browser build.
-  - Each recipe is a small firmware or a snippet on the template below, not one firmware with everything.
-  - TouchVink (new firmware) and TouchPlaited (existing firmware) stay the two full examples the recipes link to.
-- [ ] The route for each way in: code it yourself, Plugdata, or hand it to an LLM, without tying the guide to one model or tool.
-- [ ] A minimal libDaisy template for the Simple Touch, as a repository of its own: the base the recipes build on. It reads every control and makes sound, with no layers. Read [SimpleTouchTemplate](https://github.com/chrisades/SimpleTouchTemplate) first, in case it already is that base. Until it exists, step 1b of the guide starts from TouchBass or Touch String.
-  - Hardware: every control read (knobs S30–S35, faders S36 and S37, both switches), the user LED, the pressure-sensitive pads as Touch String reads them, audio in and out, and USB MIDI.
-  - Repository: the `Setup()` / `Loop()` split, the browser build workflow, a release, a README with a controls table, a `simple-touch-labels.json`. It passes every check in the guide.
-  - The polysynth below is the combined example at the end of the recipes, not the base:
-    - P03–P09: notes. P10 and P11: root note down and up.
-    - Left switch (SW1): scale, minor / major / lydian. Right switch (SW2): octave.
-    - S36 (left fader): output volume. S37 (right fader): filter.
-    - S30: detune. S31, S32: attack, decay. S33, S34, S35: level of sine, saw and square.
-    - P00 held + S30: reverb. P02 held + S35: delay. P01 is free.
-
 ## In sync?
 
-What can drift between the repos, and where it stands (2026-11-13):
+What can drift between the repos, and where it stands (2026-11-14):
 
 | Piece | Now | Behind |
 |---|---|---|
 | simple-touch-web tags | `v1.4` newest, `v1` = `v1.4` | |
 | Library `vendor/simple-touch-web/` | same as `v1.4` | |
+| simple-touch-web `main` | `v1.4` plus the README's two levels of the live link | not pushed |
+| `community-index.json` | written by hand 2026-11-14 | the daily workflow has not run on GitHub yet |
 | TouchPlaited workflow | `@v1` | |
 | TouchPlaited approved build | `8acf93d464ec` (v1.2) | built 2026-10-29; a newer build is on its `simple-touch-web` branch |
 | TouchPlaited `/play/` | this repository's `main` at its last Pages deploy | a change to `player.html`'s `</head>` or `<body>` tag stops its site build |
@@ -167,7 +177,15 @@ Finished items, newest first, and plans that changed.
 
 ### Done
 
+**2026-11-14**
+- Added `scripts/community-index.mjs`, the **Community index** workflow and `community-index.json`: a snapshot of the directory's 8 Simple Touch repositories for the cards.
+- Settled `listing.audio`: a file in the repository or an `https://` link. GitHub's raw files play and seek in an `<audio>` element.
+- Changed the guide's **Later** section: what a new firmware version needs, and how to move the approved browser build on, by hand or in the designer.
+- Changed simple-touch-web's README: the live link in two levels, Follow (TouchPlaited) and Control (TouchSpore).
+- Finished the TouchPlaited case study. Its items moved here from Next.
+
 **2026-11-13**
+- TouchPlaited: `"oled": true`, an `oled` placement (128 × 32, between S30 and S35) and MIDI per control and mode in its label file. Its site's `/play/` is `player.html` with the site's header, assembled by its `build-site.mjs` from a checkout of this repository. Played in the library on desktop and phone: boot film, OLED, LED blinks, MIDI in and out.
 - Released simple-touch-web `v1.4` (a `device` block with only `live`). `v1` moved to `v1.4`.
 - Added the live link to TouchPlaited: levers, pads, knobs and OLED in **Connect to Simple Touch**, read-only from the page. Checked on hardware on the test bench.
 - Fixed a `device` block with only `live`: `parseDevice` dropped a block without settings or presets. The library hides the empty settings box.

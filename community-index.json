@@ -1,0 +1,122 @@
+{
+  "format": "simple-touch-index/1",
+  "firmware": [
+    {
+      "id": "degenerator",
+      "name": "TouchDegenerator",
+      "author": "Joep Vermaat",
+      "authorUrl": "https://codeberg.org/johantv",
+      "description": "A layered stereo looper for the Synthux Simple Touch 2 that lets you irreversibly degrade recorded material, inspired by Basinski's Disintegration Loops.",
+      "repo": "https://codeberg.org/johantv/Touch-Degenerator",
+      "labels": "readme",
+      "release": {
+        "tag": "v1.0.0",
+        "date": "2026-10-05",
+        "bins": 1
+      }
+    },
+    {
+      "id": "terrarium",
+      "name": "Terrarium",
+      "author": "ymillion",
+      "authorUrl": "https://github.com/ymillion",
+      "description": "Terrarium turns the Synthux Touch 2 into a self-evolving sound ecosystem. Each pad plants a sound organism.",
+      "repo": "https://github.com/ymillion/terrarium-Touch2-Firmware",
+      "labels": "readme"
+    },
+    {
+      "id": "touchcreek",
+      "name": "TouchCreek",
+      "author": "Petr Vlk",
+      "authorUrl": "https://creek.imagiag.com",
+      "description": "A sample-free procedural creek synthesizer for the Synthux Simple Touch: from a trickle to a lively stream, playable in tune from the pads or via MIDI.",
+      "repo": "https://github.com/imagiag/TouchCreek",
+      "labels": "readme",
+      "release": {
+        "tag": "v18",
+        "date": "2026-10-26",
+        "bins": 1
+      }
+    },
+    {
+      "id": "touchplaited",
+      "name": "TouchPlaited",
+      "author": "Jon Waterschoot",
+      "authorUrl": "https://github.com/jonwaterschoot",
+      "description": "A Synthux Simple Touch firmware based on Mutable Instruments Plaits (Émilie Gillet, MIT License): a 7-voice touch synth plus a 16-step generative drum sequencer, playable at the same time.",
+      "repo": "https://github.com/jonwaterschoot/TouchPlaited",
+      "labels": "file",
+      "version": "1.9.0",
+      "play": true,
+      "live": true,
+      "oled": true,
+      "look": true,
+      "modes": 3,
+      "release": {
+        "tag": "v1.9.0",
+        "date": "2026-08-08",
+        "bins": 1
+      }
+    },
+    {
+      "id": "touchpulsar",
+      "name": "TouchPulsar",
+      "author": "Petr Vlk",
+      "authorUrl": "https://pulsar.imagiag.com",
+      "description": "A pulsar synthesizer for the Synthux Simple Touch, after Curtis Roads: formant pulse trains, masking, convolution and live input, played from the pads or via MIDI.",
+      "repo": "https://github.com/imagiag/TouchPulsar",
+      "labels": "readme",
+      "release": {
+        "tag": "v12",
+        "date": "2026-10-30",
+        "bins": 1
+      }
+    },
+    {
+      "id": "touchspore",
+      "name": "TouchSpore",
+      "author": "Jon Waterschoot",
+      "authorUrl": "https://github.com/jonwaterschoot",
+      "description": "Generative plinks and pads for the Synthux Simple Touch. Pad touches, hand distance and the noise from plants or wires drive the notes.",
+      "repo": "https://github.com/jonwaterschoot/TouchSpore",
+      "labels": "file",
+      "version": "0.2.0",
+      "play": true,
+      "live": true,
+      "oled": true,
+      "look": true,
+      "release": {
+        "tag": "v0.2.0",
+        "date": "2026-11-09",
+        "bins": 1
+      }
+    },
+    {
+      "id": "touchvink",
+      "name": "TouchVink",
+      "author": "Jon Waterschoot",
+      "authorUrl": "https://github.com/jonwaterschoot",
+      "description": "A Jaap Vink style feedback instrument for the Synthux Simple Touch: a self-regulating delay, ring-mod and reverb loop that keeps itself moving, played from the pads.",
+      "repo": "https://github.com/jonwaterschoot/TouchVink",
+      "labels": "file",
+      "version": "0.2",
+      "play": true,
+      "oled": true,
+      "look": true,
+      "release": {
+        "tag": "v0.2.0",
+        "date": "2026-09-29",
+        "bins": 1
+      }
+    },
+    {
+      "id": "tribaltouch",
+      "name": "TribalTouch",
+      "author": "ymillion",
+      "authorUrl": "https://github.com/ymillion",
+      "description": "TribalTouch turns the Synthux Touch 2 into a seven-voice generative percussion instrument.",
+      "repo": "https://github.com/ymillion/tribaltouch-Touch2-Firmware",
+      "labels": "readme"
+    }
+  ]
+}
