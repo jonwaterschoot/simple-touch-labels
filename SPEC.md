@@ -124,9 +124,17 @@ How the library and designer draw the manual. Other readers can skip all of it. 
 | `oled` | Where the display sits: `rows` (32 or 64) and per layout `x`, `y`, `w` |
 | `design`, `font`, `view` | The designer's style settings (`design.v` is 2), the font (`family`, a Google Fonts name) and the theme it was saved in |
 
-### Reserved
+### The card: `listing`
 
-`listing` (`video`, `audio`, `image` for a firmware's card in the library). Nothing reads it yet.
+Optional. What the library's card for the firmware adds to the directory entry. Each key is optional.
+
+| Key | What it holds |
+|---|---|
+| `video` | An `https://` link: YouTube (a Short shows in portrait) or a video file (`.mp4`, `.m4v`, `.mov`, `.webm`) |
+| `audio` | A sound file in the repository (`media/demo.mp3`; MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS), or an `https://` link. A link that is not a sound file shows as **Listen ↗** |
+| `image` | A picture in the repository for the card (`img/card.png`; PNG, JPG or WebP). Without it the card draws the panel in the file's theme and panel colours |
+
+A YouTube video shows as a still with a play button. The library keeps the still itself, so nothing is asked of YouTube until someone presses play.
 
 ## What the library accepts and drops
 

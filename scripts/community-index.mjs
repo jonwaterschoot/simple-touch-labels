@@ -8,13 +8,15 @@
 //
 // GITHUB_TOKEN (optional) lifts GitHub's API limit of 60 requests an hour.
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const DIRECTORY = 'https://synthux-academy.github.io/community-instruments/projects.json';
 const LABEL_FILE = 'simple-touch-labels.json';
 const OUT = new URL('../community-index.json', import.meta.url);
 const REPO_RE = /^https:\/\/(github\.com|codeberg\.org)\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/;
 const MAX_FILE = 400000;
+const MEDIA = 'community-media';   // the videos' stills, beside the index
+const YOUTUBE_RE = /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:\S*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/i;
 
 const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 const https = (v) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v) ? v.slice(0, 300) : '');
@@ -50,6 +52,29 @@ async function text(url) {
     const t = await res.text();
     return t.length > MAX_FILE ? null : t;
   } catch { return null; }
+}
+
+// A YouTube video's still as community-media/yt-<id>.jpg, fetched once. The page shows it
+// before anyone presses play, so opening the library sends nothing to YouTube.
+async function still(video) {
+  const m = video.match(YOUTUBE_RE);
+  if (!m) return '';
+  const path = `${MEDIA}/yt-${m[1]}.jpg`;
+  const file = new URL(`../${path}`, import.meta.url);
+  try { await access(file); return path; } catch { /* not fetched yet */ }
+  // oardefault keeps a Short's portrait frame. hqdefault is 4:3 with bars.
+  for (const name of [/\/shorts\//.test(video) ? 'oardefault' : 'maxresdefault', 'hqdefault']) {
+    try {
+      const res = await fetch(`https://i.ytimg.com/vi/${m[1]}/${name}.jpg`);
+      if (!res.ok) continue;
+      const bytes = Buffer.from(await res.arrayBuffer());
+      if (bytes.length < 2000 || bytes.length > 600000) continue;
+      await mkdir(new URL(`../${MEDIA}/`, import.meta.url), { recursive: true });
+      await writeFile(file, bytes);
+      return path;
+    } catch { /* try the next size */ }
+  }
+  return '';
 }
 
 async function latestRelease(r) {
@@ -124,6 +149,7 @@ async function card(p, old) {
     Object.assign(out, fromFile, { labels: 'file' });
     for (const k of ['version', 'page']) if (!out[k]) delete out[k];
     for (const k of ['play', 'live', 'oled', 'look', 'modes']) if (!out[k]) delete out[k];
+    if (out.listing.video) { const s = await still(out.listing.video); if (s) out.listing.still = s; }
     if (!Object.keys(out.listing).length) delete out.listing;
   } else {
     for (const n of ['README.md', 'readme.md', 'Readme.md']) {

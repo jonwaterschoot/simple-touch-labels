@@ -668,18 +668,33 @@ button.lbl { min-width:8.5em; text-align:center; }
   .bar #modeGrp { order:4; }
 }
 
-/* The community tab's cards (index.html showCards). While they are open the firmware's own sections are hidden. */
+/* The community cards, the library's home (index.html showCards). While they are open the firmware's own sections are hidden. */
 #cards:not([hidden]) ~ :not(footer) { display:none !important; }
 #cards { padding-top:18px; }
 .cards-open #viewGrp, .cards-open .lblgrp, .cards-open #viewBtn, .cards-open #modeGrp, .cards-open .export { display:none; }
 #cards .hint { margin-top:12px; }
 .fwcards { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap:14px; }
-.fwcard { display:flex; align-items:stretch; gap:14px; padding:12px; border-color:var(--hair); background:var(--field); font-weight:500; white-space:normal; }
-.fwcard .pic { flex:none; width:120px; }
-.fwcard .pic svg, .fwcard .pic img { display:block; width:100%; height:auto; }
-.fwcard .body { display:flex; flex-direction:column; gap:6px; min-width:0; }
-.fwcard b { font-size:16px; font-weight:700; }
-.fwcard .by { font-size:12px; color:var(--muted); }
-.fwcard .txt { font-size:13px; line-height:1.45; }
-.fwcard .tags { display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:auto; padding-top:6px; }
-.fwcard .tags span { font-size:11px; border:1px solid var(--hair); padding:1px 6px; }
+.fwcard { display:flex; flex-direction:column; border:1px solid var(--hair); background:var(--field); min-width:0; }
+.fwcard:hover, .fwcard.open { border-color:var(--active); }
+.fwcard.open { grid-column:1 / -1; order:-1; flex-direction:row; flex-wrap:wrap; scroll-margin:12px; }
+.fwcard.open .fwsum { flex:1 1 360px; }
+.fwsum { display:flex; flex:1; align-items:stretch; gap:14px; width:100%; padding:12px; border:0; font-weight:500; white-space:normal; }
+.fwsum .pic { flex:none; width:120px; }
+.fwcard.open .pic { width:min(160px, 34%); }
+.fwsum .pic svg, .fwsum .pic img { display:block; width:100%; height:auto; }
+.fwsum .body { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.fwsum b { font-size:16px; font-weight:700; }
+.fwcard.open .fwsum b { font-size:22px; }
+.fwsum .by { font-size:12px; color:var(--muted); }
+.fwsum .txt { font-size:13px; line-height:1.45; max-width:70ch; }
+.fwsum .tags { display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:auto; padding-top:6px; }
+.fwsum .tags span { font-size:11px; border:1px solid var(--hair); padding:1px 6px; }
+/* an open card: the way to the manual, then its video and sound */
+.fwmore { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:12px; min-width:0; max-width:100%; box-sizing:border-box; }
+.fwact { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; font-size:13px; }
+.ytf { position:relative; display:block; width:560px; max-width:100%; aspect-ratio:16 / 9; padding:0; border:1px solid var(--hair); background:#000; overflow:hidden; }
+.ytf.tall { width:250px; aspect-ratio:9 / 16; }
+.ytf img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.ytf .go { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; place-items:center; width:64px; height:44px; background:var(--active); color:#fff; font-size:20px; }
+.fwmore video { width:560px; max-width:100%; max-height:70vh; background:#000; }
+.fwmore audio { width:360px; max-width:100%; }

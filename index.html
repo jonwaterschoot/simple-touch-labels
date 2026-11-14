@@ -186,7 +186,7 @@ function syncLook(){
 /* Preview: the designer's current state in this browser (designerPreview, core.js), as the library shows a label file */
 const previewDoc = designerPreview;
 async function pick(src, proj=null, keepTheme=false){
-  if(UI.cards){ UI.cards=false; $('cards').hidden=true; document.querySelector('.wrap').classList.remove('cards-open'); $('cardsBtn').setAttribute('aria-pressed','false'); }
+  if(UI.cards){ UI.cards=false; closeCards(); $('cards').hidden=true; document.querySelector('.wrap').classList.remove('cards-open'); $('cardsBtn').setAttribute('aria-pressed','false'); }
   Play.reset(); V.mode='';
   UI.src=src; UI.proj=proj; UI.read=null; V.refMode='empty';
   const t=tabOf(src); if(t){ UI.tab=t; UI.last[t]= proj? proj.id : src; }
@@ -291,18 +291,21 @@ $('pngBtn').onclick=()=>{
       fileBase:'simple-touch-'+(UI.proj? UI.proj.id : UI.src)+'-'+(look==='print'?'print':V.theme)+'-'+V.layout}),
     onChange:(inc,look)=>{ UI.exWhat= inc.notes? 'all' : inc.table? 'table' : 'panel'; UI.exLook=look; }});
 };
-/* The community tab's cards: one per firmware in the directory. A card adds what community-index.json holds for it:
-   a daily snapshot of the directory's repositories (scripts/community-index.mjs). Its text is other people's, so it is
-   escaped here, and its colours pass only as plain values. */
-let cardIndex=null, thumbSeq=0;
+/* The community cards, the page's home: one per firmware in the directory. A card adds what community-index.json holds
+   for it: a daily snapshot of the directory's repositories (scripts/community-index.mjs). Its text is other people's,
+   so it is escaped here, and its colours, links and paths pass only as plain values.
+   A click opens a card across the row, with its video and sound and a button to the manual. */
+let cardIndex=null, cardIdx={}, thumbSeq=0;
 const loadIndex = () => cardIndex ||= fetch('community-index.json').then(r=>r.ok? r.json() : {})
   .then(d=>Object.fromEntries((Array.isArray(d.firmware)? d.firmware : []).filter(c=>c && typeof c.id==='string').map(c=>[c.id,c]))).catch(()=>({}));
 const LABELS_FROM = {file:'Labels by the creator', readme:'Labels read from the README', none:'No labels yet'};
-const cardTags = c => [c.play&&'Play', c.live&&'Live link', c.oled&&'OLED', LABELS_FROM[c.labels], c.release&&[c.release.tag,c.release.date].filter(Boolean).join(' · ')].filter(Boolean);
-function cardImage(repo, c){
-  const path=c.listing?.image, r=typeof path==='string' && /^[\w.-]+(\/[\w.-]+)*\.(png|jpe?g|webp)$/i.test(path) && !path.includes('..') && repoParts(repo);
+const cardTags = c => [c.play&&'Play', c.live&&'Live link', c.oled&&'OLED', c.listing?.video&&'Video', c.listing?.audio&&'Sound', LABELS_FROM[c.labels], c.release&&[c.release.tag,c.release.date].filter(Boolean).join(' · ')].filter(Boolean);
+/* a file in the firmware's repository, as its raw address */
+function repoRaw(repo, path, ext){
+  const r=typeof path==='string' && /^[\w.-]+(\/[\w.-]+)*$/.test(path) && !path.split('/').includes('..') && ext.test(path) && repoParts(repo);
   return !r? '' : r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${path}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${path}`;
 }
+const AUDIO_EXT=/\.(mp3|ogg|oga|wav|m4a|flac)$/i;
 /* The card's picture without listing.image: the panel with no labels and no faceplate, in the theme the creator's file
    opens in and with their panel colours (c.theme, c.panel). Without a look: the library's Synthux panel. */
 function cardThumb(c){
@@ -317,28 +320,60 @@ function cardThumb(c){
   return `<svg class="thumb" viewBox="${D.x} ${D.y} ${D.w} ${D.h}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
 }
 function cardHTML(p, c){
-  const img=cardImage(p.repo,c), tags=cardTags(c), by=p.author?.name||'';
-  return `<button type="button" class="fwcard" data-id="${escAttr(p.id)}"><span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c)}</span>`
+  const img=repoRaw(p.repo, c.listing?.image, /\.(png|jpe?g|webp)$/i), tags=cardTags(c), by=p.author?.name||'';
+  return `<article class="fwcard" data-id="${escAttr(p.id)}"><button type="button" class="fwsum" aria-expanded="false"><span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c)}</span>`
     +`<span class="body"><b>${esc(p.name)}</b>${by? `<span class="by">${esc(by)}</span>` : ''}${p.description? `<span class="txt">${esc(p.description)}</span>` : ''}`
-    +(tags.length? `<span class="tags">${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span></button>';
+    +(tags.length? `<span class="tags">${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span></button></article>';
+}
+/* An open card's lower part. A YouTube video is a still with a play button (the still is in community-media/, fetched
+   by the snapshot script): the player loads from youtube-nocookie.com only on that click. A Short is portrait. */
+function cardMore(p, c){
+  const L=c.listing && typeof c.listing==='object'? c.listing : {}, video=typeof L.video==='string'? L.video : '', audio=typeof L.audio==='string'? L.audio : '';
+  const yt=video.match(YOUTUBE_RE), still=typeof L.still==='string' && /^community-media\/yt-[\w-]{11}\.jpg$/.test(L.still)? L.still : '';
+  const sound= AUDIO_EXT.test(audio)? (safeHttps(audio) || repoRaw(p.repo, audio, AUDIO_EXT)) : '';
+  const box=document.createElement('div'); box.className='fwmore';
+  box.innerHTML=`<div class="fwact"><button type="button" class="primary" data-open>Open the manual</button><a href="${escAttr(p.repo)}" target="_blank" rel="noopener">${esc(repoShort(p.repo))} ↗</a></div>`
+    +(yt? `<button type="button" class="ytf${/\/shorts\//.test(video)?' tall':''}" data-yt="${yt[1]}" aria-label="Play the video of ${escAttr(p.name)}" title="Loads the player from YouTube">${still? `<img src="${still}" alt="" loading="lazy">` : ''}<span class="go" aria-hidden="true">▶</span></button>`
+      : VIDEO_RE.test(video)? `<video controls preload="none" playsinline src="${escAttr(video)}"></video>` : '')
+    +(sound? `<audio controls preload="none" src="${escAttr(sound)}"></audio>` : safeHttps(audio)? `<a href="${escAttr(audio)}" target="_blank" rel="noopener">Listen ↗</a>` : '');
+  return box;
+}
+function closeCards(){
+  $('cards').querySelectorAll('.fwcard.open').forEach(a=>{ a.classList.remove('open'); a.querySelector('.fwmore')?.remove(); a.querySelector('.fwsum').setAttribute('aria-expanded','false'); });
 }
 /* the page's heading while the cards are open; update() writes the open firmware's there */
 function cardsHead(){ $('title').textContent='Community firmware'; $('intro').textContent=TABS.comm.title+'.'; $('labelsInfo').hidden=true; }
 async function showCards(on){
-  UI.cards=on; $('cards').hidden=!on; document.querySelector('.wrap').classList.toggle('cards-open',on); $('cardsBtn').setAttribute('aria-pressed',String(on));
-  if(!on){ update(); return; }
+  UI.cards=on; $('cards').hidden=!on; document.querySelector('.wrap').classList.toggle('cards-open',on);
+  $('cardsBtn').setAttribute('aria-pressed',String(on));
+  if(!on){ closeCards(); update(); return; }
   Play.reset(); UI.tab='comm'; buildBars();
-  cardsHead();
-  const idx=await loadIndex(), list=UI.community||[];
+  cardsHead(); history.replaceState(null,'',location.pathname);
+  cardIdx=await loadIndex(); const list=UI.community||[];
   if(!UI.cards) return;
-  $('cards').innerHTML= list.length? `<div class="fwcards">${list.map(p=>cardHTML(p, idx[p.id]||{})).join('')}</div>`
-      +'<p class="hint">Releases and labels are from a daily snapshot. Open a firmware to read its repository again.</p>'
+  $('cards').innerHTML= list.length? `<div class="fwcards">${list.map(p=>cardHTML(p, cardIdx[p.id]||{})).join('')}</div>`
+      +'<p class="hint">Releases and labels are from a daily snapshot. Open a manual to read its repository again.</p>'
     : '<p class="hint">The community directory could not be read. Check the connection and load the page again.</p>';
 }
 $('cardsBtn').onclick=()=>showCards(!UI.cards);
 $('cards').onclick=e=>{
-  const b=e.target.closest('.fwcard'), p=b && (UI.community||[]).find(x=>x.id===b.dataset.id);
-  if(p) pick('community',p);
+  const art=e.target.closest('.fwcard'), p=art && (UI.community||[]).find(x=>x.id===art.dataset.id);
+  if(!p) return;
+  if(e.target.closest('[data-open]')){ pick('community',p); return; }
+  const y=e.target.closest('button.ytf');
+  if(y){
+    const f=document.createElement('iframe');
+    f.className=y.className; f.title='Video of '+p.name; f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen=true;
+    f.referrerPolicy='strict-origin-when-cross-origin'; f.src=`https://www.youtube-nocookie.com/embed/${y.dataset.yt}?autoplay=1&rel=0`;
+    y.replaceWith(f); return;
+  }
+  if(!e.target.closest('.fwsum')) return;
+  const was=art.classList.contains('open');
+  closeCards();   // one open card at a time, and closing one stops its video
+  if(was) return;
+  art.classList.add('open'); art.querySelector('.fwsum').setAttribute('aria-expanded','true');
+  art.append(cardMore(p, cardIdx[p.id]||{}));
+  art.scrollIntoView({block:'nearest', behavior:'smooth'});
 };
 /* drag the divider between drawing and table to set the drawing's width (kept per layout); double-click resets */
 const figKey=()=>'stManualLib.figW.'+$('fig').className;
@@ -364,7 +399,10 @@ $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(fig
   const P= q.get('community') && (await community).find(p=>p.id===q.get('community'));
   await (P? pick('community',P,q.has('theme')) : pick(UI.src,null,q.has('theme')));
   document.fonts.ready.then(update);
-  if(q.has('all')){ await community; showCards(true); }
+  // the cards are the home: every address that names no firmware, wiring set or preview
+  if(q.has('all') || q.has('card') || !(P || q.has('src') || q.has('preview'))){
+    if((await community).length){ await showCards(true); const id=q.get('card'); if(id) $('cards').querySelector(`.fwcard[data-id="${CSS.escape(id)}"] .fwsum`)?.click(); }
+  }
 })();
 </script>
 </body>

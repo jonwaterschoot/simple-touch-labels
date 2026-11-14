@@ -6,7 +6,7 @@ Background, findings and the reasoning behind each step are in [notes.md](notes.
 
 ## Where it stands
 
-- **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. The Community tab opens on a card per firmware. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
+- **Library**: Official, Community and DIY wiring tabs. Officials (TouchBass, Touch FX, Touch String, Audrey II Touch, TouchBloop) come from `examples/*.json`, community firmwares from the Synthux directory or any public GitHub or Codeberg repository. It opens on the community cards: one per firmware, which opens with its video and sound. README view, creator themes, modes, Play, **Connect to Simple Touch** with the live drawing, **Upload to device…**.
 - **Playable**: TouchVink and TouchPlaited, each from its own repository, sha256-pinned. TouchSpore and TouchPlaited over **Connect to Simple Touch** with the live link (TouchPlaited read-only from the page).
 - **Web apps**: TouchSpore's, on its own GitHub Pages (exported 2026-11-09, look updated 2026-11-12). TouchPlaited's, as `/play/` on its site, in the site's own theme and built from this repository's `main` on every deploy (2026-11-13).
 - **Designer**: modes, combos, per-layout style, fonts per part, OLED placement, **Open repository…**, README files in **Open file…**.
@@ -67,10 +67,10 @@ A creator's push can't start the Action (their repository would need a token for
 `listing.audio` is a file in the repository (MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. GitHub's raw files send `audio/mpeg`, byte ranges and a CORS header, so an `<audio>` element plays and seeks them (checked 2026-11-14).
 
 - [ ] The card's picture with the creator's faceplate and labels. Now it is `listing.image`, else the panel without labels in the creator's theme and panel colours (`theme` and `panel` in the snapshot), else the library's Synthux panel.
-- [ ] Actions on a card: Play, Manual, **Upload to device…**. A click on the card opens the firmware.
-- [ ] Video and sound on a card, from `listing.video` and `listing.audio`.
+- [ ] More on an open card: Play and **Upload to device…** beside **Open the manual**.
+- [ ] Put `listing` into the firmware repositories: TouchSpore (`https://youtu.be/LsLw1mzLUBw`, in its local label file, not pushed) and TouchVink (`https://www.youtube.com/shorts/zW_fxw2P43o`). No repository has a sound file yet, so `listing.audio` from a repository is untried.
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
-- [ ] `listing` in the designer's Firmware tab, in **Save file** and the Repository kit. **Export › Card image** writes `img/card.png` from the preview. The designer drops keys it doesn't know on **Save file**, so this comes before anyone writes `listing` by hand.
+- [ ] `listing` in the designer's Firmware tab: a field for the video link, and for sound and card image either a path or a file. A chosen file plays or shows in the designer and goes into the Repository kit at the path the label file names. **Export › Card image** writes `img/card.png` from the preview. The designer already keeps a `listing` block through **Open file…** and **Save file**.
 - [ ] Guide: the `listing` block in the labels step.
 
 ### Library
@@ -175,6 +175,8 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
+- Changed the library's home: it opens on the community cards. A click opens a card at the top with **Open the manual**, the video and the sound. `?card=<id>` opens one. Seen in headless Edge with test data: a landscape video, a Short and a sound file.
+- Added `listing` to SPEC.md and the schema (`video`, `audio`, `image`). The designer keeps the block on **Save file**. The snapshot saves each YouTube still in `community-media/`, so the page asks YouTube for nothing before a play.
 - Added the community cards: the Community tab opens on a card per firmware, with its picture, author, description, Play, live link, OLED, where the labels come from and the latest release. **All firmware** returns to them, and `?all` opens them. Seen in headless Edge at desktop width. Clicking a card was not tried there.
 - Added `scripts/community-index.mjs`, the **Community index** workflow and `community-index.json`: a snapshot of the directory's 8 Simple Touch repositories for the cards. The workflow ran once by hand: green, and no commit when nothing changed.
 - Settled `listing.audio`: a file in the repository or an `https://` link. GitHub's raw files play and seek in an `<audio>` element.

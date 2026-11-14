@@ -1,6 +1,6 @@
 name: Community index
-# Writes community-index.json for the library's firmware cards.
-# Commits only when a firmware changed.
+# Writes community-index.json and the videos' stills in community-media/ for the
+# library's firmware cards. Commits only when something changed.
 on:
   schedule:
     - cron: '17 4 * * *'
@@ -20,12 +20,12 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Commit when it changed
         run: |
-          if git diff --quiet -- community-index.json && git ls-files --error-unmatch community-index.json >/dev/null 2>&1; then
+          if [ -z "$(git status --porcelain -- community-index.json community-media)" ]; then
             echo "No change."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add community-index.json
+          git add community-index.json community-media
           git commit -m "Changed community-index.json: the daily snapshot of the community directory"
           git push

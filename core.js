@@ -204,7 +204,16 @@ applyDesign();
    DATA
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
-function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null}; }
+function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null, listing:null}; }
+/* a label file's listing block, for the library's cards: a video link, a sound (a link or a file in the repository) and a card image (a file) */
+function listingOf(l){
+  if(!l || typeof l!=='object') return null;
+  const path=(v,ext)=> typeof v==='string' && v.length<=200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v)? v : '';
+  const link=v=> typeof v==='string'? safeHttps(v.trim()).slice(0,300) : '';
+  const out={video:link(l.video), audio:link(l.audio)||path(l.audio,/\.(mp3|ogg|oga|wav|m4a|flac)$/i), image:path(l.image,/\.(png|jpe?g|webp)$/i)};
+  for(const k of Object.keys(out)) if(!out[k]) delete out[k];
+  return Object.keys(out).length? out : null;
+}
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -220,6 +229,7 @@ function normalise(d){
   s.modes = cleanModes(d.modes);
   s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
   s.oled = oledOf(d.oled);
+  s.listing = listingOf(d.listing);
   s.fpDesktop = fpDesktopOf(d.fpDesktop);
   s.fpLabels = fpLabelsOf(d.fpLabels);
   s.combos = Array.isArray(d.combos)? [...new Set(d.combos.filter(comboOk))] : [];
@@ -357,6 +367,7 @@ function cleanData(){
   if(doc.emulator) out.emulator=doc.emulator;
   if(doc.device) out.device=doc.device;
   if(doc.oled) out.oled=doc.oled;
+  if(doc.listing) out.listing=doc.listing;
   if(doc.fpDesktop){ const q=doc.fpDesktop; out.fpDesktop={art:q.art, ...(q.art==='own'&&q.faceplate?{faceplate:q.faceplate}:{}), ...(q.art==='own'&&q.file?{file:q.file}:{}), style:{...q.style}}; }
   if(doc.fpLabels) out.fpLabels=structuredClone(doc.fpLabels);
   const md=cleanModes(doc.modes); if(md) out.modes=md;

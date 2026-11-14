@@ -95,7 +95,15 @@
     "design": { "type": "object" },
     "font": { "type": "object" },
     "view": { "type": "object" },
-    "listing": { "description": "Reserved.", "type": "object" }
+    "listing": {
+      "description": "The firmware's card in the library: a video link, a sound (a file in the repository or a link) and a card image (a file in the repository).",
+      "type": "object",
+      "properties": {
+        "video": { "type": "string", "pattern": "^https://" },
+        "audio": { "type": "string" },
+        "image": { "type": "string" }
+      }
+    }
   },
   "$defs": {
     "control": { "type": "string", "pattern": "^(P0\\d|P1[01]|S3[0-7]|S09_S10|S07_S08|IN|OUT|LED)$" },
