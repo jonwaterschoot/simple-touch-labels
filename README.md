@@ -33,9 +33,10 @@ flowchart TD
   - **Official**: manuals for TouchBass, Touch FX, Touch String, Audrey II Touch and TouchBloop, with labels checked against each firmware's repo.
   - **Community**: the Simple Touch entries of the [Synthux community directory](https://synthux-academy.github.io/community-instruments/) (read from its `projects.json`, leaving out the official ones). Open one with `?community=<id>`.
   - The Community tab opens on a card per firmware, and **All firmware** returns to them.
-    - A card shows what `community-index.json` holds: Play, live link, OLED, video, sound, where the labels come from and the latest release.
+    - A card shows what `community-index.json` holds: the creator's tags, Play, live link, OLED, video, sound, where the labels come from and the latest release. The **Tag** row above the cards shows one tag's firmware.
     - Its picture is `listing.image` if the label file names one, else the panel without labels in the creator's theme and panel colours.
-    - A click opens the card at the top of the list, with **Open the manual**, the label file's `listing.video` and `listing.audio`. A YouTube video is a still until its play button is pressed. Only then does the player load, from `youtube-nocookie.com`.
+    - A click marks the card and opens a row under its own row, with **Open the manual** and the label file's videos and sounds, each with its description. It stays open until another card is chosen. A YouTube video is a still until its play button is pressed. Only then does the player load, from `youtube-nocookie.com`.
+    - A community manual shows the same tags, videos and sounds under its notes.
   - **DIY wiring**: the bare PCB with Synthux, libDaisy or Pd / Plugdata names and their pin tables, for building the kit or writing a firmware.
   - **Labels**: from the repository's `simple-touch-labels.json` if it has one (made in the designer). Otherwise they are auto-extracted from its README and a linked manual, marked as such with the line each label came from, one mode at a time when the README has a section per switch position (`### Seq (SW2 Up)`). Controls without a label show the Synthux names.
   - **README**: the repository's own, folded away below every firmware (official and community). Opened, it is read from the default branch and drawn as GitHub draws it, with relative paths pointing to the repository. The [about page](https://jonwaterschoot.github.io/simple-touch-labels/about.html#readme) lists what it renders.

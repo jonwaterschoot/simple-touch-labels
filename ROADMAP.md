@@ -1,17 +1,5 @@
 # Roadmap
 
-14/11 5:21 chat was interrupted; these are the current follow up items:
-
-- When buillding in the designer; we should show a small icon preview of the image it will show in the library. 
-- Let's also ensure that the info fields at the top also have the youtube, video image and sound link fields.
-- underneath the wasm field we could include a link to the guide to explain what it is and how to install / build that
-- the export kit window will also show the library preview with the embedded items
-- the loaded manual of community instruments should also list the card info at the bottom
-- we should probably also start using a tags system with tags like: Synth, FX, Experimental, Ambient, ... We can add a few suggestions, but users should be free to pick new ones as well, just check that spelling and caps are not doubling.
-
-
-
-
 One set of files per firmware repository, read by everything that shows or plays a Simple Touch firmware: Synthux Lab, this library, the designer and the uploader. Official and community firmwares follow the same route; only where they are listed differs.
 
 Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-14.
@@ -55,14 +43,15 @@ Where each piece comes from:
 |---|---|
 | Name, author, description, repository | The directory entry (`projects.json`) |
 | `firmware` block (asset pattern, hardware, bootloader) | The directory entry. Not copied into the label file. |
-| Video, sound, card image | A `listing` block in `simple-touch-labels.json`, filled in on the designer's Firmware tab |
+| Tags, videos, sounds, card image | A `listing` block in `simple-touch-labels.json`, filled in under **Library card** on the designer's Labels tab |
 | Release, `.bin`, browser build, labels by the creator | The repository itself |
 
 ```json
 "listing": {
-  "video": "https://www.youtube.com/watch?v=…",
-  "audio": "media/demo.mp3",
-  "image": "img/card.png"
+  "tags": ["Synth", "Ambient"],
+  "image": "img/card.png",
+  "video": [{ "src": "https://youtu.be/…", "text": "A first patch." }, { "src": "media/demo.mp4" }],
+  "audio": [{ "src": "media/demo.mp3" }]
 }
 ```
 
@@ -78,12 +67,12 @@ A creator's push can't start the Action (their repository would need a token for
 
 `listing.audio` is a file in the repository (MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. GitHub's raw files send `audio/mpeg`, byte ranges and a CORS header, so an `<audio>` element plays and seeks them (checked 2026-11-14).
 
-- [ ] The card's picture with the creator's faceplate and labels. Now it is `listing.image`, else the panel without labels in the creator's theme and panel colours (`theme` and `panel` in the snapshot), else the library's Synthux panel.
+- [ ] The card's picture with the creator's faceplate and labels, without a step by the creator. Now the designer's **Make from the drawing** saves it as `img/card.png` (480 px wide) for `listing.image`. Drawing it in the library would load every card's label file and faceplate, up to a few MB each, so it waits for a snapshot script that can make small pictures.
 - [ ] More on an open card: Play and **Upload to device…** beside **Open the manual**.
-- [ ] A sound file in a firmware repository, to try `listing.audio` from a repository: `media/demo.mp3`, named in the label file as `"audio": "media/demo.mp3"`. TouchSpore and TouchVink have `listing.video` since 2026-11-14.
 - [ ] Refresh while read: a visible card reads its repository's label file and updates if it differs from the snapshot. The latest release is read when a firmware is opened.
-- [ ] Try the designer's **Library card** section by hand: choose a sound and a picture, hear and see them, and find both in the Repository kit's .zip at their paths. Written and loaded in headless Edge without errors. The file pickers were not tried there.
-- [ ] **Export › Card image**: writes `img/card.png` from the preview.
+- [ ] Try the designer's **Library card** section by hand: **Choose file…** for a video, a sound and a picture, **Make from the drawing**, the card under **In the library**, and the Repository kit's card and .zip. Seen in headless Edge: the fields filled from TouchSpore's label file and the card. The file pickers, **Make from the drawing** and the kit were not tried there.
+- [ ] Press play on a card's YouTube still, and play TouchPlaited's sound and TouchSpore's clip from their repositories, in a real browser.
+- [ ] Tags: a creator can only see the spellings in the last snapshot. Decide whether the library needs a fixed list once more firmware has tags.
 
 ### Library
 
@@ -187,6 +176,14 @@ Finished items, newest first, and plans that changed.
 ### Done
 
 **2026-11-14**
+- Changed `listing`: `video` and `audio` are lists of `{src, text}`, up to 6 each, with a description of up to 10 lines. One address as a string still reads. Added `tags` (up to 6). Tags that differ only in capitals or punctuation count as one.
+- Changed the open card: the card stays in its place and is marked, and its videos and sounds open as a row under the card's own row. A click on the open card or its row no longer closes it. `?card=<id>` follows the open card.
+- Added the **Tag** row above the cards, and tags on the cards.
+- Added **Video and sound** under a community manual: the tags, videos and sounds of its label file.
+- Changed the designer's **Library card**: tags with suggestions, rows for several videos and sounds with descriptions, **Choose file…** for a video too, **Make from the drawing** for the card image, and the card as the library draws it. The Repository kit shows the same card and lists the files the listing names.
+- Added a link to the guide's step 4 under the designer's **Browser build** field.
+- Fixed the library dropping `listing` from a label file read from a repository.
+- Added media to the firmware repositories: TouchPlaited `media/Touchplaited_demo.mp3` with the tag Synth, TouchSpore `media/TouchSpore_webplayScreenrec.mp4` beside its YouTube video, with the tags Generative and Ambient.
 - Added **Library card** to the designer's Labels tab: a video link, and a path or a chosen file for the sound and the card image. A chosen file stays in the browser, plays or shows there, and goes into the Repository kit at its path. `listing.video` also takes a file in the repository.
 - Changed the library's home: it opens on the community cards. A click opens a card at the top with **Open the manual**, the video and the sound. `?card=<id>` opens one. Seen in headless Edge with test data: a landscape video, a Short and a sound file.
 - Added `listing` to SPEC.md and the schema (`video`, `audio`, `image`). The designer keeps the block on **Save file**. The snapshot saves each YouTube still in `community-media/`, so the page asks YouTube for nothing before a play.

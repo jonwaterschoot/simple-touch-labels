@@ -111,7 +111,7 @@ function labelFileDoc(d, repo){
   return {...emptyDoc(), firmware:{...emptyDoc().firmware,...fw}, labels,
     modifiers:(s.modifiers||[]).filter(id=>SLOT[id]), combos:s.combos, modTypes:Object.fromEntries(Object.entries(s.modTypes||{}).filter(([k,v])=>SLOT[k]&&v==='toggle')),
     customs:(s.customs||[]).filter(c=>c&&typeof c==='object').map(c=>({id:num(c.id), text:str(c.text,LIMITS.line), sub:str(c.sub,LIMITS.line2), x:num(c.x), y:num(c.y), style:customStyleOf(c.style,true)||undefined})),
-    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo), modes:s.modes, device:s.device, oled:s.oled,
+    offsets:{phone:offs(s.offsets.phone), desktop:offs(s.offsets.desktop)}, emulator:emulatorOf(d.emulator, repo), modes:s.modes, device:s.device, oled:s.oled, listing:s.listing,
     // the creator's look, and their faceplate: a file in the repository (read by readRepoNow) or, in older files, the SVG itself
     look:lookOf(d), faceplateFile:s.faceplateFile, faceplate: typeof s.faceplate==='string' && s.faceplate.trim().startsWith('<')? s.faceplate : '',
     fpStyle:safeFpStyle(d.fpStyle), fpDesktop:s.fpDesktop, fpLabels:s.fpLabels};
@@ -431,6 +431,75 @@ function absUrl(u, base){
 const rawFile = u => u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/([^?#]+)(?:\?raw=true)?$/, 'https://raw.githubusercontent.com/$1/$2/$3');
 const VIDEO_RE = /^https:\/\/(?:github\.com\/user-attachments\/assets\/[0-9a-f-]{36}|[^\s?#]+\.(?:mp4|m4v|mov|webm)(?:[?#]\S*)?)$/i;
 const YOUTUBE_RE = /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:\S*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/i;
+
+/* ============================================================
+   THE FIRMWARE CARDS: the library's home and the designer's preview of one. A card's text is other people's, so it is
+   escaped here, and its colours, links and paths pass only as plain values.
+   o = {themes (a design's themes), known (tag spellings in use), file(path, ext) → the address of a repository file}
+   ============================================================ */
+const LABELS_FROM = {file:'Labels by the creator', readme:'Labels read from the README', none:'No labels yet'};
+const cardTags = (c,L) => [c.play&&'Play', c.live&&'Live link', c.oled&&'OLED', L.video&&'Video', L.audio&&'Sound', LABELS_FROM[c.labels], c.release&&[c.release.tag,c.release.date].filter(Boolean).join(' · ')].filter(Boolean);
+/* every tag in a community index, in its order: the spellings in use */
+const indexTags = cards => cards.flatMap(c=>listingOf(c && c.listing)?.tags||[]);
+/* a file in the firmware's repository, as its raw address */
+function repoRaw(repo, path, ext){
+  const r=repoFilePath(path, ext) && repoParts(repo);
+  return !r? '' : r.host==='github.com'? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${path}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${path}`;
+}
+/* The card's picture without listing.image: the panel with no labels and no faceplate, in the theme the creator's file
+   opens in and with their panel colours (c.theme, c.panel). */
+let thumbSeq=0;
+function cardThumb(c, themes){
+  const th=THEME_NAMES.some(t=>t[0]===c.theme)? c.theme : 'panel', q={...themes[th].panel};
+  for(const [k,v] of Object.entries(c.panel && typeof c.panel==='object'? c.panel : {})){
+    if(typeof v==='number' && Number.isFinite(v)) q[k]=v;
+    else if(typeof v==='string' && SAFE_COLOUR.test(v.trim())) q[k]=v.trim();
+  }
+  const D=DEVICE, simple=q.drawing==='simple', id='ct'+(++thumbSeq);
+  const parts= simple? simpleArt(q) : {base:'<use href="#panelBase"/>', ctl:'<use href="#panelCtl"/>'};
+  const vars=Object.entries(PVARS).filter(([k])=>q[k]!=null && q[k]!=='').map(([k,v])=>`--${v}:${q[k]}`).join(';');
+  return `<svg class="thumb" viewBox="${D.x} ${D.y} ${D.w} ${D.h}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
+}
+function cardHTML(p, c, o){
+  const L=listingOf(c.listing)||{}, img= L.image? o.file(L.image, LISTING_EXT.image) : '', by=p.author?.name||'';
+  const own=(L.tags||[]).map(t=>tagSpelling(t,o.known)), tags=cardTags(c,L);
+  return `<article class="fwcard" data-id="${escAttr(p.id)}" data-tags="${escAttr(own.map(tagKey).join(' '))}"><button type="button" class="fwsum" aria-expanded="false"><span class="pic">${img? `<img src="${escAttr(img)}" alt="" loading="lazy">` : cardThumb(c, o.themes)}</span>`
+    +`<span class="body"><b>${esc(p.name)}</b>${by? `<span class="by">${esc(by)}</span>` : ''}${p.description? `<span class="txt">${esc(p.description)}</span>` : ''}`
+    +(own.length||tags.length? `<span class="tags">${own.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span></button></article>';
+}
+/* A listing's videos and sounds, each with its description. A YouTube video is a still with a play button (the still
+   is in community-media/, fetched by the snapshot script and named in the index as `still`): the player loads from
+   youtube-nocookie.com only on that click. A Short is portrait. A long description is cut to three lines. */
+function mediaHTML(name, c, o){
+  const L=listingOf(c.listing)||{}, raw=c.listing && Array.isArray(c.listing.video)? c.listing.video : [];
+  const stillOf=src=>{ const v=raw.find(x=>x && x.src===src); return v && typeof v.still==='string' && /^community-media\/yt-[\w-]{11}\.jpg$/.test(v.still)? v.still : ''; };
+  const cap=t=>{
+    if(!t) return '';
+    const long=t.split('\n').length>3 || t.length>180;
+    return `<figcaption><span class="mtext${long?' clamp':''}">${esc(t)}</span>${long? '<button type="button" class="tight" data-more aria-expanded="false">Show more</button>' : ''}</figcaption>`;
+  };
+  const fig=(cls,body,t)=> body? `<figure class="mitem${cls}">${body}${cap(t)}</figure>` : '';
+  return (L.video||[]).map(v=>{
+    const yt=v.src.match(YOUTUBE_RE), tall=/\/shorts\//.test(v.src), still=stillOf(v.src);
+    if(yt) return fig(tall?' tall':'', `<button type="button" class="ytf" data-yt="${yt[1]}" data-name="${escAttr(name)}" aria-label="Play the video of ${escAttr(name)}" title="Loads the player from YouTube">${still? `<img src="${still}" alt="" loading="lazy">` : ''}<span class="go" aria-hidden="true">▶</span></button>`, v.text);
+    const film= VIDEO_RE.test(v.src)? v.src : o.file(v.src, LISTING_EXT.video);
+    return fig('', film? `<video controls preload="metadata" playsinline src="${escAttr(film)}"></video>` : '', v.text);
+  }).join('') + (L.audio||[]).map(a=>{
+    const sound= LISTING_EXT.audio.test(a.src)? (safeHttps(a.src) || o.file(a.src, LISTING_EXT.audio)) : '';
+    return fig(' snd', sound? `<audio controls preload="none" src="${escAttr(sound)}"></audio>` : safeHttps(a.src)? `<a href="${escAttr(a.src)}" target="_blank" rel="noopener">Listen ↗</a>` : '', a.text);
+  }).join('');
+}
+document.addEventListener('click',e=>{
+  const y=e.target.closest && e.target.closest('button.ytf');
+  if(y){
+    const f=document.createElement('iframe');
+    f.className='ytf'; f.title='Video of '+(y.dataset.name||'the firmware'); f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen=true;
+    f.referrerPolicy='strict-origin-when-cross-origin'; f.src=`https://www.youtube-nocookie.com/embed/${y.dataset.yt}?autoplay=1&rel=0`;
+    y.replaceWith(f); return;
+  }
+  const m=e.target.closest && e.target.closest('[data-more]');
+  if(m){ const cut=m.previousElementSibling.classList.toggle('clamp'); m.textContent= cut? 'Show more' : 'Show less'; m.setAttribute('aria-expanded',String(!cut)); }
+});
 const ALERTS = {NOTE:'Note', TIP:'Tip', IMPORTANT:'Important', WARNING:'Warning', CAUTION:'Caution'};
 /* a heading's anchor, as GitHub makes it */
 const slugOf = t => t.trim().toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu,'').replace(/ /g,'-');

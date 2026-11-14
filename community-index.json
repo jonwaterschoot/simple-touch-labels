@@ -110,8 +110,12 @@
       "oled": true,
       "look": true,
       "listing": {
-        "video": "https://youtu.be/LsLw1mzLUBw",
-        "still": "community-media/yt-LsLw1mzLUBw.jpg"
+        "video": [
+          {
+            "src": "https://youtu.be/LsLw1mzLUBw",
+            "still": "community-media/yt-LsLw1mzLUBw.jpg"
+          }
+        ]
       },
       "theme": "gold",
       "panel": {
@@ -143,8 +147,12 @@
       "oled": true,
       "look": true,
       "listing": {
-        "video": "https://www.youtube.com/shorts/zW_fxw2P43o",
-        "still": "community-media/yt-zW_fxw2P43o.jpg"
+        "video": [
+          {
+            "src": "https://www.youtube.com/shorts/zW_fxw2P43o",
+            "still": "community-media/yt-zW_fxw2P43o.jpg"
+          }
+        ]
       },
       "theme": "gold",
       "panel": {

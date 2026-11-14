@@ -41,6 +41,41 @@ function lookOf(d) {
   return Object.keys(panel).length ? { theme, panel } : { theme };
 }
 
+// The label file's listing block, as listingOf (core.js) reads it: tags, a card image, and lists of videos and
+// sounds, each { src, text }. Older files hold one address as a string.
+const EXT = { video: /\.(mp4|m4v|mov|webm)$/i, audio: /\.(mp3|ogg|oga|wav|m4a|flac)$/i, image: /\.(png|jpe?g|webp)$/i };
+const TAG_SUGGEST = ['Synth', 'FX', 'Sampler', 'Looper', 'Drum', 'Sequencer', 'Granular', 'Drone', 'Ambient', 'Generative', 'Experimental', 'MIDI', 'Utility'];
+const tagKey = (t) => String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const tagClean = (t) => (typeof t === 'string' ? t.replace(/[^\p{L}\p{N} &+./'-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 24).trim() : '');
+const lines = (v) => (typeof v === 'string' ? v.replace(/\r/g, '').split('\n').map((l) => l.trimEnd()).slice(0, 10).join('\n').trim().slice(0, 600) : '');
+function listingOf(l) {
+  const out = {};
+  if (!l || typeof l !== 'object') return out;
+  const seen = new Set();
+  const tags = [];
+  for (const t of Array.isArray(l.tags) ? l.tags : []) {
+    const c = tagClean(t);
+    const k = tagKey(c);
+    if (!k || seen.has(k) || tags.length === 6) continue;
+    seen.add(k);
+    tags.push(TAG_SUGGEST.find((x) => tagKey(x) === k) || c);
+  }
+  if (tags.length) out.tags = tags;
+  const image = repoPath(typeof l.image === 'string' ? l.image.trim() : '', EXT.image);
+  if (image) out.image = image;
+  for (const k of ['video', 'audio']) {
+    const list = (Array.isArray(l[k]) ? l[k] : [l[k]]).map((e) => {
+      const o = e && typeof e === 'object' ? e : { src: e };
+      const v = typeof o.src === 'string' ? o.src.trim() : '';
+      const src = https(v) || repoPath(v, EXT[k]);
+      const text = lines(o.text);
+      return !src ? null : text ? { src, text } : { src };
+    }).filter(Boolean).slice(0, 6);
+    if (list.length) out[k] = list;
+  }
+  return out;
+}
+
 const rawUrl = (r, path) => (r.host === 'github.com'
   ? `https://raw.githubusercontent.com/${r.owner}/${r.name}/HEAD/${path}`
   : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}/raw/${path}`);
@@ -109,13 +144,7 @@ function ownBuild(wasm, r) {
 function fromLabelFile(d, r) {
   if (!d || typeof d !== 'object' || !d.labels || !d.firmware) return null;
   const e = d.emulator && typeof d.emulator === 'object' ? d.emulator : {};
-  const l = d.listing && typeof d.listing === 'object' ? d.listing : {};
-  const listing = {
-    video: https(l.video) || repoPath(l.video, /\.(mp4|m4v|mov|webm)$/i),
-    audio: https(l.audio) || repoPath(l.audio, /\.(mp3|ogg|oga|wav|m4a|flac)$/i),
-    image: repoPath(l.image, /\.(png|jpe?g|webp)$/i),
-  };
-  for (const k of Object.keys(listing)) if (!listing[k]) delete listing[k];
+  const listing = listingOf(d.listing);
   return {
     version: str(d.firmware.version, 24),
     play: e.embed === 'allowed' && e.abi === 'simple-touch-web/1' && ownBuild(e.wasm, r) && /^[0-9a-f]{64}$/.test(e.sha256 || ''),
@@ -149,7 +178,7 @@ async function card(p, old) {
     Object.assign(out, fromFile, { labels: 'file' });
     for (const k of ['version', 'page']) if (!out[k]) delete out[k];
     for (const k of ['play', 'live', 'oled', 'look', 'modes']) if (!out[k]) delete out[k];
-    if (out.listing.video) { const s = await still(out.listing.video); if (s) out.listing.still = s; }
+    for (const v of out.listing.video || []) { const s = await still(v.src); if (s) v.still = s; }
     if (!Object.keys(out.listing).length) delete out.listing;
   } else {
     for (const n of ['README.md', 'readme.md', 'Readme.md']) {

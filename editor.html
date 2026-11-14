@@ -131,6 +131,7 @@
       <figure class="kitimg"><figcaption class="cap" id="kitImgCap"></figcaption><div id="kitImg"></div></figure>
       <div class="kitreadme"><div class="kithead"><span class="cap">README.md</span><div class="seg" id="kitView"></div></div><div id="kitReadme"></div></div>
     </div>
+    <div class="kitcard"><span class="cap">Your card in the library</span><div id="kitCard"></div></div>
     <div class="kitfiles"><span class="cap">In the .zip</span><ul id="kitFiles"></ul></div>
     <div class="mfoot"><span class="status" id="kitBusy"></span><button type="button" class="primary" id="kitZip">Download kit (.zip)</button></div>
   </form>
@@ -346,10 +347,27 @@ function setPath(path,v){
   if(v.trim()) o[path[2]]=v; else { delete o[path[2]]; if(!Object.keys(o).length) delete m.labels[path[1]]; }
 }
 function getPath(path){ if(path[0]==='firmware') return doc.firmware[path[1]]||''; const m=curMode(); return ((m? m.labels : doc.labels)[path[1]]||{})[path[2]]||''; }
-/* The Library card's sound and picture as chosen in this page: {data, url} per key, in memory only. */
-const cardFiles={audio:null, image:null}, CARD_FILE_MAX=20e6;
-/* those of them the label file names by a path: they go into the Repository kit at that path */
-const cardKitFiles=()=>['audio','image'].filter(k=>cardFiles[k] && doc.listing?.[k] && !/^https:/.test(doc.listing[k])).map(k=>({path:doc.listing[k], data:cardFiles[k].data, what:k==='audio'?'the card\'s sound':'the card\'s image'}));
+/* Files chosen for the Library card in this page, by the path the label file names: {data, url}. In memory only. */
+const cardFiles=new Map(), CARD_FILE_MAX=20e6;
+/* every repository path the listing names */
+const cardPaths=()=>{ const L=doc.listing||{}; return [...new Set([L.image, ...(L.video||[]).map(v=>v.src), ...(L.audio||[]).map(a=>a.src)].filter(p=>p && !/^https:/.test(p)))]; };
+/* those of them chosen here: they go into the Repository kit at their path */
+const cardKitFiles=()=>cardPaths().filter(p=>cardFiles.has(p)).map(p=>({path:p, data:cardFiles.get(p).data, what:'for the library card'}));
+/* tag spellings already in use in the library, so a new tag takes the same one */
+let cardKnown=[];
+fetch('community-index.json').then(r=>r.json()).then(d=>{ cardKnown=indexTags(Array.isArray(d.firmware)? d.firmware : []); }).catch(()=>{});
+/* The card as the library draws it (cardHTML, community.js), with its videos and sounds under it. A chosen file
+   plays from this browser. A path with no chosen file is read from the repository, where it may not be yet. */
+function cardPreview(){
+  const fw=doc.firmware, repo=normRepo(fw.repo), e=doc.emulator;
+  const p={id:'preview', name:oneLine(fw.name)||'Your firmware', author:{name:oneLine(fw.author)}, description:oneLine(fw.description), repo};
+  const c={listing:doc.listing, theme:V.theme, labels:'file', play:e?.embed==='allowed', live:!!doc.device?.live, oled:!!(e?.oled||doc.oled)};
+  const o={themes:design.themes, known:cardKnown, file:(path,ext)=>cardFiles.get(path)?.url || repoRaw(repo,path,ext)};
+  const media=mediaHTML(p.name,c,o), box=el('div',{className:'cardprev'});
+  box.innerHTML=`<div class="fwcards">${cardHTML(p,c,o)}${media? `<section class="fwdetail"><div class="media">${media}</div></section>` : ''}</div>`;
+  box.querySelector('.fwsum').tabIndex=-1;
+  return box;
+}
 function el(tag,props={},...kids){ const e=Object.assign(document.createElement(tag),props); e.append(...kids); return e; }
 function mkInput(path,max,{cls='',ph='',aria='',slot=null}={}){
   const m=path[0]==='labels' && curMode(), base=m? ((doc.labels[path[1]]||{})[path[2]]||'') : '';
@@ -483,38 +501,108 @@ function buildForm(){
   // the builds the workflow published on the repository's simple-touch-web branch, to pick one instead of copying its block
   const blist=el('div',{className:'builds'});
   form.append(emu, es, el('div',{className:'fprow'},
-    el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })})), blist);
+    el('button',{type:'button',className:'tight',textContent:'Find builds in the repository',title:'Reads the simple-touch-web branch of the repository above',onclick:()=>findBuilds(blist, e=>{ ea.value=JSON.stringify(e,null,2); readEmu(); })}),
+    el('a',{href:'guide.html#play',target:'_blank',textContent:'What a browser build is and how to make one'})), blist);
 
-  // the firmware's card in the library (doc.listing, core.js listingOf). A chosen sound or picture is held in this page
-  // only (cardFiles), for the Repository kit: nothing is sent anywhere, and a reload forgets it.
-  section('Library card','Optional. What the library\'s card for this firmware shows next to its name and description.');
-  const lcg=el('div',{className:'meta links'}), lnow=el('div',{className:'cardnow'});
-  const setCard=(k,inp)=>{ const v=inp.value.trim(); doc.listing=listingOf({...(doc.listing||{}), [k]:v}); inp.classList.toggle('bad', !!v && doc.listing?.[k]!==v); autosave(); };
-  const showCard=()=>{
-    lnow.replaceChildren(...['audio','image'].filter(k=>cardFiles[k]).map(k=> k==='audio'? el('audio',{controls:true,src:cardFiles[k].url}) : el('img',{src:cardFiles[k].url,alt:'The card image'})));
+  // The firmware's card in the library (doc.listing, core.js listingOf). The rows on screen are the source: sync()
+  // reads them into doc.listing, which drops what it can't use, and marks those fields.
+  section('Library card','Optional. What the library shows on this firmware\'s card and under its manual.');
+  { const L0=doc.listing||{}, lc=el('div',{className:'lcard'}), prev=el('div',{}), rowsOf={video:el('div',{className:'mrows'}), audio:el('div',{className:'mrows'})};
+  const KIND={video:{name:'Video', add:'Add a video', ph:'https://youtu.be/… or media/demo.mp4', accept:'video/mp4,video/webm,.mp4,.m4v,.mov,.webm'},
+              audio:{name:'Sound', add:'Add a sound', ph:'media/demo.mp3', accept:'audio/*,.mp3,.ogg,.oga,.wav,.m4a,.flac'}};
+  let tags=[...(L0.tags||[])], prevT=0;
+  const imgIn=el('input',{type:'text',maxLength:200,spellcheck:false,value:L0.image||'',placeholder:'img/card.png',className:'code'}); imgIn.setAttribute('aria-label','Card image: path in your repository');
+  const drawPrev=()=>{ clearTimeout(prevT); prevT=setTimeout(()=>prev.replaceChildren(cardPreview()),300); };
+  const srcIn=r=>r.querySelector('input[type=text]');
+  const sync=()=>{
+    const read=k=>[...rowsOf[k].children].map(r=>({src:srcIn(r).value.trim(), text:r.querySelector('textarea').value}));
+    const want={tags, image:imgIn.value.trim(), video:read('video'), audio:read('audio')};
+    doc.listing=listingOf(want);
+    for(const k of ['video','audio']){
+      const ok=new Set((doc.listing?.[k]||[]).map(x=>x.src));
+      for(const r of rowsOf[k].children){ const v=srcIn(r).value.trim(); srcIn(r).classList.toggle('bad', !!v && !ok.has(v)); }
+    }
+    imgIn.classList.toggle('bad', !!want.image && doc.listing?.image!==want.image);
+    autosave(); drawPrev();
   };
-  const vid=el('input',{type:'text',maxLength:300,spellcheck:false,value:doc.listing?.video||'',placeholder:'https://youtu.be/…'}); vid.setAttribute('aria-label','Video');
-  vid.addEventListener('input',()=>setCard('video',vid));
-  lcg.append(el('label',{className:'full'},el('span',{textContent:'Video'}),vid));
-  for(const [k,t,ph,accept,folder] of [['audio','Sound','media/demo.mp3','audio/*,.mp3,.ogg,.oga,.wav,.m4a,.flac','media/'],['image','Card image','img/card.png','.png,.jpg,.jpeg,.webp','img/']]){
-    const inp=el('input',{type:'text',maxLength:200,spellcheck:false,value:doc.listing?.[k]||'',placeholder:ph,className:'code'}); inp.setAttribute('aria-label',t+': path in your repository');
-    inp.addEventListener('input',()=>setCard(k,inp));
+  // a chosen file follows its field when the path is edited
+  const track=inp=>{ let was=inp.value.trim(); inp.addEventListener('input',()=>{
+    const v=inp.value.trim();
+    if(v!==was && cardFiles.has(was) && !cardFiles.has(v)){ cardFiles.set(v,cardFiles.get(was)); cardFiles.delete(was); }
+    was=v; sync(); }); };
+  const hold=(inp,path,blob,data)=>{
+    const old=inp.value.trim();
+    if(cardFiles.has(old)){ URL.revokeObjectURL(cardFiles.get(old).url); cardFiles.delete(old); }
+    cardFiles.set(path,{data, url:URL.createObjectURL(blob)});
+    inp.value=path; inp.dispatchEvent(new Event('input'));
+  };
+  const choose=(inp,accept,folder,fallback)=>{
     const file=el('input',{type:'file',accept,hidden:true});
     file.onchange=async()=>{
       const f=file.files[0]; file.value=''; if(!f) return;
       if(f.size>CARD_FILE_MAX){ flash(`${f.name} is over ${CARD_FILE_MAX/1e6} MB. Use a shorter or smaller file.`); return; }
-      if(cardFiles[k]) URL.revokeObjectURL(cardFiles[k].url);
-      cardFiles[k]={data:new Uint8Array(await f.arrayBuffer()), url:URL.createObjectURL(f)};
       // the file's own name, as a path GitHub and the library both read
-      const name=f.name.normalize('NFKD').replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g,'')||ph.split('/').pop();
-      if(!/^[\w.-]+(\/[\w.-]+)+$/.test(inp.value.trim()) || /^https:/.test(inp.value.trim())) inp.value=folder+name;
-      else inp.value=inp.value.trim().replace(/[^/]+$/, name);
-      setCard(k,inp); showCard();
+      const name=f.name.normalize('NFKD').replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g,'')||fallback, old=inp.value.trim();
+      hold(inp, /^[\w.-]+(\/[\w.-]+)+$/.test(old)? old.replace(/[^/]+$/,name) : folder+name, f, new Uint8Array(await f.arrayBuffer()));
     };
-    lcg.append(el('label',{},el('span',{textContent:t}),inp, el('span',{className:'fprow'},el('button',{type:'button',className:'tight',textContent:'Choose file…',title:'Held in this browser for the Repository kit. Nothing is sent anywhere.',onclick:()=>file.click()}),file)));
+    return [el('button',{type:'button',className:'tight',textContent:'Choose file…',title:'Held in this browser for the Repository kit. Nothing is sent anywhere.',onclick:()=>file.click()}), file];
+  };
+  const adders={};
+  const full=()=>{ for(const k of ['video','audio']) adders[k].disabled=rowsOf[k].children.length>=LISTING_MAX.items; };
+  const addRow=(k,e={})=>{
+    const K=KIND[k];
+    const inp=el('input',{type:'text',maxLength:300,spellcheck:false,value:e.src||'',placeholder:K.ph,className:'code'}); inp.setAttribute('aria-label',K.name+': link or path in your repository');
+    const ta=el('textarea',{maxLength:LISTING_MAX.text,rows:2,value:e.text||'',placeholder:`Description (optional, up to ${LISTING_MAX.lines} lines)`}); ta.setAttribute('aria-label',K.name+' description');
+    ta.addEventListener('input',()=>{ const ls=ta.value.split('\n'); if(ls.length>LISTING_MAX.lines) ta.value=ls.slice(0,LISTING_MAX.lines).join('\n'); sync(); });
+    track(inp);
+    const row=el('div',{className:'mrow'}, el('div',{className:'fprow'}, inp, ...choose(inp,K.accept,'media/','demo'),
+      el('button',{type:'button',className:'tight',textContent:'Remove',onclick:()=>{ row.remove(); full(); sync(); }})), ta);
+    rowsOf[k].append(row);
+  };
+  for(const k of ['video','audio']){
+    for(const e of L0[k]||[]) addRow(k,e);
+    adders[k]=el('button',{type:'button',className:'tight',textContent:KIND[k].add,onclick:()=>{ addRow(k); full(); srcIn(rowsOf[k].lastElementChild).focus(); }});
   }
-  showCard();
-  form.append(lcg, lnow, el('p',{className:'hint',innerHTML:'<b>Video:</b> a YouTube link, or a short clip in your repository (<code>media/demo.mp4</code>). A YouTube Short shows in portrait. <b>Sound</b> and <b>Card image:</b> the path of a file in your repository, or for the sound a link. A file you choose stays in this browser. Nothing is sent anywhere. <b>Repository kit…</b> puts it in the .zip at that path, and the library plays it from your repository once you commit it. Choose it again after a reload.'}));
+  full();
+  // tags: one spelling per tag, the one already in use
+  const tagBox=el('div',{className:'tagrow'}), tagIn=el('input',{type:'text',maxLength:LISTING_MAX.tag,placeholder:'Synth, FX, Ambient…'}), tagList=el('datalist',{id:'tagList'});
+  tagIn.setAttribute('aria-label','Add a tag'); tagIn.setAttribute('list','tagList');
+  tagList.append(...[...new Map([...TAG_SUGGEST,...cardKnown].map(t=>[tagKey(t),t])).values()].map(t=>el('option',{value:t})));
+  const drawTags=()=>tagBox.replaceChildren(...tags.map(t=>el('button',{type:'button',className:'tight',textContent:t+' ×',title:'Remove this tag',onclick:()=>{ tags=tags.filter(x=>x!==t); drawTags(); sync(); }})));
+  const addTag=()=>{
+    for(const raw of tagIn.value.split(',')){
+      const t=tagSpelling(raw,cardKnown);
+      if(!tagKey(t) || tags.some(x=>tagKey(x)===tagKey(t))) continue;
+      if(tags.length>=LISTING_MAX.tags){ flash(`A card takes up to ${LISTING_MAX.tags} tags. Remove one first.`); break; }
+      tags.push(t);
+    }
+    tagIn.value=''; drawTags(); sync();
+  };
+  tagIn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===','){ e.preventDefault(); addTag(); } });
+  tagIn.addEventListener('change',addTag);
+  drawTags();
+  // the card image: a chosen file, or the drawing as it shows here (faceplate and labels), 480 px wide
+  track(imgIn);
+  const makeImage=async()=>{
+    try{
+      const im=new Image(); im.src=await panelPNG({th:V.theme, layout:'phone', parts:['main']}); await im.decode();
+      const cv=el('canvas',{width:480, height:Math.round(480*im.naturalHeight/im.naturalWidth)}); cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      const blob=await new Promise(r=>cv.toBlob(r,'image/png')), old=imgIn.value.trim();
+      hold(imgIn, /^[\w.-]+(\/[\w.-]+)+$/.test(old)? old.replace(/[^/]+$/,'card.png') : 'img/card.png', blob, new Uint8Array(await blob.arrayBuffer()));
+    }catch(err){ flash('The card image could not be made: '+err.message); }
+  };
+  lc.append(el('span',{className:'cap',textContent:'Tags'}), tagBox, el('div',{className:'fprow'}, tagIn, tagList, el('button',{type:'button',className:'tight',textContent:'Add tag',onclick:addTag})),
+    el('span',{className:'cap',textContent:'Videos'}), rowsOf.video, el('div',{className:'fprow'}, adders.video),
+    el('span',{className:'cap',textContent:'Sounds'}), rowsOf.audio, el('div',{className:'fprow'}, adders.audio),
+    el('span',{className:'cap',textContent:'Card image'}), el('div',{className:'fprow'}, imgIn, ...choose(imgIn,'.png,.jpg,.jpeg,.webp','img/','card.png'),
+      el('button',{type:'button',className:'tight',textContent:'Make from the drawing',title:'Saves the panel as drawn here, with faceplate and labels, as a small PNG',onclick:makeImage})),
+    el('span',{className:'cap',textContent:'In the library'}), prev);
+  prev.replaceChildren(cardPreview());
+  form.append(lc,
+    el('p',{className:'hint',innerHTML:'<b>Video</b> and <b>Sound:</b> a link, or the path of a file in your repository (<code>media/demo.mp3</code>). A YouTube Short shows in portrait. A description takes up to 10 lines.'}),
+    el('p',{className:'hint',innerHTML:'<b>Choose file…</b> keeps the file in this browser. Nothing is sent anywhere. <b>Repository kit…</b> puts it in the .zip at its path, and the library plays it from your repository once you commit it. Choose it again after a reload.'}),
+    el('p',{className:'hint',innerHTML:'<b>Card image:</b> without one the card draws the blank panel in your colours. <b>Make from the drawing</b> saves the panel as it shows here, with faceplate and labels, as a small PNG (480 px wide).'}),
+    el('p',{className:'hint',innerHTML:'<b>Tags:</b> up to 6, such as Synth, FX or Ambient. A tag someone already uses keeps its spelling.'})); }
 
   // modes: a switch whose positions change what the other controls do
   section('Modes','When a switch changes what the other controls do, name its positions. Each becomes a button in the Mode row. The labels without a mode are the print set, so keep them as wide as fits every mode. A mode only needs the labels that differ. In the library the labels follow the switch while the firmware plays.');
@@ -1330,9 +1418,12 @@ function kitUpdate(){
     const at=k.readme.indexOf('!['), end=k.readme.indexOf('\n',at);
     box.innerHTML=`<div class="md kitmd">${md2html(k.readme.slice(0,at))}<p data-img></p>${md2html(k.readme.slice(end))}</div>`;
   }
-  const files=[['README.md','the README above'],[k.img,'the image'],[LABEL_FILE,'your labels'], ...cardKitFiles().map(f=>[f.path,f.what]),
+  const files=[['README.md','the README above'],[k.img,'the image'],[LABEL_FILE,'your labels'], ...cardPaths().map(p=>[p, cardFiles.has(p)? 'for the library card' : 'not in the .zip: choose it under Library card, or add it to your repository yourself']),
     k.probs.length? ['community-entry','left out: '+k.probs[0]] : [`community-entry/${k.id}.json`, k.listed? `already listed as projects/${k.id}.json` : 'the directory entry'],['HOW-TO.txt','what to do with these files']];
   $('kitFiles').replaceChildren(...files.map(([f,t])=>el('li',{},el('code',{textContent:f}),' · '+t)));
+  // the library's card, drawn again only when it changed (a playing sound keeps playing)
+  const ck=JSON.stringify([doc.listing,doc.firmware,doc.emulator,V.theme,[...cardFiles.keys()]]), kc=$('kitCard');
+  if(kc.dataset.k!==ck){ kc.dataset.k=ck; kc.replaceChildren(cardPreview()); }
   // the image: rendered again only when what it shows has changed
   const req=++kitImgReq, show=url=>{ if(req!==kitImgReq) return;
     $('kitImg').replaceChildren(el('img',{src:url,alt:'The control map for the README'}));

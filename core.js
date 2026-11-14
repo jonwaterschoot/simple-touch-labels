@@ -205,13 +205,41 @@ applyDesign();
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
 function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null, listing:null}; }
-/* a label file's listing block, for the library's cards: a video and a sound (each a link or a file in the repository) and a card image (a file) */
+/* A label file's listing block, for the library's cards: tags, a card image (a file in the repository) and lists of
+   videos and sounds. An entry is {src, text}: src a link or a file in the repository, text an optional description.
+   Older files hold one address as a string. */
+const TAG_SUGGEST=['Synth','FX','Sampler','Looper','Drum','Sequencer','Granular','Drone','Ambient','Generative','Experimental','MIDI','Utility'];
+const LISTING_MAX={items:6, tags:6, tag:24, text:600, lines:10};
+const LISTING_EXT={video:/\.(mp4|m4v|mov|webm)$/i, audio:/\.(mp3|ogg|oga|wav|m4a|flac)$/i, image:/\.(png|jpe?g|webp)$/i};
+const repoFilePath=(v,ext)=> typeof v==='string' && v.length<=200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v)? v : '';
+/* tags that differ only in capitals, spaces or punctuation are one tag */
+const tagKey=t=>String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+const tagClean=t=> typeof t==='string'? t.replace(/[^\p{L}\p{N} &+./'-]+/gu,' ').replace(/\s+/g,' ').trim().slice(0,LISTING_MAX.tag).trim() : '';
+/* the spelling in use for a tag: a suggestion's, else the first one in `known` */
+const tagSpelling=(t,known=[])=>{ const k=tagKey(t); return [...TAG_SUGGEST,...known].find(x=>tagKey(x)===k) || tagClean(t); };
+function tagsOf(v, known=[]){
+  const seen=new Set(), out=[];
+  for(const t of Array.isArray(v)? v : []){
+    const c=tagClean(t), k=tagKey(c); if(!k || seen.has(k)) continue;
+    seen.add(k); out.push(tagSpelling(c,known)); if(out.length===LISTING_MAX.tags) break;
+  }
+  return out;
+}
+const listingText=v=> typeof v==='string'? v.replace(/\r/g,'').split('\n').map(l=>l.trimEnd()).slice(0,LISTING_MAX.lines).join('\n').trim().slice(0,LISTING_MAX.text) : '';
 function listingOf(l){
   if(!l || typeof l!=='object') return null;
-  const path=(v,ext)=> typeof v==='string' && v.length<=200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v)? v : '';
   const link=v=> typeof v==='string'? safeHttps(v.trim()).slice(0,300) : '';
-  const out={video:link(l.video)||path(l.video,/\.(mp4|m4v|mov|webm)$/i), audio:link(l.audio)||path(l.audio,/\.(mp3|ogg|oga|wav|m4a|flac)$/i), image:path(l.image,/\.(png|jpe?g|webp)$/i)};
-  for(const k of Object.keys(out)) if(!out[k]) delete out[k];
+  const out={};
+  const tags=tagsOf(l.tags); if(tags.length) out.tags=tags;
+  const image=repoFilePath(typeof l.image==='string'? l.image.trim() : '', LISTING_EXT.image); if(image) out.image=image;
+  for(const k of ['video','audio']){
+    const list=(Array.isArray(l[k])? l[k] : [l[k]]).map(e=>{
+      const o= e && typeof e==='object'? e : {src:e};
+      const src=link(o.src) || repoFilePath(typeof o.src==='string'? o.src.trim() : '', LISTING_EXT[k]), text=listingText(o.text);
+      return !src? null : text? {src,text} : {src};
+    }).filter(Boolean).slice(0,LISTING_MAX.items);
+    if(list.length) out[k]=list;
+  }
   return Object.keys(out).length? out : null;
 }
 function normalise(d){

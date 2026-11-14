@@ -96,16 +96,24 @@
     "font": { "type": "object" },
     "view": { "type": "object" },
     "listing": {
-      "description": "The firmware's card in the library: a video and a sound (each a link or a file in the repository) and a card image (a file in the repository).",
+      "description": "The firmware's card in the library: tags, a card image (a file in the repository), and videos and sounds (each a link or a file in the repository, with an optional description).",
       "type": "object",
       "properties": {
-        "video": { "type": "string" },
-        "audio": { "type": "string" },
-        "image": { "type": "string" }
+        "tags": { "type": "array", "maxItems": 6, "items": { "type": "string", "maxLength": 24 } },
+        "image": { "type": "string" },
+        "video": { "$ref": "#/$defs/media" },
+        "audio": { "$ref": "#/$defs/media" }
       }
     }
   },
   "$defs": {
+    "media": {
+      "description": "One address, or a list of entries with an optional description.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "maxItems": 6, "items": { "oneOf": [{ "type": "string" }, { "type": "object", "required": ["src"], "properties": { "src": { "type": "string" }, "text": { "type": "string", "maxLength": 600 } } }] } }
+      ]
+    },
     "control": { "type": "string", "pattern": "^(P0\\d|P1[01]|S3[0-7]|S09_S10|S07_S08|IN|OUT|LED)$" },
     "modifier": { "type": "string", "pattern": "^(P0\\d|P1[01]|S3[0-7])$" },
     "path": { "type": "string", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\.(svg|png|jpe?g|webp|gif|avif)$" },

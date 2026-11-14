@@ -126,13 +126,28 @@ How the library and designer draw the manual. Other readers can skip all of it. 
 
 ### The card: `listing`
 
-Optional. What the library's card for the firmware adds to the directory entry. Each key is optional.
+Optional. What the library's card for the firmware adds to the directory entry, also shown under the firmware's manual. Each key is optional.
+
+```json
+"listing": {
+  "tags": ["Synth", "Ambient"],
+  "image": "img/card.png",
+  "video": [
+    { "src": "https://youtu.be/…", "text": "A first patch.\nRecorded straight from the output." },
+    { "src": "media/demo.mp4" }
+  ],
+  "audio": [{ "src": "media/demo.mp3", "text": "Pads only." }]
+}
+```
 
 | Key | What it holds |
 |---|---|
-| `video` | An `https://` link: YouTube (a Short shows in portrait) or a video file (`.mp4`, `.m4v`, `.mov`, `.webm`). Or a short clip in the repository (`media/demo.mp4`, not stored with Git LFS) |
-| `audio` | A sound file in the repository (`media/demo.mp3`; MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS), or an `https://` link. A link that is not a sound file shows as **Listen ↗** |
+| `tags` | Up to 6 words of at most 24 characters, such as Synth, FX or Ambient. Tags that differ only in capitals, spaces or punctuation count as one, and the library shows the spelling already in use |
 | `image` | A picture in the repository for the card (`img/card.png`; PNG, JPG or WebP). Without it the card draws the panel in the file's theme and panel colours |
+| `video` | A list of up to 6 entries. `src` is an `https://` link, to YouTube (a Short shows in portrait) or to a video file (`.mp4`, `.m4v`, `.mov`, `.webm`), or a short clip in the repository (`media/demo.mp4`, not stored with Git LFS) |
+| `audio` | A list of up to 6 entries. `src` is a sound file in the repository (`media/demo.mp3`; MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. A link that is not a sound file shows as **Listen ↗** |
+
+An entry's `text` is an optional description: up to 10 lines and 600 characters, with `\n` between lines. The library shows three lines and **Show more**. In place of a list, `video` and `audio` also take one address as a string.
 
 A YouTube video shows as a still with a play button. The library keeps the still itself, so nothing is asked of YouTube until someone presses play.
 
