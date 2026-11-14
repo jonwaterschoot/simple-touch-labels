@@ -109,6 +109,10 @@
       "live": true,
       "oled": true,
       "look": true,
+      "listing": {
+        "video": "https://youtu.be/LsLw1mzLUBw",
+        "still": "community-media/yt-LsLw1mzLUBw.jpg"
+      },
       "theme": "gold",
       "panel": {
         "bg": "#141414",
@@ -138,6 +142,10 @@
       "play": true,
       "oled": true,
       "look": true,
+      "listing": {
+        "video": "https://www.youtube.com/shorts/zW_fxw2P43o",
+        "still": "community-media/yt-zW_fxw2P43o.jpg"
+      },
       "theme": "gold",
       "panel": {
         "bg": "#141414",
