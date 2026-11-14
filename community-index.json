@@ -165,6 +165,9 @@
       "oled": true,
       "look": true,
       "listing": {
+        "tags": [
+          "FX"
+        ],
         "video": [
           {
             "src": "https://www.youtube.com/shorts/zW_fxw2P43o",
