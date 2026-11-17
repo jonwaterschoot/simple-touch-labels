@@ -60,6 +60,12 @@
           {
             "src": "media/Touchplaited_demo.mp3"
           }
+        ],
+        "links": [
+          {
+            "url": "https://jonwaterschoot.github.io/TouchPlaited/",
+            "text": "Project website"
+          }
         ]
       },
       "theme": "vis",
@@ -133,6 +139,12 @@
             "src": "media/TouchSpore_webplayScreenrec.mp4",
             "text": "Screen recording of Play in the web app."
           }
+        ],
+        "links": [
+          {
+            "url": "https://jonwaterschoot.github.io/TouchSpore/",
+            "text": "Manual and Play"
+          }
         ]
       },
       "theme": "gold",
@@ -172,6 +184,12 @@
           {
             "src": "https://www.youtube.com/shorts/zW_fxw2P43o",
             "still": "community-media/yt-zW_fxw2P43o.jpg"
+          }
+        ],
+        "links": [
+          {
+            "url": "https://jonwaterschoot.github.io/TouchVink/",
+            "text": "Interactive manual"
           }
         ]
       },
