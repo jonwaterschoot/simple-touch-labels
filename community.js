@@ -468,9 +468,14 @@ function cardInner(p, c, o){
     +`<span class="body"><b>${esc(p.name)}</b>${by? `<span class="by">${esc(by)}</span>` : ''}${p.description? `<span class="txt">${esc(p.description)}</span>` : ''}`
     +(own.length||tags.length? `<span class="tags">${own.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${tags.map(t=>`<span>${esc(t)}</span>`).join('')}</span>` : '')+'</span>'};
 }
+/* links that open in a new tab; outside the card's button, which can't hold them */
+const linksHTML = list => list.map(l=>`<a href="${escAttr(l.url)}" target="_blank" rel="noopener">${esc(linkName(l))} ↗</a>`).join('');
+/* the small card shows the first two links (cardLinks): the open card has them all */
+const CARD_LINKS = 2;
 function cardHTML(p, c, o){
-  const i=cardInner(p,c,o);
-  return `<article class="fwcard" data-id="${escAttr(p.id)}" data-tags="${escAttr(i.keys)}"><button type="button" class="fwsum" aria-expanded="false">${i.html}</button></article>`;
+  const i=cardInner(p,c,o), ln=cardLinks(p.repo, listingOf(c.listing)).slice(0,CARD_LINKS);
+  return `<article class="fwcard" data-id="${escAttr(p.id)}" data-tags="${escAttr(i.keys)}"><button type="button" class="fwsum" aria-expanded="false">${i.html}</button>`
+    +(ln.length? `<div class="fwlinks">${linksHTML(ln)}</div>` : '')+'</article>';
 }
 /* A listing's videos and sounds, each with its description. A YouTube video is a still with a play button (the still
    is in community-media/, fetched by the snapshot script and named in the index as `still`): the player loads from

@@ -205,11 +205,12 @@ applyDesign();
    ============================================================ */
 const FW_FIELDS = ['name','author','version','description','notes'];
 function emptyDoc(){ return {firmware:{name:'',author:'',version:'',description:'',notes:'',repo:'',authorUrl:''}, labels:{},modifiers:[], combos:[], faceplate:'', faceplateRef:'', faceplateFile:'', look:null, customs:[], offsets:{phone:{},desktop:{}}, modTypes:{}, fpStyle:{}, emulator:null, modes:null, device:null, oled:null, fpDesktop:null, fpLabels:null, listing:null}; }
-/* A label file's listing block, for the library's cards: tags, a card image (a file in the repository) and lists of
-   videos and sounds. An entry is {src, text}: src a link or a file in the repository, text an optional description.
-   Older files hold one address as a string. */
+/* A label file's listing block, for the library's cards: tags, a card image (a file in the repository), lists of
+   videos and sounds, and links. A video or sound is {src, text}: src a link or a file in the repository, text an
+   optional description. Older files hold one address as a string. A link is {url, text}: up to 4, shown after the
+   repository (cardLinks), text one line. A link to the repository itself (repo) is dropped. */
 const TAG_SUGGEST=['Synth','FX','Sampler','Looper','Drum','Sequencer','Granular','Drone','Ambient','Generative','Experimental','MIDI','Utility'];
-const LISTING_MAX={items:6, tags:6, tag:24, text:600, lines:10};
+const LISTING_MAX={items:6, tags:6, tag:24, text:600, lines:10, links:4, link:40};
 const LISTING_EXT={video:/\.(mp4|m4v|mov|webm)$/i, audio:/\.(mp3|ogg|oga|wav|m4a|flac)$/i, image:/\.(png|jpe?g|webp)$/i};
 const repoFilePath=(v,ext)=> typeof v==='string' && v.length<=200 && /^[\w.-]+(\/[\w.-]+)*$/.test(v) && !v.split('/').includes('..') && ext.test(v)? v : '';
 /* tags that differ only in capitals, spaces or punctuation are one tag */
@@ -225,8 +226,9 @@ function tagsOf(v, known=[]){
   }
   return out;
 }
+const linkText=v=> typeof v==='string'? v.replace(/\s+/g,' ').trim().slice(0,LISTING_MAX.link).trim() : '';
 const listingText=v=> typeof v==='string'? v.replace(/\r/g,'').split('\n').map(l=>l.trimEnd()).slice(0,LISTING_MAX.lines).join('\n').trim().slice(0,LISTING_MAX.text) : '';
-function listingOf(l){
+function listingOf(l, repo=''){
   if(!l || typeof l!=='object') return null;
   const link=v=> typeof v==='string'? safeHttps(v.trim()).slice(0,300) : '';
   const out={};
@@ -240,8 +242,19 @@ function listingOf(l){
     }).filter(Boolean).slice(0,LISTING_MAX.items);
     if(list.length) out[k]=list;
   }
+  const links=[];
+  for(const e of Array.isArray(l.links)? l.links : [l.links]){
+    const o= e && typeof e==='object'? e : {url:e}, url=link(o.url), text=linkText(o.text);
+    if(!url || url.replace(/\/+$/,'')===repo || links.some(x=>x.url===url)) continue;
+    links.push(text? {url,text} : {url}); if(links.length===LISTING_MAX.links) break;
+  }
+  if(links.length) out.links=links;
   return Object.keys(out).length? out : null;
 }
+/* the repository first, then the listing's links without it */
+const cardLinks=(repo,L)=>[...(REPO_RE.test(repo||'')? [{url:repo, text:repoShort(repo)}] : []), ...((L && L.links)||[]).filter(x=>x.url!==repo)];
+/* a link's words: its text, else the address without https:// and www., cut at 40 characters */
+const linkName=l=> l.text || l.url.replace(/^https:\/\/(www\.)?/,'').replace(/\/$/,'').replace(/^(.{39}).{2,}$/,'$1…');
 function normalise(d){
   const s = emptyDoc();
   s.firmware = {...s.firmware, ...(d.firmware||{})};
@@ -257,7 +270,7 @@ function normalise(d){
   s.modes = cleanModes(d.modes);
   s.device = d.device && typeof d.device==='object' && !Array.isArray(d.device)? structuredClone(d.device) : null;   // settings and presets: checked when drawn (parseDevice, device-panel.js)
   s.oled = oledOf(d.oled);
-  s.listing = listingOf(d.listing);
+  s.listing = listingOf(d.listing, normRepo((d.firmware||{}).repo));
   s.fpDesktop = fpDesktopOf(d.fpDesktop);
   s.fpLabels = fpLabelsOf(d.fpLabels);
   s.combos = Array.isArray(d.combos)? [...new Set(d.combos.filter(comboOk))] : [];
@@ -1909,7 +1922,7 @@ footer a{color:inherit}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${panelDefs()}</defs></svg>
 <main>
-<header><h1>${esc(fw.name||'Simple Touch')}</h1>${fw.author||fw.version?`<p class="by">${esc([fw.author,fw.version&&'v'+fw.version].filter(Boolean).join(' · '))}</p>`:''}${fw.description?`<p>${esc(fw.description)}</p>`:''}${REPO_RE.test(normRepo(fw.repo))?`<p><a href="${escAttr(normRepo(fw.repo))}">${esc(repoShort(normRepo(fw.repo)))}</a></p>`:''}</header>
+<header><h1>${esc(fw.name||'Simple Touch')}</h1>${fw.author||fw.version?`<p class="by">${esc([fw.author,fw.version&&'v'+fw.version].filter(Boolean).join(' · '))}</p>`:''}${fw.description?`<p>${esc(fw.description)}</p>`:''}${(lk=>lk.length?`<p>${lk.map(l=>`<a href="${escAttr(l.url)}">${esc(linkName(l))}</a>`).join(' · ')}</p>`:'')(cardLinks(normRepo(fw.repo), doc.listing))}</header>
 <div class="tools">${ml.length?`<div class="seg" role="group" aria-label="Mode">${modes.map((m,i)=>`<button type="button" data-mode="${i}" aria-pressed="${i===cur}">${esc(m.name)}</button>`).join('')}</div>`:''}${sec?'<div class="seg" role="group" aria-label="Functions"><button type="button" data-part="main" aria-pressed="true">Main functions</button><button type="button" data-part="second" aria-pressed="false">Secondary functions</button></div>':''}<span class="sp"></span><button type="button" id="themeBtn"></button><button type="button" onclick="print()">Print</button></div>
 ${figs.join('\n')}
 ${tables}

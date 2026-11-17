@@ -363,8 +363,9 @@ function cardPreview(){
   const p={id:'preview', name:oneLine(fw.name)||'Your firmware', author:{name:oneLine(fw.author)}, description:oneLine(fw.description), repo};
   const c={listing:doc.listing, theme:V.theme, labels:'file', play:e?.embed==='allowed', live:!!doc.device?.live, oled:!!(e?.oled||doc.oled)};
   const o={themes:design.themes, known:cardKnown, file:(path,ext)=>cardFiles.get(path)?.url || repoRaw(repo,path,ext)};
-  const media=mediaHTML(p.name,c,o), box=el('div',{className:'cardprev'});
-  box.innerHTML=`<div class="fwcards">${cardHTML(p,c,o)}${media? `<section class="fwdetail"><div class="media">${media}</div></section>` : ''}</div>`;
+  const media=mediaHTML(p.name,c,o), ln=cardLinks(repo, doc.listing), box=el('div',{className:'cardprev'});
+  const more= ln.length>CARD_LINKS? `<div class="fwact">${linksHTML(ln)}</div>` : '';
+  box.innerHTML=`<div class="fwcards">${cardHTML(p,c,o)}${media||more? `<section class="fwdetail">${more}${media? `<div class="media">${media}</div>` : ''}</section>` : ''}</div>`;
   box.querySelector('.fwsum').tabIndex=-1;
   return box;
 }
@@ -538,10 +539,14 @@ function buildFirmware(){
   const imgIn=el('input',{type:'text',maxLength:200,spellcheck:false,value:L0.image||'',placeholder:'img/card.png',className:'code'}); imgIn.setAttribute('aria-label','Card image: path in your repository');
   const drawPrev=()=>{ clearTimeout(prevT); prevT=setTimeout(()=>prev.replaceChildren(cardPreview()),300); };
   const srcIn=r=>r.querySelector('input[type=text]');
+  const linkRows=el('div',{className:'mrows'}), repoLine=el('p',{className:'hint'});
+  const drawRepo=()=>{ const r=normRepo(doc.firmware.repo); repoLine.textContent= REPO_RE.test(r)? `Always first: the repository, ${repoShort(r)}.` : 'Always first: the repository, once it is set under Repository above.'; };
   const sync=()=>{
     const read=k=>[...rowsOf[k].children].map(r=>({src:srcIn(r).value.trim(), text:r.querySelector('textarea').value}));
-    const want={tags, image:imgIn.value.trim(), video:read('video'), audio:read('audio')};
-    doc.listing=listingOf(want);
+    const want={tags, image:imgIn.value.trim(), video:read('video'), audio:read('audio'), links:[...linkRows.children].map(r=>({url:srcIn(r).value.trim(), text:r.querySelector('.ltext').value}))};
+    doc.listing=listingOf(want, normRepo(doc.firmware.repo));
+    { const ok=new Set((doc.listing?.links||[]).map(x=>x.url));
+      for(const r of linkRows.children){ const v=srcIn(r).value.trim(); srcIn(r).classList.toggle('bad', !!v && !ok.has(v)); } }
     for(const k of ['video','audio']){
       const ok=new Set((doc.listing?.[k]||[]).map(x=>x.src));
       for(const r of rowsOf[k].children){ const v=srcIn(r).value.trim(); srcIn(r).classList.toggle('bad', !!v && !ok.has(v)); }
@@ -572,7 +577,20 @@ function buildFirmware(){
     return [el('button',{type:'button',className:'tight',textContent:'Choose file…',title:'Held in this browser for the Repository kit. Nothing is sent anywhere.',onclick:()=>file.click()}), file];
   };
   const adders={};
-  const full=()=>{ for(const k of ['video','audio']) adders[k].disabled=rowsOf[k].children.length>=LISTING_MAX.items; };
+  const full=()=>{ for(const k of ['video','audio']) adders[k].disabled=rowsOf[k].children.length>=LISTING_MAX.items; adders.link.disabled=linkRows.children.length>=LISTING_MAX.links; };
+  // links: a website, a manual or a video to link without showing it; the repository is always first and not a row
+  const addLink=(e={})=>{
+    const inp=el('input',{type:'text',maxLength:300,spellcheck:false,value:e.url||'',placeholder:'https://…',className:'code'}); inp.setAttribute('aria-label','Link: address');
+    const tx=el('input',{type:'text',maxLength:LISTING_MAX.link,value:e.text||'',placeholder:'Text (optional), such as Project website',className:'ltext'}); tx.setAttribute('aria-label','Link: text');
+    inp.addEventListener('input',sync); tx.addEventListener('input',sync);
+    const row=el('div',{className:'mrow'}, el('div',{className:'fprow'}, inp,
+      el('button',{type:'button',className:'tight',textContent:'Remove',onclick:()=>{ row.remove(); full(); sync(); }})), tx);
+    linkRows.append(row);
+  };
+  for(const e of L0.links||[]) addLink(e);
+  adders.link=el('button',{type:'button',className:'tight',textContent:'Add a link',onclick:()=>{ addLink(); full(); srcIn(linkRows.lastElementChild).focus(); }});
+  drawRepo();
+  links.querySelector('input').addEventListener('input',()=>{ drawRepo(); sync(); });
   const addRow=(k,e={})=>{
     const K=KIND[k];
     const inp=el('input',{type:'text',maxLength:300,spellcheck:false,value:e.src||'',placeholder:K.ph,className:'code'}); inp.setAttribute('aria-label',K.name+': link or path in your repository');
@@ -616,6 +634,7 @@ function buildFirmware(){
     }catch(err){ flash('The card image could not be made: '+err.message); }
   };
   lc.append(el('span',{className:'cap',textContent:'Tags'}), tagBox, el('div',{className:'fprow'}, tagIn, tagList, el('button',{type:'button',className:'tight',textContent:'Add tag',onclick:addTag})),
+    el('span',{className:'cap',textContent:'Links'}), repoLine, linkRows, el('div',{className:'fprow'}, adders.link),
     el('span',{className:'cap',textContent:'Videos'}), rowsOf.video, el('div',{className:'fprow'}, adders.video),
     el('span',{className:'cap',textContent:'Sounds'}), rowsOf.audio, el('div',{className:'fprow'}, adders.audio),
     el('span',{className:'cap',textContent:'Card image'}), el('div',{className:'fprow'}, imgIn, ...choose(imgIn,'.png,.jpg,.jpeg,.webp','img/','card.png'),
@@ -623,6 +642,7 @@ function buildFirmware(){
     el('span',{className:'cap',textContent:'In the library'}), prev);
   prev.replaceChildren(cardPreview());
   form.append(lc,
+    el('p',{className:'hint',innerHTML:'<b>Links:</b> up to 4 besides the repository, such as the project website, a manual or a tutorial. A video link here is only a link: to play it on the card, add it under <b>Videos</b>. The small card shows the first two links, the open card all of them.'}),
     el('p',{className:'hint',innerHTML:'<b>Video</b> and <b>Sound:</b> a link, or the path of a file in your repository (<code>media/demo.mp3</code>). A YouTube Short shows in portrait. A description takes up to 10 lines.'}),
     el('p',{className:'hint',innerHTML:'<b>Choose file…</b> keeps the file in this browser. Nothing is sent anywhere. <b>Repository kit…</b> puts it in the .zip at its path, and the library plays it from your repository once you commit it. Choose it again after a reload.'}),
     el('p',{className:'hint',innerHTML:'<b>Card image:</b> without one the card draws the blank panel in your colours. <b>Make from the drawing</b> saves the panel as it shows here, with faceplate and labels, as a small PNG (480 px wide).'}),

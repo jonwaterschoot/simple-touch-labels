@@ -2,7 +2,7 @@
 
 One set of files per firmware repository, read by everything that shows or plays a Simple Touch firmware: Synthux Lab, this library, the designer and the uploader. Official and community firmwares follow the same route; only where they are listed differs.
 
-Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-14.
+Background, findings and the reasoning behind each step are in [notes.md](notes.md). Finished items are in the [Archive](#archive) at the end. Updated 2026-11-17.
 
 ## Where it stands
 
@@ -176,6 +176,9 @@ What can drift between the repos, and where it stands (2026-11-14):
 Finished items, newest first, and plans that changed.
 
 ### Done
+
+**2026-11-17**
+- Added links to the library card: `listing.links`, up to 4 of `{url, text}` after the repository, which is always first. The small card shows the first two, the open card all of them, a manual lists them under **Sources**, and the downloaded manual under its title. A video link here is only a link. Filled in under **Library card › Links** in the designer. Seen in headless Edge: the designer's fields and card, and the library's preview manual. The library's own cards need the next snapshot.
 
 **2026-11-15**
 - Changed the cards on phones: the small card is hidden while it is open, and its row takes its place.

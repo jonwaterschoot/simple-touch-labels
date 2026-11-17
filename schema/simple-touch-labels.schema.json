@@ -96,13 +96,23 @@
     "font": { "type": "object" },
     "view": { "type": "object" },
     "listing": {
-      "description": "The firmware's card in the library: tags, a card image (a file in the repository), and videos and sounds (each a link or a file in the repository, with an optional description).",
+      "description": "The firmware's card in the library: tags, a card image (a file in the repository), videos and sounds (each a link or a file in the repository, with an optional description), and up to 4 links shown after the repository.",
       "type": "object",
       "properties": {
         "tags": { "type": "array", "maxItems": 6, "items": { "type": "string", "maxLength": 24 } },
         "image": { "type": "string" },
         "video": { "$ref": "#/$defs/media" },
-        "audio": { "$ref": "#/$defs/media" }
+        "audio": { "$ref": "#/$defs/media" },
+        "links": {
+          "description": "Shown after the repository, which is not repeated here. In place of a list, one address as a string.",
+          "oneOf": [
+            { "type": "string", "pattern": "^https://\\S+$" },
+            { "type": "array", "maxItems": 4, "items": { "oneOf": [
+              { "type": "string", "pattern": "^https://\\S+$" },
+              { "type": "object", "required": ["url"], "properties": { "url": { "type": "string", "pattern": "^https://\\S+$" }, "text": { "type": "string", "maxLength": 40 } } }
+            ] } }
+          ]
+        }
       }
     }
   },

@@ -41,14 +41,14 @@ function lookOf(d) {
   return Object.keys(panel).length ? { theme, panel } : { theme };
 }
 
-// The label file's listing block, as listingOf (core.js) reads it: tags, a card image, and lists of videos and
-// sounds, each { src, text }. Older files hold one address as a string.
+// The label file's listing block, as listingOf (core.js) reads it: tags, a card image, lists of videos and
+// sounds, each { src, text }, and up to 4 links, each { url, text }. Older files hold one address as a string.
 const EXT = { video: /\.(mp4|m4v|mov|webm)$/i, audio: /\.(mp3|ogg|oga|wav|m4a|flac)$/i, image: /\.(png|jpe?g|webp)$/i };
 const TAG_SUGGEST = ['Synth', 'FX', 'Sampler', 'Looper', 'Drum', 'Sequencer', 'Granular', 'Drone', 'Ambient', 'Generative', 'Experimental', 'MIDI', 'Utility'];
 const tagKey = (t) => String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 const tagClean = (t) => (typeof t === 'string' ? t.replace(/[^\p{L}\p{N} &+./'-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 24).trim() : '');
 const lines = (v) => (typeof v === 'string' ? v.replace(/\r/g, '').split('\n').map((l) => l.trimEnd()).slice(0, 10).join('\n').trim().slice(0, 600) : '');
-function listingOf(l) {
+function listingOf(l, repo = '') {
   const out = {};
   if (!l || typeof l !== 'object') return out;
   const seen = new Set();
@@ -73,6 +73,15 @@ function listingOf(l) {
     }).filter(Boolean).slice(0, 6);
     if (list.length) out[k] = list;
   }
+  const links = [];
+  for (const e of Array.isArray(l.links) ? l.links : [l.links]) {
+    const o = e && typeof e === 'object' ? e : { url: e };
+    const url = https(typeof o.url === 'string' ? o.url.trim() : '');
+    const text = typeof o.text === 'string' ? o.text.replace(/\s+/g, ' ').trim().slice(0, 40).trim() : '';
+    if (!url || url.replace(/\/+$/, '') === repo || links.some((x) => x.url === url) || links.length === 4) continue;
+    links.push(text ? { url, text } : { url });
+  }
+  if (links.length) out.links = links;
   return out;
 }
 
@@ -144,7 +153,7 @@ function ownBuild(wasm, r) {
 function fromLabelFile(d, r) {
   if (!d || typeof d !== 'object' || !d.labels || !d.firmware) return null;
   const e = d.emulator && typeof d.emulator === 'object' ? d.emulator : {};
-  const listing = listingOf(d.listing);
+  const listing = listingOf(d.listing, `https://${r.host}/${r.owner}/${r.name}`);
   return {
     version: str(d.firmware.version, 24),
     play: e.embed === 'allowed' && e.abi === 'simple-touch-web/1' && ownBuild(e.wasm, r) && /^[0-9a-f]{64}$/.test(e.sha256 || ''),

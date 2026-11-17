@@ -266,7 +266,7 @@ function update(){
   const repo= P? P.repo : pv? (REPO_RE.test(fw.repo||'')? fw.repo : '') : EXAMPLES[UI.src]&&EXAMPLES[UI.src].repo;
   $('flashBtn').hidden=!isFw();
   $('flashBtn').onclick=()=>openFlash({name:fw.name||'', repo});
-  const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
+  const src=[...(repo?[[repo,repoShort(repo)+' · source and firmware']]:[]), ...(isFw()? cardLinks('', doc.listing).filter(l=>l.url!==repo).map(l=>[l.url, linkName(l)]) : []), ...(P?[[COMMUNITY.page,'Synthux community directory']]:[]), ...(SOURCES[UI.src]||[]), PIN_SHEET, ['https://bartali.nl/touch-fx-manual.html','Panel drawing · by Roey Tsemah (Synthux Academy), via Fabio Bartali']];
   // labels by the creator need no warning: that note waits behind the i beside the name
   const byCreator=!!P && UI.read?.source==='file', nt=$('notice');
   nt.hidden=(!P&&!pv)||byCreator;
@@ -313,7 +313,7 @@ function cardDetail(p, c){
   const box=document.createElement('section'); box.className='fwdetail'; box.dataset.id=p.id; box.setAttribute('aria-label',p.name);
   const media=mediaHTML(p.name, c, cardOpt(p));
   box.innerHTML=`<div class="fwhead">${cardInner(p, c, cardOpt(p)).html}</div>`
-    +`<div class="fwact"><button type="button" class="primary" data-open>Open the manual</button><a href="${escAttr(p.repo)}" target="_blank" rel="noopener">${esc(repoShort(p.repo))} ↗</a></div>`
+    +`<div class="fwact"><button type="button" class="primary" data-open>Open the manual</button>${linksHTML(cardLinks(p.repo, listingOf(c.listing)))}</div>`
     +(media? `<div class="media">${media}</div>` : '<p class="hint">No video or sound for this firmware yet.</p>');
   box.querySelector('.fwhead .body').append(box.querySelector('.fwact'));   // the buttons under the card's text
   return box;

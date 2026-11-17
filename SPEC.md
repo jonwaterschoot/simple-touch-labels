@@ -136,7 +136,11 @@ Optional. What the library's card for the firmware adds to the directory entry, 
     { "src": "https://youtu.be/…", "text": "A first patch.\nRecorded straight from the output." },
     { "src": "media/demo.mp4" }
   ],
-  "audio": [{ "src": "media/demo.mp3", "text": "Pads only." }]
+  "audio": [{ "src": "media/demo.mp3", "text": "Pads only." }],
+  "links": [
+    { "url": "https://example.org/touchbass", "text": "Project website" },
+    { "url": "https://youtu.be/…", "text": "Tutorial" }
+  ]
 }
 ```
 
@@ -145,9 +149,10 @@ Optional. What the library's card for the firmware adds to the directory entry, 
 | `tags` | Up to 6 words of at most 24 characters, such as Synth, FX or Ambient. Tags that differ only in capitals, spaces or punctuation count as one, and the library shows the spelling already in use |
 | `image` | A picture in the repository for the card (`img/card.png`; PNG, JPG or WebP). Without it the card draws the panel in the file's theme and panel colours |
 | `video` | A list of up to 6 entries. `src` is an `https://` link, to YouTube (a Short shows in portrait) or to a video file (`.mp4`, `.m4v`, `.mov`, `.webm`), or a short clip in the repository (`media/demo.mp4`, not stored with Git LFS) |
+| `links` | A list of up to 4 entries, `{ "url": "https://…", "text": "Project website" }`. `text` is optional, one line of up to 40 characters. Without it the link shows its address. The repository (`firmware.repo`) is always the first link and is not repeated here. The small card shows the first two links, the open card and the manual all of them. A video here is only linked: to play it on the card, add it to `video` |
 | `audio` | A list of up to 6 entries. `src` is a sound file in the repository (`media/demo.mp3`; MP3, Ogg, WAV, M4A or FLAC, not stored with Git LFS) or an `https://` link. A link that is not a sound file shows as **Listen ↗** |
 
-An entry's `text` is an optional description: up to 10 lines and 600 characters, with `\n` between lines. The library shows three lines and **Show more**. In place of a list, `video` and `audio` also take one address as a string.
+An entry's `text` is an optional description: up to 10 lines and 600 characters, with `\n` between lines. The library shows three lines and **Show more**. In place of a list, `video`, `audio` and `links` also take one address as a string.
 
 A YouTube video shows as a still with a play button. The library keeps the still itself, so nothing is asked of YouTube until someone presses play.
 
