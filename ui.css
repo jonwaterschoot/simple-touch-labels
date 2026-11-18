@@ -682,12 +682,7 @@ button.lbl { min-width:8.5em; text-align:center; }
 .fwcard { display:flex; flex-direction:column; border:1px solid var(--hair); background:var(--field); min-width:0; }
 .fwsum { display:flex; flex:1; align-items:stretch; gap:14px; width:100%; padding:12px; border:0; font-weight:500; white-space:normal; }
 .fwsum .pic { flex:none; width:120px; }
-.fwsum .pic svg, .fwsum .pic img { display:block; width:100%; height:auto; }
-/* the panel's own proportions (DEVICE, core.js), so its height never waits on the SVG's; the button never clips it */
-.fwsum, .fwhead { overflow:visible; }
-.fwsum .pic, .fwhead .pic { align-self:flex-start; }
-.pic svg.thumb { aspect-ratio:894.14 / 1429.88; }
-.fwsum .body { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.fwsum .pic svg, .fwsum .pic img { display:block; width:100%; height:auto; }.fwsum .body { display:flex; flex-direction:column; gap:6px; min-width:0; }
 .fwsum b { font-size:16px; font-weight:700; overflow-wrap:anywhere; }
 .fwsum .by { font-size:12px; color:var(--muted); }
 .fwsum .txt { font-size:13px; line-height:1.45; max-width:70ch; }

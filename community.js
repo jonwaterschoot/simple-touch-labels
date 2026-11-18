@@ -464,10 +464,12 @@ function cardThumb(c, themes){
     if(typeof v==='number' && Number.isFinite(v)) q[k]=v;
     else if(typeof v==='string' && SAFE_COLOUR.test(v.trim())) q[k]=v.trim();
   }
-  const D=DEVICE, simple=q.drawing==='simple', id='ct'+(++thumbSeq);
+  // M: a margin around the device, in drawing units (about 1.5 px on a card). With the outline on the picture's edge,
+  // Chrome at some widths and zoom levels rounds the last pixel row away and the bottom edge goes missing.
+  const D=DEVICE, M=12, simple=q.drawing==='simple', id='ct'+(++thumbSeq);
   const parts= simple? simpleArt(q) : {base:'<use href="#panelBase"/>', ctl:'<use href="#panelCtl"/>'};
   const vars=Object.entries(PVARS).filter(([k])=>q[k]!=null && q[k]!=='').map(([k,v])=>`--${v}:${q[k]}`).join(';');
-  return `<svg class="thumb" viewBox="${D.x} ${D.y} ${D.w} ${D.h}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
+  return `<svg class="thumb" viewBox="${D.x-M} ${D.y-M} ${D.w+2*M} ${D.h+2*M}" aria-hidden="true" style="${escAttr(vars)}"><clipPath id="${id}"><rect x="${D.x}" y="${D.y}" width="${D.w}" height="${D.h}" rx="${simple?0:D.r}"/></clipPath><g clip-path="url(#${id})">${parts.base}${parts.ctl}</g></svg>`;
 }
 /* a card's picture and text: the same in the small card and at the head of the open card's row */
 function cardInner(p, c, o){
