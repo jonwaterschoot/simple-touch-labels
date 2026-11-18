@@ -140,6 +140,40 @@ async function latestRelease(r) {
   }
 }
 
+// The first link in a text to the repository owner's Pages (owner.github.io, owner.codeberg.page). pagesLink, community.js.
+function pagesLink(r, t) {
+  if (!t) return '';
+  const host = r.host === 'github.com' ? 'github\\.io' : 'codeberg\\.page';
+  const m = t.match(new RegExp(`https://${r.owner.replace(/\./g, '\\.')}\\.${host}(?:/[^\\s)"'<>\\]]*)?`, 'i'));
+  return m ? https(m[0].replace(/[.,;:]+$/, '')) : '';
+}
+
+// The repository's Pages site and its website field. GitHub says has_pages. Codeberg says nothing, so its
+// Pages address is tried (a pages branch, served at owner.codeberg.page/name/). undefined when the API failed.
+async function repoSite(r) {
+  const gh = r.host === 'github.com';
+  const api = gh ? `https://api.github.com/repos/${r.owner}/${r.name}` : `https://codeberg.org/api/v1/repos/${r.owner}/${r.name}`;
+  const headers = { accept: 'application/json', 'user-agent': 'simple-touch-labels-index' };
+  if (gh && process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  try {
+    const res = await fetch(api, { headers });
+    if (!res.ok) throw new Error(`${api}: ${res.status}`);
+    const d = await res.json();
+    const homepage = https(str(gh ? d.homepage : d.website, 300));
+    const own = r.name.toLowerCase() === `${r.owner.toLowerCase()}.${gh ? 'github.io' : 'codeberg.page'}`;
+    let pages = '';
+    if (gh && d.has_pages) pages = own ? `https://${r.owner.toLowerCase()}.github.io/` : `https://${r.owner.toLowerCase()}.github.io/${r.name}/`;
+    if (!gh) {
+      const url = `https://${r.owner.toLowerCase()}.codeberg.page/${r.name === 'pages' ? '' : r.name + '/'}`;
+      try { if ((await fetch(url, { method: 'HEAD' })).ok) pages = url; } catch { /* no Pages */ }
+    }
+    return { pages, homepage };
+  } catch (e) {
+    console.warn(String(e.message || e));
+    return undefined;
+  }
+}
+
 // The build plays in the library only from the firmware's own repository (emulatorOf, core.js).
 function ownBuild(wasm, r) {
   if (typeof wasm !== 'string') return false;
@@ -183,17 +217,25 @@ async function card(p, old) {
   const file = await text(rawUrl(r, LABEL_FILE));
   let fromFile = null;
   if (file) { try { fromFile = fromLabelFile(JSON.parse(file), r); } catch { /* not JSON */ } }
+  let readme = null;
+  for (const n of ['README.md', 'readme.md', 'Readme.md']) {
+    readme = await text(rawUrl(r, n));
+    if (readme) break;
+  }
   if (fromFile) {
     Object.assign(out, fromFile, { labels: 'file' });
     for (const k of ['version', 'page']) if (!out[k]) delete out[k];
     for (const k of ['play', 'live', 'oled', 'look', 'modes']) if (!out[k]) delete out[k];
     for (const v of out.listing.video || []) { const s = await still(v.src); if (s) v.still = s; }
     if (!Object.keys(out.listing).length) delete out.listing;
-  } else {
-    for (const n of ['README.md', 'readme.md', 'Readme.md']) {
-      if (await text(rawUrl(r, n))) { out.labels = 'readme'; break; }
-    }
-  }
+  } else if (readme) out.labels = 'readme';
+
+  // The creator's own page, best first: a link-only build's page, the Pages site, a Pages address in the README,
+  // the repository's website field. The library says so above the manual.
+  const site = await repoSite(r);
+  const best = out.page || site?.pages || pagesLink(r, readme) || site?.homepage || '';
+  if (best && best.replace(/\/+$/, '') !== p.repo) out.site = best;
+  else if (site === undefined && old?.site) out.site = old.site;
 
   const rel = await latestRelease(r);
   if (rel) out.release = rel;

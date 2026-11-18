@@ -33,6 +33,8 @@
       <nav class="nav"><a class="on" href="index.html" id="homeLink" title="All community firmware">Library</a><a href="editor.html" id="editLink">Designer</a><a href="guide.html">Guide</a><a href="about.html">About</a><a href="https://github.com/jonwaterschoot/simple-touch-labels" target="_blank">GitHub ↗</a></nav>
       <h1><span id="title">Simple Touch control map</span><button type="button" id="labelsInfo" class="info" hidden title="About these labels" aria-label="About these labels">i</button></h1>
       <p id="intro"></p>
+      <p class="toplinks" id="topLinks" hidden></p>
+      <p class="sitenote" id="siteNote" hidden></p>
     </div>
     <div class="export">
       <div class="btns"><button type="button" class="primary" id="pngBtn" title="PNG, PDF or print: pick what to include and the paper size">Export / print…</button><button type="button" id="flashBtn" title="Checks a firmware .bin and flashes it over USB" hidden>Upload to device…</button><span class="status" id="busy"></span></div>
@@ -148,6 +150,8 @@ function buildBars(){
   $('tabSeg').querySelectorAll('button').forEach((b,i)=>b.title=TABS[tabs[i]].title);
   const sel=$('srcSel'), items=tabItems(UI.tab), on= UI.proj? UI.proj.id : UI.src;
   sel.hidden=!UI.tab; $('cardsBtn').hidden=UI.tab!=='comm';
+  // a community manual is reached from the cards and goes back by Library: no picker above it
+  document.querySelector('.bar .pick').hidden= !!UI.proj && !UI.cards;
   sel.replaceChildren(...(UI.tab==='comm' && !items.some(([k])=>k===on)? [new Option(`Choose (${items.length})…`,'')] : []), ...items.map(([k,l])=>new Option(l,k)));
   sel.value= items.some(([k])=>k===on)? on : '';
   // the creator's look first; the library's themes below it
@@ -176,6 +180,7 @@ $('lblBtn').onclick=()=>Play.nextLabels();
 $('viewBtn').onclick=()=>{ const open=$('viewBtn').closest('.bar').classList.toggle('view-open'); $('viewBtn').setAttribute('aria-expanded',String(open)); };
 /* The Creator theme: the label file's own colours, sizes, font and drawing (doc.look); the other themes are the library's */
 const LIB_DESIGN=cloneDesign(design), lookFonts=new Set();
+const HOME_UI='ui-'+(LIB_DESIGN.themes.panel.ui||'dark');   // the cards are in the default theme's colours, whatever the last manual used
 function syncLook(){
   const L= UI.theme==='creator' && doc.look;
   design= L? L.design : LIB_DESIGN; ownStyles=!!L;
@@ -246,9 +251,33 @@ function noticeHTML(editHref){
   return `<p><b>Auto-extracted.</b> A script read ${r.found.length} label${r.found.length>1?'s':''} from ${files}. They can be incomplete or shortened, so check them against the repository. Controls it found nothing for show their Synthux names.</p>`+modes+creator
     +`<details><summary>What the script read</summary><table class="ctab"><thead><tr><th>Control</th><th>Label</th>${ms.length>1?'<th>Mode</th>':''}<th>Line it came from</th></tr></thead><tbody>${r.found.map(row).join('')}</tbody></table></details>`;
 }
+/* The creator's own page for a community firmware, best first: a link-only build's page in the label file, the
+   snapshot's site (community-index.json: Pages, a Pages address in the README, the repository's website field),
+   a Pages address in the README read here */
+function ownSite(P){
+  if(!P) return '';
+  const e=doc.emulator, r=UI.read;
+  return (e && e.embed==='link-only' && e.url) || safeHttps(cardIdx[P.id]?.site||'') || (r? r.files.map(f=>pagesLink(P.repo,f.text)).find(Boolean)||'' : '');
+}
+/* under the description: the creator's page, the repository and the label file's links. With labels not by the
+   creator, a line on where the full manual is. */
+function topInfo(P, repo){
+  const site=ownSite(P), bare=u=>u.replace(/\/+$/,'').toLowerCase();
+  const all=[...(site? [{url:site, text:'Creator\'s page'}] : []), ...cardLinks(repo, isFw()? doc.listing : null)];
+  const links=all.filter((l,i)=>all.findIndex(x=>bare(x.url)===bare(l.url))===i);
+  $('topLinks').hidden=!links.length; $('topLinks').innerHTML=linksHTML(links);
+  const r=UI.read, auto=!!P && !!r && r.source!=='file', note=$('siteNote');
+  note.hidden=!auto;
+  note.innerHTML= !auto? '' : site? `The creator has built a page of their own for this firmware: <a href="${escAttr(site)}" target="_blank" rel="noopener">${esc(linkName({url:site}))} ↗</a>. It has the full view and likely more complete information. ${r.source==='readme'? 'The labels here are auto-extracted from the README.' : 'The README had no labels to extract.'}`
+    : `The creator may have a page of their own. Look for a link in the <a href="#readme" data-readme>README</a> at the bottom of this page. ${r.source==='readme'? 'The labels here are auto-extracted from it.' : ''}`;
+}
+$('siteNote').onclick=e=>{
+  if(!e.target.closest('[data-readme]')) return;
+  e.preventDefault(); const d=$('readme'); d.open=true; d.scrollIntoView({behavior:'smooth', block:'start'});
+};
 function update(){
   syncLook(); buildBars(); if(!ready) return;
-  document.body.className='ui-'+(design.themes[V.theme].ui||'dark');
+  document.body.className= UI.cards? HOME_UI : 'ui-'+(design.themes[V.theme].ui||'dark');
   for(let i=1;i<=MOD_MAX;i++) document.documentElement.style.setProperty('--m'+i, palOf('phone')['m'+i]);
   // while playing or full screen, one drawing: the one the controls are on
   const fw=doc.firmware, both=hasSecondary()&&!Play.on&&!Play.stage;
@@ -259,7 +288,7 @@ function update(){
   fig.innerHTML= both? `<div class="duo${stack?' stack':''}">${draw('main')}${draw('second')}</div>` : draw(part);
   curPart=part;
   Play.strip(); Play.attach(fig);
-  const P=UI.proj, pv=UI.src==='preview', view=`theme=${UI.theme}&layout=${V.layout}`;
+  const P=UI.proj, pv=UI.src==='preview', view=`theme=${doc.look? UI.theme : UI.libTheme}&layout=${V.layout}`;
   const editHref= pv? 'editor.html' : 'editor.html?'+(P? 'community='+encodeURIComponent(P.id) : isFw()? 'start='+UI.src : 'start=blank&ref='+UI.src)+`&theme=${V.theme}&layout=${V.layout}`;
   $('title').textContent= pv? 'Preview · '+(fw.name||'your manual') : P? fw.name : isFw()? (fw.name||EXAMPLES[UI.src].label)+' manual' : 'Simple Touch control map';
   $('intro').textContent= isFw()? [fw.description, fw.author&&'By '+fw.author+'.'].filter(Boolean).join(' ')||'Firmware for the Simple Touch.' : INTRO[UI.src];
@@ -277,6 +306,7 @@ function update(){
     +(UI.src==='pd'?'<figure class="pdfig"><figcaption class="cap">simple_touch_template.pd</figcaption><img src="assets/simple_touch_pd.png" alt="Screenshot of the simple_touch_template Plugdata patch"></figure>':'');
   Play.table();
   const notes=$('notes'); notes.hidden=!(fw.notes||'').trim(); notes.innerHTML=md2html(fw.notes);
+  topInfo(P, repo||'');
   cardInfo(P, pv, repo||'');
   readmeSection(repo);
   $('editLink').href=editHref;
@@ -364,7 +394,11 @@ function cardFilter(key){
   placeDetail();
 }
 /* the page's heading while the cards are open; update() writes the open firmware's there */
-function cardsHead(){ $('title').textContent='Community firmware'; $('intro').textContent=TABS.comm.title+'.'; $('labelsInfo').hidden=true; }
+function cardsHead(){
+  $('title').textContent='Community firmware'; $('intro').textContent=TABS.comm.title+'.';
+  $('labelsInfo').hidden=$('topLinks').hidden=$('siteNote').hidden=true;
+  document.body.className=HOME_UI;
+}
 async function showCards(on, keep=false){
   if(on===UI.cards) return;
   if(!keep) leave();

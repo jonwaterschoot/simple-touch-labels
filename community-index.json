@@ -92,6 +92,7 @@
         "leader": "#ffe8bd",
         "ink": "#f3f2f2"
       },
+      "site": "https://jonwaterschoot.github.io/TouchPlaited/",
       "release": {
         "tag": "v1.9.0",
         "date": "2026-08-08",
@@ -106,6 +107,7 @@
       "description": "A pulsar synthesizer for the Synthux Simple Touch, after Curtis Roads: formant pulse trains, masking, convolution and live input, played from the pads or via MIDI.",
       "repo": "https://github.com/imagiag/TouchPulsar",
       "labels": "readme",
+      "site": "https://pulsar.imagiag.com",
       "release": {
         "tag": "v12",
         "date": "2026-10-30",
@@ -158,6 +160,7 @@
         "ink": "#f3f2f2",
         "sw": "#fd2b55"
       },
+      "site": "https://jonwaterschoot.github.io/TouchSpore/",
       "release": {
         "tag": "v0.2.0",
         "date": "2026-11-09",
@@ -203,6 +206,7 @@
         "leader": "#d9a441",
         "ink": "#f3f2f2"
       },
+      "site": "https://jonwaterschoot.github.io/TouchVink/",
       "release": {
         "tag": "v0.2.0",
         "date": "2026-09-29",

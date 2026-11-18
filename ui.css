@@ -9,6 +9,11 @@ body { background:var(--page); color:var(--text); --line:color-mix(in srgb, var(
 .intro { flex:1 1 480px; min-width:0; display:flex; flex-direction:column; gap:8px; }
 .intro h1 { margin:0; font-size:34px; line-height:1.05; }
 .intro p { margin:0; max-width:680px; font-size:15px; line-height:1.5; text-wrap:pretty; }
+.intro .toplinks { display:flex; flex-wrap:wrap; gap:4px 18px; font-size:14px; font-weight:600; }
+.intro .toplinks a { color:var(--kicker); overflow-wrap:anywhere; }
+.intro .toplinks[hidden], .intro .sitenote[hidden] { display:none; }
+.intro .sitenote { font-size:14px; color:var(--muted); border-left:3px solid var(--kicker); padding-left:10px; }
+.intro .sitenote a { color:var(--text); font-weight:700; }
 .nav { display:flex; gap:8px 16px; flex-wrap:wrap; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
 .nav a { color:var(--muted); text-decoration:none; }
 .nav a:hover { color:var(--active); }

@@ -94,6 +94,15 @@ function manualLinks(md){
   return out.slice(0,2);
 }
 
+/* the first link in a text to the repository owner's Pages (owner.github.io, owner.codeberg.page); pagesLink in
+   scripts/community-index.mjs reads the same */
+function pagesLink(repo, text){
+  const r=repoParts(repo); if(!r || !text) return '';
+  const host= r.host==='github.com'? 'github\\.io' : 'codeberg\\.page';
+  const m=text.match(new RegExp(`https://${r.owner.replace(/\./g,'\\.')}\\.${host}(?:/[^\\s)"'<>\\]]*)?`,'i'));
+  return m? safeHttps(m[0].replace(/[.,;:]+$/,'')) : '';
+}
+
 /* A label file from a repository: only the label data, as strings of the usual lengths,
    and a browser build only if it comes from that same repository (emulatorOf) */
 function labelFileDoc(d, repo){
