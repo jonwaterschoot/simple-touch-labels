@@ -295,9 +295,8 @@ $('pngBtn').onclick=()=>{
 };
 /* The community cards, the page's home: one per firmware in the directory (cardHTML, community.js). A card adds what
    community-index.json holds for it: a daily snapshot of the directory's repositories (scripts/community-index.mjs).
-   A click marks the card and opens its detail (videos, sounds, a button to the manual) as a row under the card's own
-   row. The open card keeps its picture and name, and the row repeats the card in full. It stays open until another card
-   is chosen.
+   A click opens the card's detail (videos, sounds, a button to the manual) as a row under the card's own row, and the
+   card itself fades to an empty slot. The row repeats the card in full. It stays open until another card is chosen.
    The browser's back button: leaving the cards for a manual, or a manual for the cards, adds a history entry
    (pushState of the address as it is; the code that follows rewrites the new entry). popstate draws what the address names. */
 let popping=false;
@@ -333,23 +332,28 @@ function closeCards(){
   $('cards').querySelectorAll('.fwcard.open').forEach(a=>{ a.classList.remove('open'); a.querySelector('.fwsum').setAttribute('aria-expanded','false'); });
   $('cards').querySelectorAll('.fwdetail').forEach(d=>d.remove());
 }
-function openCard(p, scroll=true){
+/* from: 'click' keeps the clicked card where it was on screen, even when an open row above it closes.
+   'link' (an address with ?card=) scrolls the card's row to the top when it is far down. 'pop' draws it without motion. */
+function openCard(p, from='click'){
   const art=$('cards').querySelector(`.fwcard[data-id="${CSS.escape(p.id)}"]`);
   if(!art || art.hidden || art.classList.contains('open')) return;
-  const old=$('cards').querySelector('.fwdetail'), oldTop=old? old.offsetTop : -1;
+  const old=$('cards').querySelector('.fwdetail'), oldTop=old? old.offsetTop : -1, y0=art.getBoundingClientRect().top;
   closeCards();   // one open card at a time, and closing one stops its video
   art.classList.add('open'); art.querySelector('.fwsum').setAttribute('aria-expanded','true');
   const d=cardDetail(p, cardIdx[p.id]||{}); art.after(d); placeDetail();
   history.replaceState(null,'','?card='+encodeURIComponent(p.id));
-  // The row grows open and fades in. A row that takes the place of the last one only fades, so the cards below stay put.
-  if(scroll && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const at=art.offsetParent? art : d, dy=at.getBoundingClientRect().top-y0;   // on a phone the row takes the hidden card's place
+  if(from==='click' && Math.abs(dy)>=1) scrollBy({top:dy, behavior:'instant'});
+  if(from==='link'){ const t=at.getBoundingClientRect().top; if(t<0 || t>innerHeight/2) scrollTo({top:scrollY+t-12, behavior:'smooth'}); }
+  // The row folds open and fades in. A row that takes the place of the last one only fades, so the cards below stay put.
+  if(from!=='pop' && !matchMedia('(prefers-reduced-motion: reduce)').matches){
     const h=d.offsetHeight, grow=d.offsetTop!==oldTop;
     d.style.overflow='hidden';
     d.animate(grow? [{height:'0px', paddingTop:'0px', paddingBottom:'0px', opacity:0},{height:h+'px', opacity:1}] : [{opacity:0},{opacity:1}], {duration:grow? 280 : 180, easing:'ease-out'})
       .finished.catch(()=>{}).then(()=>{ d.style.overflow=''; });
   }
-  const top=(art.offsetParent? art : d).getBoundingClientRect().top;
-  if(scroll && (top<0 || top+d.offsetHeight+(art.offsetParent? art.offsetHeight : 0)>innerHeight)) scrollTo({top:scrollY+top-12, behavior:'smooth'});
+  // the card's button is hidden now: the keyboard goes on from the row's first button
+  if(from==='click') d.querySelector('[data-open]').focus({preventScroll:true});
 }
 /* the tag row above the cards: one tag at a time, '' for all */
 function cardFilter(key){
@@ -396,7 +400,7 @@ addEventListener('popstate', async()=>{
     if(P) await pick('community',P,true);
     else if(q.has('preview')) await pick('preview',null,true);
     else if(REF_SETS[src] || FIRMWARE.includes(src)) await pick(src,null,true);
-    else { UI.cards=false; await showCards(true,true); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p,false); }
+    else { UI.cards=false; await showCards(true,true); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p,'pop'); }
   } finally { popping=false; }
 });
 /* under a community manual: the tags, videos and sounds of its label file's listing block. Drawn again only when
@@ -441,7 +445,7 @@ $('libSplit').addEventListener('dblclick',()=>{ try{ localStorage.removeItem(fig
   // the cards are the home: every address that names no firmware, wiring set or preview
   if(q.has('all') || q.has('card') || !(P || q.has('src') || q.has('preview'))){
     const list=await community;
-    if(list.length){ await showCards(true,true); history.replaceState(null,'',location.pathname); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p); }
+    if(list.length){ await showCards(true,true); history.replaceState(null,'',location.pathname); const p=list.find(x=>x.id===q.get('card')); if(p) openCard(p,'link'); }
   }
 })();
 </script>

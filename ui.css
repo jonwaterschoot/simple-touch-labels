@@ -687,15 +687,14 @@ button.lbl { min-width:8.5em; text-align:center; }
 .meta input.bad { border-color:var(--warn); }
 .fwcard[hidden] { display:none; }
 .fwcard:hover { border-color:var(--active); }
-/* the open card and its row share one outline: the card reaches down over the gap and covers the row's top border */
-.fwcard.open { position:relative; z-index:1; background:linear-gradient(var(--field), var(--field)), var(--page); border-color:var(--active); border-bottom:0; margin-bottom:-16px; padding-bottom:17px; }
-.fwcard.open .by, .fwcard.open .txt, .fwcard.open .tags, .fwcard.open .fwlinks { display:none; }
+/* the open card is an empty slot: its contents fade out while its row folds open below (openCard, index.html).
+   visibility keeps the hidden button out of the tab order. */
+.fwcard > * { transition:opacity .28s ease-out, visibility .28s; }
+.fwcard.open, .fwcard.open:hover { background:transparent; border-color:var(--hair); }
+.fwcard.open > * { opacity:0; visibility:hidden; }
 /* the card's first links, under its button (cardHTML, community.js) */
 .fwlinks { display:flex; flex-wrap:wrap; gap:4px 16px; padding:0 12px 12px; font-size:12px; min-width:0; }
 .fwlinks a { overflow-wrap:anywhere; }
-.fwcard.open .fwsum { cursor:default; }
-.fwsum > * { transition:opacity .2s; }
-.fwcard.open .fwsum > * { opacity:.55; }
 .fwhead { display:flex; align-items:flex-start; gap:18px; }
 .fwhead .pic { flex:none; width:min(200px, 36%); }
 .fwhead .pic svg, .fwhead .pic img { display:block; width:100%; height:auto; }
